@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-paper text-ink antialiased;
+}
+
+input, select, textarea {
+  @apply rounded-lg border border-line bg-white px-2.5 py-2 text-sm outline-none transition-colors focus:border-pine;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+  @apply outline outline-2 outline-offset-2 outline-pine;
+}
+
+table.data {
+  @apply w-full border-collapse text-sm;
+}
+
+table.data th {
+  @apply border-b border-line bg-court/60 px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-ink-soft;
+}
+
+table.data td {
+  @apply border-b border-line/70 px-3 py-2 align-top;
+}
+
+table.data tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+table.data tbody tr:hover td {
+  @apply bg-court/40;
+}
+
+/* Utilities like text-right lose against `table.data th/td` above
+   (higher specificity), so re-assert them for aligned numeric columns. */
+table.data th.text-right,
+table.data td.text-right {
+  text-align: right;
+}
+
+table.data th.text-center,
+table.data td.text-center {
+  text-align: center;
+}
