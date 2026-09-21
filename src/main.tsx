@@ -12,7 +12,9 @@ import { PlayersPage } from "./pages/Players";
 import { InventoryPage } from "./pages/Inventory";
 import { FinancePage } from "./pages/Finance";
 import { ReportsPage } from "./pages/Reports";
+import { NoShowTrackerPage } from "./pages/NoShowTracker";
 import { SimulatorPage } from "./pages/Simulator";
+import { I18nProvider } from "./i18n";
 import "./index.css";
 
 function Guard({ children }: { children: JSX.Element }) {
@@ -24,21 +26,24 @@ function Guard({ children }: { children: JSX.Element }) {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Guard><DashboardPage /></Guard>} />
-          <Route path="/mabar" element={<Guard><MabarListPage /></Guard>} />
-          <Route path="/mabar/:id" element={<Guard><MabarDetailPage /></Guard>} />
-          <Route path="/periods" element={<Guard><PeriodListPage /></Guard>} />
-          <Route path="/periods/:id" element={<Guard><PeriodDetailPage /></Guard>} />
-          <Route path="/players" element={<Guard><PlayersPage /></Guard>} />
-          <Route path="/inventory" element={<Guard><InventoryPage /></Guard>} />
-          <Route path="/finance" element={<Guard><FinancePage /></Guard>} />
-          <Route path="/reports" element={<Guard><ReportsPage /></Guard>} />
-          <Route path="/simulator" element={<Guard><SimulatorPage /></Guard>} />
-        </Routes>
-      </BrowserRouter>
+      <I18nProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<Guard><DashboardPage /></Guard>} />
+            <Route path="/mabar" element={<Guard><MabarListPage /></Guard>} />
+            <Route path="/mabar/:id" element={<Guard><MabarDetailPage /></Guard>} />
+            <Route path="/periods" element={<Guard><PeriodListPage /></Guard>} />
+            <Route path="/periods/:id" element={<Guard><PeriodDetailPage /></Guard>} />
+            <Route path="/players" element={<Guard><PlayersPage /></Guard>} />
+            <Route path="/no-shows" element={<Guard><NoShowTrackerPage /></Guard>} />
+            <Route path="/inventory" element={<Guard><InventoryPage /></Guard>} />
+            <Route path="/finance" element={<Guard><FinancePage /></Guard>} />
+            <Route path="/reports" element={<Guard><ReportsPage /></Guard>} />
+            <Route path="/simulator" element={<Guard><SimulatorPage /></Guard>} />
+          </Routes>
+        </BrowserRouter>
+      </I18nProvider>
     </Provider>
   </StrictMode>
 );

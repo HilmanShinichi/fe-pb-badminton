@@ -6,6 +6,7 @@ import type {
   MatchRow,
   Membership,
   Period,
+  PeriodAttendanceMatrixResponse,
   Player,
   Product,
   SimpleStatRow,
@@ -63,6 +64,7 @@ export interface MabarSummary {
   revenue: number;
   billed_paid: number;
   court_cost: number;
+  prepaid_courts: number;
   shuttlecock_used: number;
   shuttlecock_cost: number;
   other_expense: number;
@@ -188,6 +190,64 @@ export interface InactiveReport {
   players: ReportRow[];
 }
 
+export interface ReportFilterParams {
+  scope?: string;
+  period_id?: string;
+  session_id?: string;
+}
+
+export interface NoShowTrackerIncident {
+  attendance_id: string;
+  session_id: string;
+  session_date: string;
+  session_type: string;
+  period_name: string;
+  venue_name: string;
+  player_id: string;
+  player_name: string;
+  status: string; // "NO_SHOW" | "CANCELLED"
+  reason: string;
+  listed_at: string;
+}
+
+export interface NoShowTrackerPlayer {
+  player_id: string;
+  player_name: string;
+  no_show_count: number;
+  cancelled_count: number;
+  total_incidents: number;
+  total_listed: number;
+  rate_bp: number;
+  last_incident: string;
+  incidents: NoShowTrackerIncident[];
+}
+
+export interface NoShowTrackerResponse {
+  months: number;
+  scope: string;
+  total_incidents: number;
+  players: NoShowTrackerPlayer[];
+  incidents: NoShowTrackerIncident[];
+}
+
+export interface NoShowTrackerParams {
+  months?: number;
+  scope?: string;
+  period_id?: string;
+  session_id?: string;
+  status?: string;
+}
+
+function buildReportQuery(p?: ReportFilterParams | void): string {
+  if (!p) return "";
+  const qs = new URLSearchParams();
+  if (p.scope && p.scope !== "ALL") qs.set("scope", p.scope);
+  if (p.period_id) qs.set("period_id", p.period_id);
+  if (p.session_id) qs.set("session_id", p.session_id);
+  const s = qs.toString();
+  return s ? `?${s}` : "";
+}
+
 export const api = baseApi.injectEndpoints({
   endpoints: (build) => ({
     dashboard: build.query<DashboardData, DashboardParams | void>({
@@ -256,6 +316,10 @@ export const api = baseApi.injectEndpoints({
       query: ({ periodId, ...body }) => ({ url: `/api/v1/periods/${periodId}/members`, method: "POST", body }),
       invalidatesTags: (_r, _e, { periodId }) => [{ type: "Members", id: periodId }],
     }),
+    removeMember: build.mutation<unknown, { periodId: string; playerId: string }>({
+      query: ({ periodId, playerId }) => ({ url: `/api/v1/periods/${periodId}/members/${playerId}?hard=true`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, { periodId }) => [{ type: "Members", id: periodId }, "Mabar", "Dashboard", "Finance"],
+    }),
     periodSessions: build.query<MabarSession[], string>({
       query: (id) => `/api/v1/mabar?period_id=${id}`,
       providesTags: ["Mabar"],
@@ -267,6 +331,10 @@ export const api = baseApi.injectEndpoints({
     sessionBreakdown: build.query<SessionBreakdownRow[], string>({
       query: (id) => `/api/v1/periods/${id}/session-breakdown`,
       providesTags: (_r, _e, id) => [{ type: "Periods", id }, "Mabar"],
+    }),
+    periodAttendanceMatrix: build.query<PeriodAttendanceMatrixResponse, string>({
+      query: (id) => `/api/v1/periods/${id}/attendance-matrix`,
+      providesTags: (_r, _e, id) => [{ type: "Periods", id }, "Mabar", "Members"],
     }),
 
     mabarList: build.query<MabarSession[], string>({
@@ -300,12 +368,13 @@ export const api = baseApi.injectEndpoints({
     }),
     setAttendance: build.mutation<
       AttendanceRow[],
-      { sessionId: string; players?: Array<{ player_id: string; status: string; is_member: boolean }>; present_all?: boolean }
+      { sessionId: string; players?: Array<{ player_id: string; status: string; is_member?: boolean; no_show_reason?: string }>; present_all?: boolean; seed_members?: boolean }
     >({
       query: ({ sessionId, ...body }) => ({ url: `/api/v1/mabar/${sessionId}/attendance`, method: "POST", body }),
       invalidatesTags: (_r, _e, { sessionId }) => [
         { type: "Attendance", id: sessionId },
         { type: "Mabar", id: sessionId },
+        "Reports",
       ],
     }),
     attendanceStats: build.query<AttendanceStats, string>({
@@ -439,29 +508,52 @@ export const api = baseApi.injectEndpoints({
     venues: build.query<Array<{ id: string; name: string; court_count: number }>, void>({
       query: () => "/api/v1/venues",
     }),
-    reportAttendance: build.query<ReportRow[], void>({
-      query: () => "/api/v1/reports/attendance",
+    reportAttendance: build.query<ReportRow[], ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/attendance${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
-    reportNoShow: build.query<ReportRow[], void>({
-      query: () => "/api/v1/reports/no-show",
+    reportNoShow: build.query<ReportRow[], ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/no-show${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
-    reportShuttlecock: build.query<ReportRow[], void>({
-      query: () => "/api/v1/reports/shuttlecock",
+    reportShuttlecock: build.query<ReportRow[], ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/shuttlecock${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
-    reportPlayerUsage: build.query<ReportRow[], void>({
-      query: () => "/api/v1/reports/player-usage",
+    reportPlayerUsage: build.query<ReportRow[], ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/player-usage${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
-    reportFinancial: build.query<{ total_revenue: number; total_expense: number; cash_flow: number; revenue_by_source: Record<string, number>; expense_by_category: Record<string, number> }, void>({
-      query: () => "/api/v1/reports/financial",
+    reportFinancial: build.query<{ total_revenue: number; total_expense: number; cash_flow: number; revenue_by_source: Record<string, number>; expense_by_category: Record<string, number> }, ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/financial${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
     reportInactive: build.query<InactiveReport, number>({
       query: (months) => `/api/v1/reports/inactive-members?months=${months}`,
       providesTags: ["Reports"],
+    }),
+    noShowTracker: build.query<NoShowTrackerResponse, NoShowTrackerParams | void>({
+      query: (p) => {
+        const qs = new URLSearchParams();
+        if (p?.months) qs.set("months", String(p.months));
+        if (p?.scope && p.scope !== "ALL") qs.set("scope", p.scope);
+        if (p?.period_id) qs.set("period_id", p.period_id);
+        if (p?.session_id) qs.set("session_id", p.session_id);
+        if (p?.status && p.status !== "ALL") qs.set("status", p.status);
+        const s = qs.toString();
+        return `/api/v1/reports/no-show-tracker${s ? `?${s}` : ""}`;
+      },
+      providesTags: ["Reports", "Mabar"],
+    }),
+    deleteNoShowIncident: build.mutation<
+      { ok: boolean; action: string; player_deleted?: boolean },
+      { attendanceId: string; restorePresent?: boolean }
+    >({
+      query: ({ attendanceId, restorePresent }) => ({
+        url: `/api/v1/reports/no-show-tracker/${attendanceId}${restorePresent ? "?restore_present=true" : ""}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Reports", "Attendance", "Mabar", "Players"],
     }),
 
     simulatePeriod: build.mutation<Record<string, number | string | Array<Record<string, number>>>, Record<string, unknown>>({
@@ -488,9 +580,11 @@ export const {
   usePeriodSummaryQuery,
   usePeriodMembersQuery,
   useAddMemberMutation,
+  useRemoveMemberMutation,
   usePeriodSessionsQuery,
   useShuttlecockMatrixQuery,
   useSessionBreakdownQuery,
+  usePeriodAttendanceMatrixQuery,
   useMabarListQuery,
   useCreateMabarMutation,
   useUpdateMabarMutation,
@@ -523,6 +617,8 @@ export const {
   useVenuesQuery,
   useReportAttendanceQuery,
   useReportNoShowQuery,
+  useNoShowTrackerQuery,
+  useDeleteNoShowIncidentMutation,
   useReportShuttlecockQuery,
   useReportPlayerUsageQuery,
   useReportFinancialQuery,

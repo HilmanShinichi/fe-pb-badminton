@@ -1,0 +1,344 @@
+export type Language = "id" | "en";
+
+export interface NavTranslations {
+  dashboard: { label: string; desc: string };
+  mabar: { label: string; desc: string };
+  periods: { label: string; desc: string };
+  players: { label: string; desc: string };
+  noShows: { label: string; desc: string };
+  inventory: { label: string; desc: string };
+  finance: { label: string; desc: string };
+  reports: { label: string; desc: string };
+  simulator: { label: string; desc: string };
+  venues: { label: string; desc: string };
+  logout: string;
+  admin: string;
+}
+
+export interface CommonTranslations {
+  loading: string;
+  save: string;
+  saving: string;
+  cancel: string;
+  delete: string;
+  deleting: string;
+  close: string;
+  back: string;
+  edit: string;
+  confirm: string;
+  actions: string;
+  search: string;
+  all: string;
+  filter: string;
+  downloadCsv: string;
+  yes: string;
+  no: string;
+  error: string;
+  success: string;
+  retry: string;
+  none: string;
+  optional: string;
+  required: string;
+  status: string;
+  date: string;
+  venue: string;
+  player: string;
+  type: string;
+  notes: string;
+  amount: string;
+  total: string;
+  count: string;
+  rate: string;
+  history: string;
+  viewDetails: string;
+}
+
+export interface StatusTranslations {
+  PROFIT: string;
+  LOSS: string;
+  BREAK_EVEN: string;
+  ACTIVE: string;
+  DRAFT: string;
+  COMPLETED: string;
+  CANCELLED: string;
+  PRESENT: string;
+  LISTED: string;
+  CONFIRMED: string;
+  ABSENT: string;
+  NO_SHOW: string;
+  PERIOD: string;
+  DAILY_EVENT: string;
+  PAID: string;
+  UNPAID: string;
+  DAILY: string;
+  GENERAL: string;
+  SETTLED: string;
+  PENDING: string;
+  NO_BILLS: string;
+  PARTIALLY_PAID: string;
+  WAIVED: string;
+  ARCHIVED: string;
+}
+
+export interface NoShowTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  btnRecordManual: string;
+  btnDownloadCsv: string;
+  monthsAll: string;
+  months3: string;
+  months6: string;
+  months9: string;
+  months12: string;
+  filterScopeLabel: string;
+  scopeAll: string;
+  scopePeriod: string;
+  scopeDaily: string;
+  fullPeriod: string;
+  perPeriod: string;
+  fullDaily: string;
+  perDaily: string;
+  selectPeriod: string;
+  selectSession: string;
+  statusAll: string;
+  statusNoShowOnly: string;
+  statusCancelledOnly: string;
+  kpiTotalCases: string;
+  kpiTotalCasesSub: string;
+  kpiCancelled: string;
+  kpiCancelledSub: string;
+  kpiAffectedPlayers: string;
+  kpiAffectedPlayersSub: string;
+  kpiTopOffender: string;
+  kpiTopOffenderSub: string;
+  topOffendersTitle: string;
+  topOffendersSubtitle: string;
+  tabLeaderboard: string;
+  tabIncidentLog: string;
+  searchPlaceholder: string;
+  colRank: string;
+  colPlayerName: string;
+  colNoShow: string;
+  colCancelled: string;
+  colTotalIncidents: string;
+  colListedSessions: string;
+  colNoShowRate: string;
+  colLastTime: string;
+  colAction: string;
+  colSessionType: string;
+  colSessionVenue: string;
+  colAdminNotes: string;
+  btnDetails: string;
+  btnDelete: string;
+  emptyIncidentsTitle: string;
+  emptyIncidentsMonths: string;
+  emptyIncidentsAllTime: string;
+  emptySearchPlayer: string;
+  emptySearchIncidents: string;
+  // Player Modal
+  playerModalTitle: string;
+  playerModalSubtitle: string;
+  playerModalEmptyTitle: string;
+  playerModalEmptyDesc: string;
+  playerModalNotes: string;
+  playerModalNoNotes: string;
+  btnClose: string;
+  // Delete Confirmation Modal
+  deleteModalTitle: string;
+  deleteModalSubtitle: string;
+  deleteModalPrompt: string;
+  deleteOptionRemoveTitle: string;
+  deleteOptionRemoveDesc: string;
+  deleteOptionPresentTitle: string;
+  deleteOptionPresentDesc: string;
+  btnConfirmDelete: string;
+  btnConfirmDeleting: string;
+  successDeletedFromSession: string;
+  successRestoredPresent: string;
+  errorDeleteFailed: string;
+  // Manual Entry Modal
+  manualModalTitle: string;
+  manualModalSubtitle: string;
+  manualStepSessionType: string;
+  manualDailyType: string;
+  manualPeriodType: string;
+  manualStepSession: string;
+  manualNoSessions: string;
+  manualStepPlayer: string;
+  manualSearchPlayerPlaceholder: string;
+  manualPlayerCountText: string;
+  manualNoPlayersMatched: string;
+  manualStepStatus: string;
+  manualStatusNoShowDesc: string;
+  manualStatusCancelledDesc: string;
+  manualStepNotes: string;
+  manualNotesPlaceholder: string;
+  btnSaveRecord: string;
+  btnSavingRecord: string;
+  successSaved: string;
+  errorSelectSession: string;
+  errorSelectPlayer: string;
+  errorSaveFailed: string;
+}
+
+export interface ReportsTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  btnDownloadCsv: string;
+  tabAttendance: string;
+  tabNoShow: string;
+  tabShuttlecock: string;
+  tabUsage: string;
+  tabFinancial: string;
+  tabInactive: string;
+  scopeFilterLabel: string;
+  scopeAll: string;
+  scopePeriod: string;
+  scopeDaily: string;
+  filterFullPeriod: string;
+  filterPerPeriod: string;
+  filterFullDaily: string;
+  filterPerDaily: string;
+  selectPeriodPrompt: string;
+  selectDailyPrompt: string;
+  activeFilterPrefix: string;
+  activeFilterAll: string;
+  searchPlayerPlaceholder: string;
+  emptyData: string;
+  // Attendance tab
+  kpiOverallAttendance: string;
+  kpiTotalListed: string;
+  kpiCancellations: string;
+  kpiNoShowRate: string;
+  // No-Show tab
+  kpiNoShowCases: string;
+  kpiPlayersAffected: string;
+  kpiMaxNoShowRecord: string;
+  noShowCleanTitle: string;
+  noShowCleanDesc: string;
+  // Shuttlecock tab
+  kpiTotalCocksUsed: string;
+  kpiMatchesPlayed: string;
+  kpiAvgCocksPerMatch: string;
+  kpiTopCockConsumer: string;
+  // Usage tab
+  kpiActivePlayers: string;
+  kpiTotalAttendances: string;
+  kpiTotalMatches: string;
+  kpiTotalShuttlecocks: string;
+  // Financial tab
+  kpiTotalRevenue: string;
+  kpiTotalExpense: string;
+  kpiNetCashFlow: string;
+  kpiOperatingMargin: string;
+  revenueBreakdownTitle: string;
+  expenseBreakdownTitle: string;
+  cashLedgerTitle: string;
+  // Inactive tab
+  kpiInactiveMembers: string;
+  kpiAvgDaysAbsent: string;
+  kpiLongestAbsence: string;
+  inactiveThreshold3: string;
+  inactiveThreshold6: string;
+  inactiveThreshold9: string;
+  inactiveThreshold12: string;
+}
+
+export interface DashboardTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  cashFlowMonth: string;
+  cashFlowDesc: string;
+  daily: string;
+  period: string;
+  general: string;
+  in: string;
+  out: string;
+  stockPcs: string;
+  activePeriod: string;
+  membersCount: string;
+  noActivePeriod: string;
+  shuttlecockStock: string;
+  stockBreakdownShared: string;
+  usageExceeds: string;
+  allProducts: string;
+  nextSession: string;
+  upcomingCount: string;
+  nothingScheduled: string;
+  periodOpenPlay: string;
+  dailyOpenPlay: string;
+  upcomingAndRecent: string;
+  recentProfit: string;
+  sessionsCount: string;
+  members: string;
+  billsPaid: string;
+  allSettled: string;
+  collecting: string;
+  filterAll: string;
+  upcomingSessions: string;
+  noSessionsScheduled: string;
+  noTypeSessionsScheduled: string;
+  colDate: string;
+  colType: string;
+  colVenue: string;
+  recentSessionsTitle: string;
+  searchSessionsPlaceholder: string;
+  noSessionsMatch: string;
+  noFinishedSessions: string;
+  colResult: string;
+  colBills: string;
+  colProfit: string;
+  billsPaidCount: string;
+  pageOf: string;
+  prev: string;
+  next: string;
+  profitDisclaimer: string;
+  deleteModalTitle: string;
+  deleteModalSessionIntro: string;
+  deleteModalList1: string;
+  deleteModalList2: string;
+  deleteModalList3: string;
+  deleteModalConfirm: string;
+  errorLoad: string;
+  errorDelete: string;
+}
+
+export interface PlayersTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  newPlayer: string;
+  nameLabel: string;
+  nameRequired: string;
+  phoneLabel: string;
+  phoneHint: string;
+  notesLabel: string;
+  notesHint: string;
+  btnAddPlayer: string;
+  btnSaving: string;
+  searchPlaceholder: string;
+  errorLoad: string;
+  errorSave: string;
+  errorDelete: string;
+  emptyMatching: string;
+  emptyNone: string;
+  colName: string;
+  colPhone: string;
+  colStatus: string;
+  deleteModalTitle: string;
+  deleteModalBody: string;
+  btnConfirmDelete: string;
+  btnSave: string;
+  btnEdit: string;
+  btnDelete: string;
+  btnCancel: string;
+}
+
+export interface TranslationSchema {
+  nav: NavTranslations;
+  common: CommonTranslations;
+  status: StatusTranslations;
+  noShow: NoShowTranslations;
+  reports: ReportsTranslations;
+  dashboard: DashboardTranslations;
+  players: PlayersTranslations;
+}

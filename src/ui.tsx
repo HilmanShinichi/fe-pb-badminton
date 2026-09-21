@@ -2,12 +2,54 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { statusClass, statusLabel } from "./format";
+import { useI18n } from "./i18n";
 
 export function Badge({ status }: { status: string }) {
+  const { lang } = useI18n();
   return (
-    <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-medium ${statusClass(status)}`}>
-      {statusLabel(status)}
+    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold tracking-wide shadow-2xs ${statusClass(status)}`}>
+      {statusLabel(status, lang)}
     </span>
+  );
+}
+
+export function LanguageSwitcher({ className = "" }: { className?: string }) {
+  const { lang, setLang } = useI18n();
+  return (
+    <div
+      role="group"
+      aria-label="Language selector"
+      className={`inline-flex items-center rounded-xl border border-line bg-white/90 p-0.5 shadow-2xs ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => setLang("id")}
+        aria-pressed={lang === "id"}
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+          lang === "id"
+            ? "bg-gradient-to-r from-pine to-emerald-800 text-white shadow-2xs"
+            : "text-ink-soft hover:text-ink hover:bg-court/60"
+        }`}
+        title="Bahasa Indonesia"
+      >
+        <span>🇮🇩</span>
+        <span className="tracking-tight">ID</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setLang("en")}
+        aria-pressed={lang === "en"}
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+          lang === "en"
+            ? "bg-gradient-to-r from-pine to-emerald-800 text-white shadow-2xs"
+            : "text-ink-soft hover:text-ink hover:bg-court/60"
+        }`}
+        title="English"
+      >
+        <span>🇬🇧</span>
+        <span className="tracking-tight">EN</span>
+      </button>
+    </div>
   );
 }
 
@@ -23,11 +65,10 @@ export function PageHead({ title, sub, right }: { title: string; sub?: string; r
   );
 }
 
-const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> = [
+const NAV: Array<{ itemKey: string; to: string; icon: ReactNode }> = [
   {
-    label: "Dashboard",
+    itemKey: "dashboard",
     to: "/",
-    desc: "Today at a glance",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
         <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
@@ -38,9 +79,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Open Play",
+    itemKey: "mabar",
     to: "/mabar",
-    desc: "Sessions and attendance",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
         <circle cx="12" cy="17.3" r="3" fill="currentColor" stroke="none" />
@@ -52,9 +92,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Periods",
+    itemKey: "periods",
     to: "/periods",
-    desc: "Members and billing",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
         <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
@@ -63,9 +102,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Players",
+    itemKey: "players",
     to: "/players",
-    desc: "Player roster",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
         <circle cx="9.5" cy="8" r="3.4" />
@@ -76,9 +114,20 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Inventory",
+    itemKey: "noShows",
+    to: "/no-shows",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <line x1="17" y1="8" x2="22" y2="13" />
+        <line x1="22" y1="8" x2="17" y2="13" />
+      </svg>
+    ),
+  },
+  {
+    itemKey: "inventory",
     to: "/inventory",
-    desc: "Shuttlecock stock",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="h-4 w-4">
         <path d="M12 3 4 6.8v10.4L12 21l8-3.8V6.8L12 3Z" />
@@ -88,9 +137,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Finance",
+    itemKey: "finance",
     to: "/finance",
-    desc: "Cash and profit",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
         <rect x="2.8" y="6.5" width="18.4" height="11" rx="2" />
@@ -100,9 +148,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Reports",
+    itemKey: "reports",
     to: "/reports",
-    desc: "Recaps and CSV",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
         <path d="M5 20V10.5M12 20V4.5M19 20v-6.5" />
@@ -110,9 +157,8 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
     ),
   },
   {
-    label: "Simulator",
+    itemKey: "simulator",
     to: "/simulator",
-    desc: "Test scenarios",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
         <path d="M9.3 3h5.4M10.4 3v5.2L4.9 17.6a2 2 0 0 0 1.8 2.9h10.6a2 2 0 0 0 1.8-2.9L13.6 8.2V3" />
@@ -124,12 +170,15 @@ const NAV: Array<{ label: string; to: string; desc: string; icon: ReactNode }> =
 
 export function Layout({ children }: { children: ReactNode }) {
   const { auth, logout } = useAuth();
+  const { t, isId } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(() =>
     typeof window === "undefined" ? false : window.matchMedia("(min-width: 1024px)").matches,
   );
   const active = NAV.find((n) => (n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to)));
+  const activeLabel = active ? t(`nav.${active.itemKey}.label`) : "PB Kecebong";
+  const activeDesc = active ? t(`nav.${active.itemKey}.desc`) : "";
 
   function quit() {
     logout();
@@ -162,14 +211,14 @@ export function Layout({ children }: { children: ReactNode }) {
       )}
       <aside
         id="primary-sidebar"
-        className={`fixed inset-y-0 left-0 z-40 flex shrink-0 flex-col overflow-hidden bg-pine text-paper transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
+        className={`fixed inset-y-0 left-0 z-40 flex shrink-0 flex-col overflow-hidden bg-gradient-to-b from-[#143728] via-[#1a4434] to-[#102a1f] text-paper shadow-md transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
           open ? "w-60" : "w-16"
         }`}
       >
-        <div className="flex items-center gap-2.5 border-b border-paper/15 px-3 py-3">
+        <div className="flex items-center gap-2.5 border-b border-paper/10 px-3 py-3 bg-black/10">
           <button
             type="button"
-            className="shrink-0 rounded-md border border-paper/25 p-2 hover:bg-paper/10"
+            className="shrink-0 rounded-md border border-paper/20 p-2 hover:bg-paper/10 transition-colors"
             aria-label={open ? "Hide menu" : "Show menu"}
             aria-expanded={open}
             aria-controls="primary-sidebar"
@@ -199,9 +248,9 @@ export function Layout({ children }: { children: ReactNode }) {
             className={`min-w-0 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 invisible"}`}
           >
             <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
-              PB <span className="text-lime">KECEBONG</span>
+              PB <span className="bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent">KECEBONG</span>
             </span>
-            <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">Open play manager</span>
+            <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">{isId ? "Manajer mabar badminton" : "Badminton open play manager"}</span>
           </Link>
         </div>
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3">
@@ -211,11 +260,11 @@ export function Layout({ children }: { children: ReactNode }) {
               open ? "max-h-6 opacity-100" : "max-h-0 pb-0 opacity-0"
             }`}
           >
-            Sessions
+            {isId ? "Sesi & Pemain" : "Sessions & Roster"}
           </p>
           <ul className="space-y-0.5">
-            {NAV.slice(0, 4).map((n) => (
-              <NavItem key={n.to} {...n} open={open} onGo={closeOnMobile} />
+            {NAV.slice(0, 5).map((n) => (
+              <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} />
             ))}
           </ul>
           <p
@@ -224,37 +273,44 @@ export function Layout({ children }: { children: ReactNode }) {
               open ? "max-h-10 opacity-100" : "max-h-0 pb-0 pt-0 opacity-0"
             }`}
           >
-            Finance
+            {isId ? "Kas & Laporan" : "Finance & Reports"}
           </p>
           <ul className="space-y-0.5">
-            {NAV.slice(4).map((n) => (
-              <NavItem key={n.to} {...n} open={open} onGo={closeOnMobile} />
+            {NAV.slice(5).map((n) => (
+              <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} />
             ))}
           </ul>
         </nav>
         <div
-          className={`border-t border-paper/15 px-3.5 py-3.5 transition-opacity duration-300 ${
+          className={`border-t border-paper/15 px-3 py-3 transition-opacity duration-300 ${
             open ? "opacity-100" : "opacity-0 invisible"
           }`}
         >
+          <div className="mb-2.5">
+            <LanguageSwitcher className="w-full justify-between bg-black/30 border-paper/15 text-paper !p-1" />
+          </div>
           <p className="truncate text-sm font-medium">{auth?.username ?? "Admin"}</p>
           <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
-            Sign out
+            {t("nav.logout")}
           </button>
         </div>
       </aside>
 
       <div className="min-w-0 flex-1 pl-16 lg:pl-0">
-        <header className="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-md">
           <div className="flex items-center gap-3 px-4 py-2.5 lg:px-8">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{active?.label ?? "PB Kecebong"}</p>
-              {active && <p className="truncate text-xs text-ink-soft">{active.desc}</p>}
+              <p className="truncate text-sm font-bold text-ink">{activeLabel}</p>
+              {active && <p className="truncate text-xs text-ink-soft">{activeDesc}</p>}
             </div>
-            <div className="ml-auto hidden items-center gap-2 sm:flex">
-              <span className="rounded-full bg-court px-2.5 py-1 text-xs font-medium text-pine">
-                {auth?.username ?? "Admin"}
-              </span>
+            <div className="ml-auto flex items-center gap-2.5 sm:gap-3">
+              <LanguageSwitcher />
+              <div className="hidden items-center gap-2 sm:flex">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-court via-emerald-50 to-court px-3 py-1 text-xs font-semibold text-pine border border-pine/15 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {auth?.username ?? "Admin"}
+                </span>
+              </div>
             </div>
           </div>
         </header>
@@ -265,20 +321,21 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 function NavItem({
-  label,
+  itemKey,
   to,
-  desc,
   icon,
   open,
   onGo,
 }: {
-  label: string;
+  itemKey: string;
   to: string;
-  desc: string;
   icon: ReactNode;
   open: boolean;
   onGo: () => void;
 }) {
+  const { t } = useI18n();
+  const label = t(`nav.${itemKey}.label`);
+  const desc = t(`nav.${itemKey}.desc`);
   return (
     <li>
       <NavLink
@@ -287,16 +344,20 @@ function NavItem({
         onClick={onGo}
         title={label}
         className={({ isActive }) =>
-          `flex items-center rounded-lg py-2 transition-all duration-300 ${
+          `flex items-center rounded-lg py-2 transition-all duration-200 ${
             open ? "gap-3 px-2.5" : "justify-center px-0"
-          } ${isActive ? "bg-paper text-pine" : "text-paper/75 hover:bg-paper/10 hover:text-paper"}`
+          } ${
+            isActive
+              ? "bg-gradient-to-r from-white/20 to-white/10 text-white font-semibold shadow-2xs border-l-2 border-lime"
+              : "text-paper/75 hover:bg-white/8 hover:text-white"
+          }`
         }
       >
         {({ isActive }) => (
           <>
             <span
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-                isActive ? "bg-pine text-lime" : "bg-pine-deep text-paper/85"
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${
+                isActive ? "bg-lime text-pine-deep font-bold" : "bg-black/20 text-paper/85"
               }`}
             >
               {icon}
@@ -308,7 +369,7 @@ function NavItem({
               }`}
             >
               <span className="block text-sm font-semibold leading-tight">{label}</span>
-              <span className={`block text-xs leading-tight ${isActive ? "text-pine/65" : "text-paper/50"}`}>{desc}</span>
+              <span className={`block text-xs leading-tight ${isActive ? "text-lime/90" : "text-paper/50"}`}>{desc}</span>
             </span>
           </>
         )}
@@ -320,20 +381,22 @@ function NavItem({
 export function Btn({
   children,
   variant = "primary",
+  className = "",
   ...rest
 }: {
   children: ReactNode;
   variant?: "primary" | "plain" | "danger";
+  className?: string;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const base = "rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50";
+  const base = "rounded-lg px-3.5 py-2 text-sm font-semibold transition-all duration-150 disabled:opacity-50 active:scale-[0.99]";
   const styles =
     variant === "primary"
-      ? "bg-pine text-paper hover:bg-pine-deep"
+      ? "bg-gradient-to-r from-[#1d4d3b] to-[#143728] hover:from-[#143728] hover:to-[#0f2a1e] text-paper shadow-2xs hover:shadow-xs"
       : variant === "danger"
-        ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
-        : "border border-line bg-white hover:bg-court/60";
+        ? "border border-red-200 bg-white text-red-700 hover:bg-red-50 hover:border-red-300 shadow-2xs"
+        : "border border-line bg-white text-ink hover:bg-court/50 shadow-2xs";
   return (
-    <button type="button" className={`${base} ${styles}`} {...rest}>
+    <button type="button" className={`${base} ${styles} ${className}`} {...rest}>
       {children}
     </button>
   );
@@ -370,8 +433,8 @@ export function Field({
 export function Panel({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   return (
     <section className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-court/50 px-4 py-2.5">
-        <h2 className="text-sm font-bold">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-court/70 via-court/40 to-white px-4 py-3">
+        <h2 className="text-sm font-bold text-ink">{title}</h2>
         {right}
       </div>
       {children}
@@ -389,42 +452,47 @@ export function Empty({ text, action }: { text: string; action?: ReactNode }) {
 }
 
 export function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { isId } = useI18n();
   return (
     <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
       {message}{" "}
       <button type="button" className="font-semibold underline" onClick={onRetry}>
-        Retry
+        {isId ? "Coba lagi" : "Retry"}
       </button>
     </div>
   );
 }
 
-export function Loading({ text = "Loading…" }: { text?: string }) {
+export function Loading({ text }: { text?: string }) {
+  const { isId } = useI18n();
+  const displayText = text ?? (isId ? "Memuat…" : "Loading…");
   return (
     <p role="status" className="py-6 text-center text-sm text-ink-soft">
-      {text}
+      {displayText}
     </p>
   );
 }
 
-const pill = "rounded-full px-3 py-1 text-xs font-semibold transition-colors";
+const pill = "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-150";
 
-export function OpenLink({ to }: { to: string }) {
+export function OpenLink({ to, label }: { to: string; label?: string }) {
+  const { isId } = useI18n();
   return (
-    <Link to={to} className={`${pill} bg-pine text-paper hover:bg-pine-deep`}>
-      Open
+    <Link to={to} className={`${pill} bg-gradient-to-r from-pine to-pine-deep text-paper hover:brightness-110 shadow-2xs`}>
+      {label ?? (isId ? "Buka" : "Open")}
     </Link>
   );
 }
 
-export function DeleteRowButton({ onClick, label = "Delete" }: { onClick: () => void; label?: string }) {
+export function DeleteRowButton({ onClick, label }: { onClick: () => void; label?: string }) {
+  const { isId } = useI18n();
   return (
     <button
       type="button"
       onClick={onClick}
       className={`${pill} border border-red-200 bg-white text-red-700 hover:border-red-300 hover:bg-red-50`}
     >
-      {label}
+      {label ?? (isId ? "Hapus" : "Delete")}
     </button>
   );
 }
@@ -432,8 +500,8 @@ export function DeleteRowButton({ onClick, label = "Delete" }: { onClick: () => 
 export function ConfirmModal({
   title,
   body,
-  confirmLabel = "Yes, delete",
-  cancelLabel = "No, keep it",
+  confirmLabel,
+  cancelLabel,
   busy,
   onConfirm,
   onCancel,
@@ -446,6 +514,11 @@ export function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { isId } = useI18n();
+  const cLabel = confirmLabel ?? (isId ? "Ya, hapus" : "Yes, delete");
+  const cancelText = cancelLabel ?? (isId ? "Batal" : "No, keep it");
+  const deletingText = isId ? "Menghapus…" : "Deleting…";
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onCancel();
@@ -462,10 +535,10 @@ export function ConfirmModal({
         <div className="mt-2 text-sm text-ink-soft">{body}</div>
         <div className="mt-4 flex justify-end gap-2">
           <Btn variant="plain" disabled={busy} onClick={onCancel}>
-            {cancelLabel}
+            {cancelText}
           </Btn>
           <Btn variant="danger" disabled={busy} onClick={onConfirm}>
-            {busy ? "Deleting…" : confirmLabel}
+            {busy ? deletingText : cLabel}
           </Btn>
         </div>
       </div>

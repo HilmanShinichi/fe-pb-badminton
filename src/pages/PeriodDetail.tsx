@@ -7,17 +7,19 @@ import {
   useCreatePlayerMutation,
   useCreateRevenueMutation,
   useDeletePeriodMutation,
+  usePeriodAttendanceMatrixQuery,
   usePeriodMembersQuery,
   usePeriodSessionsQuery,
   usePeriodSummaryQuery,
   usePlayersAllQuery,
+  useRemoveMemberMutation,
   useSessionBreakdownQuery,
   useShuttlecockMatrixQuery,
   useUpdatePeriodMutation,
 } from "../store/services";
-import { dateId, rupiah } from "../format";
+import { dateDmy, dateId, rupiah } from "../format";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Field, Loading, MoneyInput, OpenLink, PageHead } from "../ui";
-import type { Membership } from "../types";
+import type { Membership, PeriodAttendanceMatrixNonMember, PeriodAttendanceMatrixResponse } from "../types";
 
 function paidOf(m: Membership): number {
   const p = m.paid ?? {};
@@ -47,6 +49,20 @@ export function PeriodDetailPage() {
   const matrix = useShuttlecockMatrixQuery(id);
   const players = usePlayersAllQuery();
   const [addMember, addState] = useAddMemberMutation();
+  const [removeMember, withdrawState] = useRemoveMemberMutation();
+  const [withdrawFor, setWithdrawFor] = useState<Membership | null>(null);
+  const [withdrawError, setWithdrawError] = useState("");
+
+  async function confirmWithdraw() {
+    if (!withdrawFor) return;
+    try {
+      await removeMember({ periodId: id, playerId: withdrawFor.player_id }).unwrap();
+      setWithdrawFor(null);
+      setWithdrawError("");
+    } catch (e) {
+      setWithdrawError(e instanceof ApiError ? e.message : "Could not withdraw member.");
+    }
+  }
   const [createPlayer, createState] = useCreatePlayerMutation();
   const [complete, completeState] = useCompletePeriodMutation();
   const [update, updateState] = useUpdatePeriodMutation();
@@ -233,28 +249,35 @@ export function PeriodDetailPage() {
       />
       {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}
 
-      <section aria-label="Period projection" className="mb-5 rounded-xl border border-pine bg-white shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
-          <h2 className="text-sm font-semibold">
-            Period projection · {s.member_count} members · {proj.sessions} sessions
-          </h2>
+      <section aria-label="Period projection" className="mb-5 rounded-xl border border-pine/30 bg-white shadow-card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-pine/20 bg-gradient-to-r from-[#143728] via-[#1d4d3b] to-[#153f2f] px-4 py-3 text-paper">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
+            <h2 className="text-sm font-bold tracking-tight">
+              Period projection · {s.member_count} members · {proj.sessions} sessions
+            </h2>
+          </div>
           {!done && (
-            <Btn variant="plain" onClick={() => setEditing((v) => !v)}>
+            <button
+              type="button"
+              className="rounded-lg border border-paper/25 bg-white/10 px-3 py-1 text-xs font-semibold text-paper hover:bg-white/20 transition-colors"
+              onClick={() => setEditing((v) => !v)}
+            >
               {editing ? "Close settings" : "Edit period"}
-            </Btn>
+            </button>
           )}
         </div>
-        <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4">
-          <Cell label="Profit full" value={rupiah(proj.profit_full)} sub={`${proj.status_full} · full attendance`} />
-            <Cell label="Revenue full" value={rupiah(proj.revenue_full)} sub={`Member price ${rupiah(s.commitment_total)}`} />
+        <dl className="grid grid-cols-2 divide-x divide-line/70 sm:grid-cols-4 bg-gradient-to-b from-emerald-50/25 to-white">
+          <Cell label="Profit full" value={rupiah(proj.profit_full)} sub={`${proj.status_full} · full attendance`} highlight={proj.profit_full >= 0 ? "emerald" : "rose"} />
+          <Cell label="Revenue full" value={rupiah(proj.revenue_full)} sub={`Member price ${rupiah(s.commitment_total)}`} />
           <Cell label="Projected cost" value={rupiah(proj.operating_cost)} sub={`Courts ${rupiah(proj.venue_total)} · Shuttles ${rupiah(proj.shuttle_cost)}`} />
           <Cell label="Projected shuttles" value={`${proj.shuttle_units} pcs`} sub={`${proj.shuttle_per_session}/session · ${s.shuttlecock_used} used`} />
         </dl>
-        <dl className="grid grid-cols-2 divide-x divide-line border-t border-line sm:grid-cols-4">
+        <dl className="grid grid-cols-2 divide-x divide-line/70 border-t border-line/70 sm:grid-cols-4 bg-white">
           <Cell label="Billed so far" value={rupiah(proj.revenue_billed)} sub={`${s.member_present} member visits · ${s.non_member_present} non-member`} />
-          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed − cost to date" />
+          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed − cost to date" highlight={proj.profit_billed >= 0 ? "emerald" : "rose"} />
           <Cell label="Actual cash" value={rupiah(s.cash_flow)} sub={`In ${rupiah(s.cash_in)} · Out ${rupiah(s.cash_out)}`} />
-          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Revenue ${rupiah(s.total_revenue)} · Cost ${rupiah(s.operating_cost)}`} />
+          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Revenue ${rupiah(s.total_revenue)} · Cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
         </dl>
         {editing && !done && (
           <div className="grid gap-2 border-t border-line p-3 sm:grid-cols-4">
@@ -306,130 +329,25 @@ export function PeriodDetailPage() {
         )}
       </section>
 
-      <section aria-label="Period finances" className="mb-5 rounded-xl border border-line bg-white shadow-card">
-        <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4">
-          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · avg ${rupiah(s.avg_profit_per_session)}/session`} />
+      <section aria-label="Period finances" className="mb-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+        <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/30 to-white px-4 py-2.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Period Finances & Cash Balance</h2>
+        </div>
+        <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4 bg-white">
+          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · avg ${rupiah(s.avg_profit_per_session)}/session`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
           <Cell label="Revenue" value={rupiah(s.total_revenue)} sub={`Cash in ${rupiah(s.cash_in)}`} />
           <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.total_venue_cost)} · Shuttles ${rupiah(s.shuttlecock_usage_cost)}`} />
           <Cell label="Cash flow" value={rupiah(s.cash_flow)} sub={`Out ${rupiah(s.cash_out)} · stock ${s.shuttlecock_stock} pcs`} />
         </dl>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <section aria-label="Members" className="h-fit rounded-xl border border-line bg-white shadow-card">
-          <h2 className="border-b border-line px-3 py-2 text-sm font-semibold">
-            Members · {memberRows.length}
-            {memberRows.length > 0 && (
-              <span className="font-normal text-ink-soft"> · collected {rupiah(collectedTotal)} of {rupiah(billedTotal)}</span>
-            )}
-          </h2>
-          {members.isFetching && !members.data ? (
-            <Loading />
-          ) : memberRows.length === 0 ? (
-            <div className="p-3"><Empty text="No members yet." /></div>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="data">
-              <thead>
-                <tr><th>Name</th><th className="text-right">Attended</th><th className="text-right">Bill</th><th className="text-right">Paid</th><th className="text-right">Saved</th><th></th></tr>
-              </thead>
-              <tbody>
-                {memberRows.map((m) => {
-                  const paid = paidOf(m);
-                  const commitDone = commitmentPaid(m);
-                  return (
-                    <tr key={m.id}>
-                      <td>
-                        <span className="font-medium">{m.player_name}</span>
-                        <span className={`block text-xs ${commitDone ? "text-green-700" : "text-amber-700"}`}>
-                          {m.commitment_fee
-                            ? (commitDone ? "Member price paid" : `Member price unpaid (${rupiah(m.commitment_fee)})`)
-                            : "No member price"}
-                        </span>
-                      </td>
-                      <td className="text-right tabular-nums">{m.attendance_count}×</td>
-                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(m.total_bill)}</td>
-                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(paid)}</td>
-                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(m.benefit)}</td>
-                      <td className="text-right">
-                        {!done && (
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-pine px-3 py-1 text-xs font-semibold text-paper hover:bg-pine-deep"
-                            title="Record member price payment"
-                            onClick={() => openPay(m)}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-3.5 w-3.5" aria-hidden>
-                              <rect x="2.8" y="6.5" width="18.4" height="11" rx="2" />
-                              <circle cx="12" cy="12" r="2.6" />
-                              <path d="M6.1 12h.01M17.9 12h.01" />
-                            </svg>
-                            Member price
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      <div className="flex flex-col gap-5">
+        <section aria-label="Per session" className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
+          <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-ink">Per session · {heldSessions.length} of {plannedSessions} held</h2>
+              <span className="text-xs font-semibold text-pine">{progressPct}% held</span>
             </div>
-          )}
-          {payFor && !done && (
-            <div className="space-y-2 border-t border-line bg-court/40 p-3">
-              <p className="text-sm font-semibold">Record member price payment · {payFor.player_name}</p>
-              <Field label="Amount (Rp)">
-                <MoneyInput id="pay-amount" value={payAmount} onChange={setPayAmount} />
-              </Field>
-              <Field label="Note" hint="Optional. E.g. cash, transfer.">
-                <input id="pay-note" className="w-full" value={payNote} onChange={(e) => setPayNote(e.target.value)} />
-              </Field>
-              {payError && <p role="alert" className="text-sm text-red-700">{payError}</p>}
-              <div className="flex items-center gap-2">
-                <Btn disabled={!payAmount || payAmount <= 0 || payState.isLoading} onClick={submitPayment}>
-                  {payState.isLoading ? "Saving…" : `Save ${rupiah(payAmount || 0)}`}
-                </Btn>
-                <button type="button" className="text-sm underline" onClick={() => setPayFor(null)}>
-                  Cancel
-                </button>
-              </div>
-              <p className="text-xs text-ink-faint">Visit payments are collected per session in Open Play (Cash/QRIS/BCA). Use this form only for member price.</p>
-            </div>
-          )}
-          {!done && (
-            <div className="space-y-2 border-t border-line p-3">
-              <div className="flex gap-2">
-                <label htmlFor="tambah-member" className="sr-only">Add member</label>
-                <select id="tambah-member" className="min-w-0 flex-1" value={pick} onChange={(e) => setPick(e.target.value)}>
-                  <option value="">- Add member… -</option>
-                  {candidates.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                <Btn disabled={!pick || addState.isLoading} onClick={submitMember}>Add</Btn>
-              </div>
-              <div className="flex gap-2">
-                <label htmlFor="tambah-member-baru" className="sr-only">New member name</label>
-                <input
-                  id="tambah-member-baru"
-                  className="min-w-0 flex-1"
-                  placeholder="New member name…"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") submitNewMember(); }}
-                />
-                <Btn disabled={!newName.trim() || memberBusy} onClick={submitNewMember}>
-                  {createState.isLoading ? "Saving…" : "Add new"}
-                </Btn>
-              </div>
-              <p className="text-xs text-ink-faint">If the name is not in the list, type a new name and click Add new — it will be registered and added as a member right away.</p>
-            </div>
-          )}
-        </section>
-
-        <section aria-label="Per session" className="h-fit rounded-xl border border-line bg-white shadow-card">
-          <div className="border-b border-line px-3 py-2">
-            <h2 className="text-sm font-semibold">Per session · {heldSessions.length} of {plannedSessions} held</h2>
             <p className="mt-0.5 text-xs text-ink-faint">
               One row = one night, with that night's own revenue, cost and profit.
               {remainingSessions > 0
@@ -443,14 +361,14 @@ export function PeriodDetailPage() {
               Whole-period totals (including items without a session) are in the projection and finances above.
             </p>
             <div
-              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-court"
+              className="mt-2 h-2 overflow-hidden rounded-full bg-court/80 border border-line/40"
               role="progressbar"
               aria-valuenow={heldSessions.length}
               aria-valuemin={0}
               aria-valuemax={plannedSessions}
               aria-label="Sessions held"
             >
-              <div className="h-full rounded-full bg-pine" style={{ width: `${progressPct}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-pine via-emerald-600 to-lime transition-all duration-500" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
           {breakdown.isFetching && !breakdown.data ? (
@@ -501,7 +419,143 @@ export function PeriodDetailPage() {
             </div>
           )}
         </section>
+
+        <section aria-label="Members" className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
+          <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
+            <h2 className="text-sm font-bold text-ink">
+              Members · {memberRows.length}
+              {memberRows.length > 0 && (
+                <span className="font-normal text-ink-soft"> · collected <strong className="text-emerald-800 font-semibold">{rupiah(collectedTotal)}</strong> of {rupiah(billedTotal)}</span>
+              )}
+            </h2>
+          </div>
+          {members.isFetching && !members.data ? (
+            <Loading />
+          ) : memberRows.length === 0 ? (
+            <div className="p-3"><Empty text="No members yet." /></div>
+          ) : (
+            <div className="overflow-x-auto">
+            <table className="data">
+              <thead>
+                <tr><th>Name</th><th className="text-right">Attended</th><th className="text-right">Bill</th><th className="text-right">Paid</th><th className="text-right">Saved</th><th></th></tr>
+              </thead>
+              <tbody>
+                {memberRows.map((m) => {
+                  const paid = paidOf(m);
+                  const commitDone = commitmentPaid(m);
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <span className="font-medium">{m.player_name}</span>
+                        <span className={`block text-xs ${commitDone ? "text-green-700" : "text-amber-700"}`}>
+                          {m.commitment_fee
+                            ? (commitDone ? "Member price paid" : `Member price unpaid (${rupiah(m.commitment_fee)})`)
+                            : "No member price"}
+                        </span>
+                      </td>
+                      <td className="text-right tabular-nums">{m.attendance_count}×</td>
+                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(m.total_bill)}</td>
+                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(paid)}</td>
+                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(m.benefit)}</td>
+                      <td className="whitespace-nowrap text-right">
+                        {!done && (
+                          <span className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-pine to-pine-deep px-3 py-1 text-xs font-semibold text-paper hover:brightness-110 shadow-2xs transition-all"
+                            title="Record member price payment"
+                            onClick={() => openPay(m)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-3.5 w-3.5" aria-hidden>
+                              <rect x="2.8" y="6.5" width="18.4" height="11" rx="2" />
+                              <circle cx="12" cy="12" r="2.6" />
+                              <path d="M6.1 12h.01M17.9 12h.01" />
+                            </svg>
+                            Member price
+                          </button>
+                          <DeleteRowButton label="Delete" onClick={() => { setWithdrawFor(m); setWithdrawError(""); }} />
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            </div>
+          )}
+          {payFor && !done && (
+            <ConfirmModal
+              title={`Member price · ${payFor.player_name}`}
+              body={
+                <>
+                  <Field label="Amount (Rp)">
+                    <MoneyInput id="pay-amount" value={payAmount} onChange={setPayAmount} />
+                  </Field>
+                  <div className="mt-3">
+                    <Field label="Note" hint="Optional. E.g. cash, transfer.">
+                      <input id="pay-note" className="w-full" value={payNote} onChange={(e) => setPayNote(e.target.value)} />
+                    </Field>
+                  </div>
+                  {payError && <p role="alert" className="mt-2 text-sm text-red-700">{payError}</p>}
+                  <p className="mt-2 text-xs text-ink-faint">Visit payments are collected per session in Open Play. Use this form only for member price.</p>
+                </>
+              }
+              confirmLabel={payState.isLoading ? "Saving…" : `Save ${rupiah(payAmount || 0)}`}
+              cancelLabel="Cancel"
+              busy={payState.isLoading}
+              onConfirm={submitPayment}
+              onCancel={() => setPayFor(null)}
+            />
+          )}
+          {withdrawFor && !done && (
+            <ConfirmModal
+              title={`Delete ${withdrawFor.player_name} from this period?`}
+              body={
+                <>
+                  <p>Membership and <strong>all their payments in this period are permanently deleted</strong>. Session attendance history stays. This cannot be undone.</p>
+                  {withdrawError && <p role="alert" className="mt-2 text-sm text-red-700">{withdrawError}</p>}
+                </>
+              }
+              confirmLabel={withdrawState.isLoading ? "Deleting…" : "Yes, delete"}
+              busy={withdrawState.isLoading}
+              onConfirm={confirmWithdraw}
+              onCancel={() => setWithdrawFor(null)}
+            />
+          )}
+          {!done && (
+            <div className="space-y-2 border-t border-line p-3">
+              <div className="flex gap-2">
+                <label htmlFor="tambah-member" className="sr-only">Add member</label>
+                <select id="tambah-member" className="min-w-0 flex-1" value={pick} onChange={(e) => setPick(e.target.value)}>
+                  <option value="">- Add member… -</option>
+                  {candidates.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <Btn disabled={!pick || addState.isLoading} onClick={submitMember}>Add</Btn>
+              </div>
+              <div className="flex gap-2">
+                <label htmlFor="tambah-member-baru" className="sr-only">New member name</label>
+                <input
+                  id="tambah-member-baru"
+                  className="min-w-0 flex-1"
+                  placeholder="New member name…"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitNewMember(); }}
+                />
+                <Btn disabled={!newName.trim() || memberBusy} onClick={submitNewMember}>
+                  {createState.isLoading ? "Saving…" : "Add new"}
+                </Btn>
+              </div>
+              <p className="text-xs text-ink-faint">If the name is not in the list, type a new name and click Add new — it will be registered and added as a member right away.</p>
+            </div>
+          )}
+        </section>
       </div>
+
+      <MemberAttendanceMatrixSection periodId={id} periodName={s.period.name} />
 
       {(matrix.data?.rows.length ?? 0) > 0 && (
       <section aria-label="Shuttlecock use per player" className="mt-5 rounded-xl border border-line bg-white shadow-card">
@@ -587,12 +641,1026 @@ export function PeriodDetailPage() {
   );
 }
 
-function Cell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Cell({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: "emerald" | "rose";
+}) {
   return (
-    <div className="px-3 py-2.5">
-      <dt className="text-xs uppercase tracking-wide text-ink-faint">{label}</dt>
-      <dd className="mt-0.5 text-base font-semibold tabular-nums">{value}</dd>
-      {sub && <dd className="text-xs text-ink-faint">{sub}</dd>}
+    <div className="px-3.5 py-3">
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</dt>
+      <dd
+        className={`mt-1 text-base font-bold tabular-nums ${
+          highlight === "emerald"
+            ? "text-emerald-800"
+            : highlight === "rose"
+            ? "text-rose-700"
+            : "text-ink"
+        }`}
+      >
+        {value}
+      </dd>
+      {sub && <dd className="mt-0.5 text-xs text-ink-soft">{sub}</dd>}
     </div>
   );
 }
+
+async function copyTableImage(
+  data: PeriodAttendanceMatrixResponse,
+  periodName: string
+): Promise<boolean> {
+  const { sessions, rows, commitment_fee, member_contribution, total_lapangan_paid } = data;
+
+  const feeLabel = commitment_fee >= 1000 && commitment_fee % 1000 === 0
+    ? `LAPANGAN ${commitment_fee / 1000}K`
+    : commitment_fee > 0
+    ? `LAPANGAN ${rupiah(commitment_fee)}`
+    : `LAPANGAN`;
+
+  const scale = 2;
+  const noColWidth = 50;
+  const nameColWidth = 160;
+  const lapanganColWidth = 140;
+  const sessionColWidth = 140;
+
+  const sessCount = Math.max(1, sessions.length);
+  const totalColsWidth = noColWidth + nameColWidth + lapanganColWidth + sessCount * sessionColWidth;
+  const padX = 24;
+  const padY = 24;
+  const bannerHeight = 70;
+  const headerRowHeight = 40;
+  const rowHeight = 32;
+  const footerRowHeight = 38;
+
+  const canvasWidth = totalColsWidth + padX * 2;
+  const tableHeight = headerRowHeight + rows.length * rowHeight + footerRowHeight;
+  const canvasHeight = padY * 2 + bannerHeight + tableHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth * scale;
+  canvas.height = canvasHeight * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+
+  ctx.scale(scale, scale);
+
+  // Background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  // Title Banner
+  ctx.fillStyle = "#1e293b";
+  ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PB KECEBONG — REKAP KAS KOK & LAPANGAN", padX, padY + 20);
+
+  ctx.fillStyle = "#64748b";
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.fillText(
+    `Period: ${periodName}  ·  Tarif Lapangan: ${feeLabel}  ·  Kas Kok: ${rupiah(member_contribution)}/pertemuan`,
+    padX,
+    padY + 44
+  );
+
+  const startX = padX;
+  const startY = padY + bannerHeight;
+
+  // Column X boundary coordinates
+  const colXs: number[] = [
+    startX,
+    startX + noColWidth,
+    startX + noColWidth + nameColWidth,
+    startX + noColWidth + nameColWidth + lapanganColWidth,
+  ];
+  for (let i = 0; i < sessCount; i++) {
+    colXs.push(colXs[colXs.length - 1] + sessionColWidth);
+  }
+
+  // Header Background
+  ctx.fillStyle = "#1e3a8a";
+  ctx.fillRect(startX, startY, totalColsWidth, headerRowHeight);
+
+  // Header Text
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textBaseline = "middle";
+
+  // NO
+  ctx.textAlign = "center";
+  ctx.fillText("NO", colXs[0] + noColWidth / 2, startY + headerRowHeight / 2);
+
+  // LIST MEM
+  ctx.textAlign = "left";
+  ctx.fillText("LIST MEM", colXs[1] + 12, startY + headerRowHeight / 2);
+
+  // LAPANGAN
+  ctx.textAlign = "center";
+  ctx.fillText(feeLabel, colXs[2] + lapanganColWidth / 2, startY + headerRowHeight / 2);
+
+  // Sessions
+  if (sessions.length === 0) {
+    ctx.fillText("Belum ada pertemuan", colXs[3] + sessionColWidth / 2, startY + headerRowHeight / 2);
+  } else {
+    sessions.forEach((s, sIdx) => {
+      ctx.fillText(`Kas Kok (${dateDmy(s.date)})`, colXs[3 + sIdx] + sessionColWidth / 2, startY + headerRowHeight / 2);
+    });
+  }
+
+  // Header Vertical Lines (White for high contrast on dark blue)
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1;
+  for (const x of colXs) {
+    ctx.beginPath();
+    ctx.moveTo(x, startY);
+    ctx.lineTo(x, startY + headerRowHeight);
+    ctx.stroke();
+  }
+
+  // Header Bottom Border Line (Solid Black)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY + headerRowHeight);
+  ctx.lineTo(startX + totalColsWidth, startY + headerRowHeight);
+  ctx.stroke();
+
+  // Rows
+  let curY = startY + headerRowHeight;
+  rows.forEach((r, idx) => {
+    // Row background
+    ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+    ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
+
+    // NO
+    ctx.fillStyle = "#475569";
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(idx + 1), colXs[0] + noColWidth / 2, curY + rowHeight / 2);
+
+    // LIST MEM
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(r.player_name, colXs[1] + 12, curY + rowHeight / 2);
+
+    // LAPANGAN Cell
+    if (r.commitment_paid) {
+      ctx.fillStyle = "#059669";
+      ctx.fillRect(colXs[2] + 4, curY + 3, lapanganColWidth - 8, rowHeight - 6);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("LUNAS", colXs[2] + lapanganColWidth / 2, curY + rowHeight / 2);
+    } else {
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillRect(colXs[2] + 4, curY + 3, lapanganColWidth - 8, rowHeight - 6);
+      ctx.fillStyle = "#92400e";
+      ctx.font = "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(r.commitment_amount_paid > 0 ? "KURANG" : "BELUM", colXs[2] + lapanganColWidth / 2, curY + rowHeight / 2);
+    }
+
+    // Sessions Attendance Cells
+    if (sessions.length === 0) {
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("—", colXs[3] + sessionColWidth / 2, curY + rowHeight / 2);
+    } else {
+      sessions.forEach((s, sIdx) => {
+        const isPresent = r.attendances[s.id] === "PRESENT";
+        const sessX = colXs[3 + sIdx];
+        if (isPresent) {
+          ctx.fillStyle = "#059669";
+          ctx.fillRect(sessX + 4, curY + 3, sessionColWidth - 8, rowHeight - 6);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("✓", sessX + sessionColWidth / 2, curY + rowHeight / 2);
+        } else {
+          ctx.fillStyle = "#dc2626";
+          ctx.fillRect(sessX + 4, curY + 3, sessionColWidth - 8, rowHeight - 6);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("TIDAK HADIR", sessX + sessionColWidth / 2, curY + rowHeight / 2);
+        }
+      });
+    }
+
+    // Row Bottom Border Line (Solid Black)
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(startX, curY + rowHeight);
+    ctx.lineTo(startX + totalColsWidth, curY + rowHeight);
+    ctx.stroke();
+
+    // Column Separator Lines (Solid Black)
+    for (const x of colXs) {
+      ctx.beginPath();
+      ctx.moveTo(x, curY);
+      ctx.lineTo(x, curY + rowHeight);
+      ctx.stroke();
+    }
+
+    curY += rowHeight;
+  });
+
+  // Footer Row (TOTAL)
+  ctx.fillStyle = "#fde047";
+  ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
+
+  // Footer Top Border (Thick Black Line)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(startX, curY);
+  ctx.lineTo(startX + totalColsWidth, curY);
+  ctx.stroke();
+
+  // Footer Bottom Border (Black Line)
+  ctx.beginPath();
+  ctx.moveTo(startX, curY + footerRowHeight);
+  ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
+  ctx.stroke();
+
+  // Footer Vertical Column Separator Lines (Solid Black)
+  ctx.lineWidth = 1;
+  for (const x of colXs) {
+    ctx.beginPath();
+    ctx.moveTo(x, curY);
+    ctx.lineTo(x, curY + footerRowHeight);
+    ctx.stroke();
+  }
+
+  // Footer Text
+  ctx.fillStyle = "#000000";
+  ctx.font = "900 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("TOTAL", colXs[1] + 12, curY + footerRowHeight / 2);
+
+  // Total Lapangan
+  ctx.textAlign = "center";
+  ctx.fillText(rupiah(total_lapangan_paid), colXs[2] + lapanganColWidth / 2, curY + footerRowHeight / 2);
+
+  // Total each session
+  if (sessions.length === 0) {
+    ctx.fillText("—", colXs[3] + sessionColWidth / 2, curY + footerRowHeight / 2);
+  } else {
+    sessions.forEach((s, sIdx) => {
+      ctx.fillText(rupiah(s.total_kas_kok), colXs[3 + sIdx] + sessionColWidth / 2, curY + footerRowHeight / 2);
+    });
+  }
+
+  // Outer Border (Solid Black)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(startX, startY, totalColsWidth, tableHeight);
+
+  return new Promise<boolean>((resolve) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        resolve(false);
+        return;
+      }
+      try {
+        if (typeof ClipboardItem !== "undefined" && navigator.clipboard && navigator.clipboard.write) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+          resolve(true);
+        } else {
+          throw new Error("Clipboard API not supported");
+        }
+      } catch (err) {
+        console.warn("ClipboardItem write failed, fallback to download:", err);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `rekap-kas-kok-${periodName.toLowerCase().replace(/\s+/g, "-")}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        resolve(true);
+      }
+    }, "image/png");
+  });
+}
+
+async function copyNonMemberTableImage(
+  items: PeriodAttendanceMatrixNonMember[],
+  sessionDate: string,
+  fee: number,
+  periodName: string
+): Promise<boolean> {
+  const feeLabel = fee >= 1000 && fee % 1000 === 0 ? `INCLUDE KOK ${fee / 1000}K` : `INCLUDE KOK ${rupiah(fee)}`;
+
+  const scale = 2;
+  const noColWidth = 50;
+  const nameColWidth = 180;
+  const feeColWidth = 160;
+  const noteColWidth = 140;
+
+  const totalColsWidth = noColWidth + nameColWidth + feeColWidth + noteColWidth;
+  const padX = 24;
+  const padY = 24;
+  const bannerHeight = 70;
+  const headerRowHeight = 40;
+  const rowHeight = 32;
+  const footerRowHeight = 38;
+
+  const canvasWidth = totalColsWidth + padX * 2;
+  const tableHeight = headerRowHeight + items.length * rowHeight + footerRowHeight;
+  const canvasHeight = padY * 2 + bannerHeight + tableHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth * scale;
+  canvas.height = canvasHeight * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+
+  ctx.scale(scale, scale);
+
+  // Background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  // Title Banner
+  ctx.fillStyle = "#1e293b";
+  ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PB KECEBONG — LIST NON MEMBER", padX, padY + 20);
+
+  ctx.fillStyle = "#64748b";
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.fillText(
+    `Period: ${periodName}  ·  Pertemuan: ${dateDmy(sessionDate)}  ·  Tarif: ${feeLabel}`,
+    padX,
+    padY + 44
+  );
+
+  const startX = padX;
+  const startY = padY + bannerHeight;
+
+  const colXs = [
+    startX,
+    startX + noColWidth,
+    startX + noColWidth + nameColWidth,
+    startX + noColWidth + nameColWidth + feeColWidth,
+    startX + totalColsWidth,
+  ];
+
+  // Header Background
+  ctx.fillStyle = "#1e3a8a";
+  ctx.fillRect(startX, startY, totalColsWidth, headerRowHeight);
+
+  // Header Text
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textBaseline = "middle";
+
+  // NO
+  ctx.textAlign = "center";
+  ctx.fillText("NO", colXs[0] + noColWidth / 2, startY + headerRowHeight / 2);
+
+  // LIST NON MEMBER
+  ctx.textAlign = "left";
+  ctx.fillText("LIST NON MEMBER", colXs[1] + 12, startY + headerRowHeight / 2);
+
+  // INCLUDE KOK
+  ctx.textAlign = "center";
+  ctx.fillText(feeLabel, colXs[2] + feeColWidth / 2, startY + headerRowHeight / 2);
+
+  // NOTE
+  ctx.textAlign = "left";
+  ctx.fillText("NOTE", colXs[3] + 12, startY + headerRowHeight / 2);
+
+  // Header Vertical Lines (White for high contrast against dark blue header)
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1;
+  for (const x of colXs) {
+    ctx.beginPath();
+    ctx.moveTo(x, startY);
+    ctx.lineTo(x, startY + headerRowHeight);
+    ctx.stroke();
+  }
+
+  // Header Bottom Border Line (Solid Black)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY + headerRowHeight);
+  ctx.lineTo(startX + totalColsWidth, startY + headerRowHeight);
+  ctx.stroke();
+
+  // Body Rows
+  let curY = startY + headerRowHeight;
+  items.forEach((nm, idx) => {
+    // Row background (white or subtle alternating)
+    ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+    ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
+
+    // Fee cell background: bright green #00e600 filling the entire cell
+    ctx.fillStyle = "#00e600";
+    ctx.fillRect(colXs[2], curY, feeColWidth, rowHeight);
+
+    // Text: NO
+    ctx.fillStyle = "#475569";
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(idx + 1), colXs[0] + noColWidth / 2, curY + rowHeight / 2);
+
+    // Text: LIST NON MEMBER
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(nm.player_name, colXs[1] + 12, curY + rowHeight / 2);
+
+    // Text: FEE
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(nm.fee), colXs[2] + feeColWidth / 2, curY + rowHeight / 2);
+
+    // Text: NOTE
+    ctx.fillStyle = "#475569";
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(nm.note || "", colXs[3] + 12, curY + rowHeight / 2);
+
+    // Row Bottom Border Line (Solid Black)
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(startX, curY + rowHeight);
+    ctx.lineTo(startX + totalColsWidth, curY + rowHeight);
+    ctx.stroke();
+
+    // Column Separator Lines (Solid Black)
+    for (const x of colXs) {
+      ctx.beginPath();
+      ctx.moveTo(x, curY);
+      ctx.lineTo(x, curY + rowHeight);
+      ctx.stroke();
+    }
+
+    curY += rowHeight;
+  });
+
+  // Footer (TOTAL)
+  const total = items.reduce((a, b) => a + b.fee, 0);
+  ctx.fillStyle = "#fde047";
+  ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
+
+  // Footer Top Border (Thick Black Line)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(startX, curY);
+  ctx.lineTo(startX + totalColsWidth, curY);
+  ctx.stroke();
+
+  // Footer Bottom Border (Black Line)
+  ctx.beginPath();
+  ctx.moveTo(startX, curY + footerRowHeight);
+  ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
+  ctx.stroke();
+
+  // Footer Vertical Column Separator Lines (Solid Black)
+  ctx.lineWidth = 1;
+  for (const x of colXs) {
+    ctx.beginPath();
+    ctx.moveTo(x, curY);
+    ctx.lineTo(x, curY + footerRowHeight);
+    ctx.stroke();
+  }
+
+  // Footer Text
+  ctx.fillStyle = "#000000";
+  ctx.font = "900 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("TOTAL", colXs[1] + 12, curY + footerRowHeight / 2);
+
+  ctx.textAlign = "center";
+  ctx.fillText(rupiah(total), colXs[2] + feeColWidth / 2, curY + footerRowHeight / 2);
+
+  // Outer Border (Solid Black)
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(startX, startY, totalColsWidth, tableHeight);
+
+  return new Promise<boolean>((resolve) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        resolve(false);
+        return;
+      }
+      try {
+        if (typeof ClipboardItem !== "undefined" && navigator.clipboard && navigator.clipboard.write) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+          resolve(true);
+        } else {
+          throw new Error("Clipboard API not supported");
+        }
+      } catch (err) {
+        console.warn("ClipboardItem write failed, fallback to download:", err);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `rekap-non-member-${dateDmy(sessionDate).replace(/\//g, "-")}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        resolve(true);
+      }
+    }, "image/png");
+  });
+}
+
+function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: string; periodName: string }) {
+  const { data, isFetching, isError, refetch } = usePeriodAttendanceMatrixQuery(periodId);
+  const [activeTab, setActiveTab] = useState<"member" | "non_member">("member");
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+  const [copiedImage, setCopiedImage] = useState(false);
+  const [copyingImage, setCopyingImage] = useState(false);
+
+  useEffect(() => {
+    if (data?.sessions && data.sessions.length > 0 && !selectedSessionId) {
+      const sessWithNonMember = data.sessions.find((s) =>
+        (data.non_members ?? []).some((nm) => nm.session_id === s.id)
+      );
+      setSelectedSessionId(sessWithNonMember ? sessWithNonMember.id : data.sessions[0].id);
+    }
+  }, [data, selectedSessionId]);
+
+  if (isFetching && !data) return <Loading />;
+  if (isError || !data) {
+    return (
+      <section aria-label="Rekap Kas Kok & Lapangan Member" className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
+        <h2 className="text-sm font-semibold mb-2">Rekap Kehadiran & Kas Kok Member</h2>
+        <ErrorBox
+          message="Belum dapat memuat rekap matrix. Pastikan server backend Go telah di-restart agar endpoint baru aktif."
+          onRetry={() => refetch()}
+        />
+      </section>
+    );
+  }
+
+  const { sessions, rows, commitment_fee, member_contribution, total_lapangan_paid } = data;
+
+  const feeLabel = commitment_fee >= 1000 && commitment_fee % 1000 === 0
+    ? `LAPANGAN ${commitment_fee / 1000}K`
+    : commitment_fee > 0
+    ? `LAPANGAN ${rupiah(commitment_fee)}`
+    : `LAPANGAN`;
+
+  const nonMemberFeeLabel = data.non_member_fee >= 1000 && data.non_member_fee % 1000 === 0
+    ? `INCLUDE KOK ${data.non_member_fee / 1000}K`
+    : `INCLUDE KOK ${rupiah(data.non_member_fee || 25000)}`;
+
+  const currentSession = sessions.find((s) => s.id === selectedSessionId) ?? sessions[0];
+  const filteredNonMembers = (data.non_members ?? []).filter(
+    (nm) => nm.session_id === (currentSession?.id ?? "")
+  );
+  const totalNonMember = filteredNonMembers.reduce((a, b) => a + b.fee, 0);
+
+  if (rows.length === 0 && (data.non_members ?? []).length === 0) {
+    return (
+      <section aria-label="Rekap Kas Kok & Lapangan" className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
+        <h2 className="text-sm font-semibold mb-1">Rekap Kehadiran & Kas Kok</h2>
+        <p className="text-xs text-ink-faint mb-3">Tabel otomatis bertambah kolomnya setiap ada pertemuan/sesi baru di period ini.</p>
+        <Empty text="Belum ada member atau pemain terdaftar di period ini. Tambahkan member di atas untuk mulai melihat rekap kas kok & lapangan." />
+      </section>
+    );
+  }
+
+  async function handleCopyMemberImage() {
+    if (!data || copyingImage) return;
+    setCopyingImage(true);
+    try {
+      const ok = await copyTableImage(data, periodName);
+      if (ok) {
+        setCopiedImage(true);
+        setTimeout(() => setCopiedImage(false), 2500);
+      }
+    } catch (e) {
+      console.error("Could not copy table image:", e);
+    } finally {
+      setCopyingImage(false);
+    }
+  }
+
+  async function handleCopyNonMemberImage() {
+    if (!currentSession || filteredNonMembers.length === 0 || copyingImage) return;
+    setCopyingImage(true);
+    try {
+      const ok = await copyNonMemberTableImage(
+        filteredNonMembers,
+        currentSession.date,
+        data?.non_member_fee || 25000,
+        periodName
+      );
+      if (ok) {
+        setCopiedImage(true);
+        setTimeout(() => setCopiedImage(false), 2500);
+      }
+    } catch (e) {
+      console.error("Could not copy non-member image:", e);
+    } finally {
+      setCopyingImage(false);
+    }
+  }
+
+  function handleCopyMemberWhatsApp() {
+    if (!data) return;
+    let text = `*REKAP KAS KOK & LAPANGAN*\n`;
+    text += `*Period:* ${periodName}\n`;
+    text += `*Tarif Lapangan:* ${feeLabel} | *Kas Kok:* ${rupiah(member_contribution)}/kehadiran\n`;
+    text += `──────────────────────\n`;
+
+    rows.forEach((r, idx) => {
+      const lap = r.commitment_paid ? "LUNAS" : "BELUM";
+      let rowText = `${idx + 1}. *${r.player_name}* [Lap: ${lap}]`;
+      sessions.forEach((s) => {
+        const hadir = r.attendances[s.id] === "PRESENT";
+        rowText += ` | ${dateDmy(s.date).slice(0, 5)}: ${hadir ? "✓" : "TH"}`;
+      });
+      text += rowText + "\n";
+    });
+
+    text += `──────────────────────\n`;
+    text += `*TOTAL:*\n`;
+    text += `• Lapangan: ${rupiah(total_lapangan_paid)}\n`;
+    sessions.forEach((s) => {
+      text += `• Kas Kok (${dateDmy(s.date)}): ${rupiah(s.total_kas_kok)} (${s.present_count} hadir)\n`;
+    });
+    text += `• Total Kas Kok: ${rupiah(data.total_kas_kok)}\n`;
+
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  function handleCopyNonMemberWhatsApp() {
+    if (!currentSession) return;
+    let text = `*LIST NON MEMBER - PB KECEBONG*\n`;
+    text += `*Period:* ${periodName}\n`;
+    text += `*Pertemuan:* ${dateDmy(currentSession.date)}\n`;
+    text += `*Tarif:* ${nonMemberFeeLabel}\n`;
+    text += `──────────────────────\n`;
+
+    filteredNonMembers.forEach((nm, idx) => {
+      text += `${idx + 1}. *${nm.player_name}* - ${rupiah(nm.fee)}${nm.note ? ` (${nm.note})` : ""}\n`;
+    });
+
+    text += `──────────────────────\n`;
+    text += `*TOTAL: ${rupiah(totalNonMember)}* (${filteredNonMembers.length} orang)\n`;
+
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  function handleExportMemberCSV() {
+    if (!data) return;
+    const headers = ["NO", "LIST MEM", feeLabel, ...sessions.map((s) => `Kas Kok (${dateDmy(s.date)})`)];
+    const csvRows: string[][] = [];
+
+    rows.forEach((r, idx) => {
+      const lap = r.commitment_paid ? "LUNAS" : "BELUM";
+      const sessionCells = sessions.map((s) => (r.attendances[s.id] === "PRESENT" ? "HADIR" : "TIDAK HADIR"));
+      csvRows.push([String(idx + 1), r.player_name, lap, ...sessionCells]);
+    });
+
+    const totalRow = ["", "TOTAL", String(total_lapangan_paid), ...sessions.map((s) => String(s.total_kas_kok))];
+    csvRows.push(totalRow);
+
+    const csvContent = [headers, ...csvRows]
+      .map((row) => row.map((val) => `"${val.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rekap-member-${periodName.toLowerCase().replace(/\s+/g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function handleExportNonMemberCSV() {
+    if (!currentSession) return;
+    const headers = ["NO", "LIST NON MEMBER", nonMemberFeeLabel, "NOTE"];
+    const csvRows: string[][] = [];
+
+    filteredNonMembers.forEach((nm, idx) => {
+      csvRows.push([String(idx + 1), nm.player_name, String(nm.fee), nm.note || ""]);
+    });
+
+    csvRows.push(["", "TOTAL", String(totalNonMember), ""]);
+
+    const csvContent = [headers, ...csvRows]
+      .map((row) => row.map((val) => `"${val.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rekap-non-member-${dateDmy(currentSession.date).replace(/\//g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  return (
+    <section aria-label="Rekap Kas Kok & Lapangan" className="mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+      {/* Header with Navigation Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 bg-gradient-to-r from-court/75 via-court/40 to-white">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-ink">
+              {activeTab === "member" ? "Rekap Kehadiran & Kas Kok Member" : "Rekap List Non-Member (Tamu)"}
+            </h2>
+            <span className="text-xs font-medium text-ink-soft">
+              · {activeTab === "member" ? `${rows.length} member · ${sessions.length} pertemuan` : `${filteredNonMembers.length} non-member pada pertemuan ini`}
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {activeTab === "member"
+              ? `Tarif Lapangan ${feeLabel} · Kas Kok ${rupiah(member_contribution)}/pertemuan · Kolom otomatis bertambah setiap ada pertemuan baru.`
+              : `Tarif ${nonMemberFeeLabel} · Filter per pertemuan agar tidak menumpuk semua tanggal.`}
+          </p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 bg-white/90 border border-line p-1 rounded-lg shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("member")}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              activeTab === "member"
+                ? "bg-gradient-to-r from-pine to-pine-deep text-paper shadow-2xs"
+                : "text-ink-soft hover:text-ink hover:bg-court/40"
+            }`}
+          >
+            🏸 Member ({rows.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("non_member")}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              activeTab === "non_member"
+                ? "bg-gradient-to-r from-pine to-pine-deep text-paper shadow-2xs"
+                : "text-ink-soft hover:text-ink hover:bg-court/40"
+            }`}
+          >
+            👥 Non-Member ({(data.non_members ?? []).length})
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "non_member" ? (
+        <div>
+          {/* Non-Member Session Filter & Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-court/40 via-court/20 to-white border-b border-line">
+            <div className="flex items-center gap-2">
+              <label htmlFor="filter-sesi-nonmember" className="text-xs font-semibold text-ink whitespace-nowrap">
+                Pilih Pertemuan:
+              </label>
+              <select
+                id="filter-sesi-nonmember"
+                className="text-xs bg-white border border-line rounded-md px-2.5 py-1.5 font-medium text-ink focus:border-pine focus:outline-hidden"
+                value={selectedSessionId}
+                onChange={(e) => setSelectedSessionId(e.target.value)}
+              >
+                {sessions.map((s, idx) => {
+                  const count = (data.non_members ?? []).filter((nm) => nm.session_id === s.id).length;
+                  return (
+                    <option key={s.id} value={s.id}>
+                      Pertemuan {idx + 1} · {dateDmy(s.date)} ({count} non-member)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Btn
+                variant="plain"
+                onClick={handleCopyNonMemberImage}
+                disabled={copyingImage || filteredNonMembers.length === 0}
+                className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white text-emerald-950 hover:from-emerald-100 hover:to-emerald-50 font-semibold shadow-2xs"
+                title="Salin gambar tabel non-member ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <svg className="h-3.5 w-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
+                    <path d="M21 15l-5-5L5 21" strokeWidth="2" />
+                  </svg>
+                  {copiedImage ? "✓ Gambar Tersalin!" : copyingImage ? "Menyalin…" : "Salin Gambar (WA)"}
+                </span>
+              </Btn>
+              <Btn
+                variant="plain"
+                onClick={handleCopyNonMemberWhatsApp}
+                disabled={filteredNonMembers.length === 0}
+                title="Salin format ringkasan teks untuk WhatsApp"
+              >
+                {copied ? "✓ Teks Tersalin!" : "Salin Teks WA"}
+              </Btn>
+              <Btn
+                variant="plain"
+                onClick={handleExportNonMemberCSV}
+                disabled={filteredNonMembers.length === 0}
+                title="Download format CSV Excel"
+              >
+                Download CSV
+              </Btn>
+            </div>
+          </div>
+
+          {/* Non-Member Table */}
+          {filteredNonMembers.length === 0 ? (
+            <div className="p-6">
+              <Empty text={`Tidak ada non-member yang tercatat hadir pada pertemuan ${currentSession ? dateDmy(currentSession.date) : ""}.`} />
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-w-2xl mx-auto sm:mx-0 p-3">
+              <table className="w-full text-xs border-collapse border border-neutral-400 shadow-xs">
+                <thead className="bg-[#1e3a8a] text-white tracking-wider uppercase font-semibold">
+                  <tr>
+                    <th className="py-2.5 px-3 border border-white/40 w-12 text-center">NO</th>
+                    <th className="py-2.5 px-3 border border-white/40 text-left min-w-[160px]">LIST NON MEMBER</th>
+                    <th className="py-2.5 px-3 border border-white/40 text-center min-w-[150px] bg-blue-900/80">
+                      {nonMemberFeeLabel}
+                    </th>
+                    <th className="py-2.5 px-3 border border-white/40 text-left min-w-[120px]">NOTE</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {filteredNonMembers.map((nm, idx) => (
+                    <tr key={nm.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
+                      <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600 text-center">{idx + 1}</td>
+                      <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{nm.player_name}</td>
+                      <td className="py-2 px-3 border border-neutral-400 bg-[#00e600] text-black font-bold text-center">
+                        {nm.fee}
+                      </td>
+                      <td className="py-2 px-3 border border-neutral-400 text-left text-neutral-600 text-[11px]">{nm.note || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="font-bold border-t-2 border-neutral-900 bg-yellow-300 text-neutral-900 text-sm">
+                  <tr>
+                    <td className="py-2.5 px-3 border border-neutral-400"></td>
+                    <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">TOTAL</td>
+                    <td className="py-2.5 px-3 border border-neutral-400 font-black text-center whitespace-nowrap">
+                      {rupiah(totalNonMember)}
+                    </td>
+                    <td className="py-2.5 px-3 border border-neutral-400"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Member Table */
+        <div>
+          <div className="flex justify-end gap-2 p-3.5 bg-gradient-to-r from-court/40 via-court/20 to-white border-b border-line">
+            <Btn
+              variant="plain"
+              onClick={handleCopyMemberImage}
+              disabled={copyingImage}
+              className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white text-emerald-950 hover:from-emerald-100 hover:to-emerald-50 font-semibold shadow-2xs"
+              title="Salin gambar tabel ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
+                  <path d="M21 15l-5-5L5 21" strokeWidth="2" />
+                </svg>
+                {copiedImage ? "✓ Gambar Tersalin!" : copyingImage ? "Menyalin…" : "Salin Gambar (WA)"}
+              </span>
+            </Btn>
+            <Btn variant="plain" onClick={handleCopyMemberWhatsApp} title="Salin format ringkasan teks untuk WhatsApp">
+              {copied ? "✓ Teks Tersalin!" : "Salin Teks WA"}
+            </Btn>
+            <Btn variant="plain" onClick={handleExportMemberCSV} title="Download format CSV Excel">
+              Download CSV
+            </Btn>
+          </div>
+
+          <div className="overflow-x-auto p-3">
+            <table className="w-full text-xs text-center border-collapse border border-neutral-400 shadow-xs">
+              <thead className="bg-[#1e3a8a] text-white tracking-wider uppercase font-semibold">
+                <tr>
+                  <th className="py-2.5 px-3 border border-white/40 w-12 text-center">NO</th>
+                  <th className="py-2.5 px-3 border border-white/40 text-left min-w-[130px]">LIST MEM</th>
+                  <th className="py-2.5 px-3 border border-white/40 min-w-[130px] whitespace-nowrap bg-blue-900/80">
+                    {feeLabel}
+                  </th>
+                  {sessions.map((s) => (
+                    <th key={s.id} className="py-2.5 px-3 border border-white/40 min-w-[140px] whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span>Kas Kok ({dateDmy(s.date)})</span>
+                        <OpenLink to={`/mabar/${s.id}`} />
+                      </div>
+                    </th>
+                  ))}
+                  {sessions.length === 0 && (
+                    <th className="py-2.5 px-3 border border-white/40 text-xs italic font-normal text-blue-200">
+                      Belum ada pertemuan
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {rows.map((r, idx) => (
+                  <tr key={r.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
+                    <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600">{idx + 1}</td>
+                    <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{r.player_name}</td>
+                    <td className="py-2 px-3 border border-neutral-400">
+                      {r.commitment_paid ? (
+                        <span className="inline-block w-full py-1 font-bold text-xs bg-emerald-600 text-white rounded shadow-sm">
+                          LUNAS
+                        </span>
+                      ) : (
+                        <span className="inline-block w-full py-1 font-bold text-xs bg-amber-100 text-amber-900 border border-amber-300 rounded">
+                          {r.commitment_amount_paid > 0
+                            ? `Kurang ${rupiah(Math.max(0, (r.commitment_fee || commitment_fee) - r.commitment_amount_paid))}`
+                            : "BELUM"}
+                        </span>
+                      )}
+                    </td>
+                    {sessions.map((s) => {
+                      const status = r.attendances[s.id];
+                      const isPresent = status === "PRESENT";
+                      return isPresent ? (
+                        <td
+                          key={s.id}
+                          className="py-2 px-3 border border-neutral-400 bg-emerald-600 text-white font-bold text-sm"
+                          title={`${r.player_name}: Hadir`}
+                        >
+                          ✓
+                        </td>
+                      ) : (
+                        <td
+                          key={s.id}
+                          className="py-2 px-3 border border-neutral-400 bg-red-600 text-white font-bold text-[11px] whitespace-nowrap"
+                          title={`${r.player_name}: ${status ? status : "Tidak Hadir"}`}
+                        >
+                          TIDAK HADIR
+                        </td>
+                      );
+                    })}
+                    {sessions.length === 0 && (
+                      <td className="py-2 px-3 border border-neutral-400 text-neutral-400 italic">
+                        —
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="font-bold border-t-2 border-neutral-900 bg-yellow-300 text-neutral-900">
+                <tr className="text-sm">
+                  <td className="py-2.5 px-3 border border-neutral-400"></td>
+                  <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">TOTAL</td>
+                  <td className="py-2.5 px-3 border border-neutral-400 font-black whitespace-nowrap">
+                    {rupiah(total_lapangan_paid)}
+                  </td>
+                  {sessions.map((s) => (
+                    <td key={s.id} className="py-2.5 px-3 border border-neutral-400 font-black whitespace-nowrap">
+                      {rupiah(s.total_kas_kok)}
+                    </td>
+                  ))}
+                  {sessions.length === 0 && (
+                    <td className="py-2.5 px-3 border border-neutral-400 text-neutral-600">
+                      —
+                    </td>
+                  )}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+

@@ -6,10 +6,12 @@ import {
   useUpdatePlayerMutation,
 } from "../store/services";
 import { ApiError } from "../store/baseApi";
+import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, PageHead } from "../ui";
 import type { Player } from "../types";
 
 export function PlayersPage() {
+  const { t } = useI18n();
   const [q, setQ] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", notes: "" });
   const [formError, setFormError] = useState("");
@@ -27,7 +29,7 @@ export function PlayersPage() {
       setActionError("");
     } catch (e) {
       setPendingDelete(null);
-      setActionError(e instanceof ApiError ? e.message : "Could not delete player.");
+      setActionError(e instanceof ApiError ? e.message : t("players.errorDelete"));
     }
   }
 
@@ -41,42 +43,45 @@ export function PlayersPage() {
       setForm({ name: "", phone: "", notes: "" });
       setFormError("");
     } catch (e) {
-      setFormError(e instanceof ApiError ? e.message : "Could not save player.");
+      setFormError(e instanceof ApiError ? e.message : t("players.errorSave"));
     }
   }
 
   return (
     <div>
-      <PageHead title="Players" sub={`${list.data?.length ?? 0} registered. Players with history cannot be deleted.`} />
+      <PageHead
+        title={t("players.pageTitle")}
+        sub={t("players.pageSubtitle", { count: list.data?.length ?? 0 })}
+      />
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-        <section aria-label="Add player" className="h-fit rounded-xl border border-line bg-white shadow-card p-3">
-          <h2 className="mb-3 text-sm font-semibold">New player</h2>
+        <section aria-label={t("players.newPlayer")} className="h-fit rounded-xl border border-line bg-white shadow-card p-3">
+          <h2 className="mb-3 text-sm font-semibold">{t("players.newPlayer")}</h2>
           <div className="space-y-3">
-            <Field label="Name" error={!form.name.trim() && formError ? "Player name is required." : undefined}>
+            <Field label={t("players.nameLabel")} error={!form.name.trim() && formError ? t("players.nameRequired") : undefined}>
               <input id="nama" className="w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
-            <Field label="WhatsApp" hint="Optional.">
+            <Field label={t("players.phoneLabel")} hint={t("players.phoneHint")}>
               <input id="whatsapp" className="w-full" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Field>
-            <Field label="Notes" hint="Optional.">
+            <Field label={t("players.notesLabel")} hint={t("players.notesHint")}>
               <input id="catatan" className="w-full" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             {formError && form.name.trim() && (
               <p role="alert" className="text-sm text-red-700">{formError}</p>
             )}
             <Btn disabled={createState.isLoading || !form.name.trim()} onClick={submit}>
-              {createState.isLoading ? "Saving…" : "Add player"}
+              {createState.isLoading ? t("players.btnSaving") : t("players.btnAddPlayer")}
             </Btn>
           </div>
         </section>
 
-        <section aria-label="Player list" className="rounded-xl border border-line bg-white shadow-card">
+        <section aria-label={t("players.pageTitle")} className="rounded-xl border border-line bg-white shadow-card">
           <div className="border-b border-line p-3">
-            <label htmlFor="cari" className="sr-only">Search players</label>
+            <label htmlFor="cari" className="sr-only">{t("players.searchPlaceholder")}</label>
             <input
               id="cari"
               className="w-full max-w-xs"
-              placeholder="Search name or WhatsApp…"
+              placeholder={t("players.searchPlaceholder")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -85,13 +90,18 @@ export function PlayersPage() {
           {list.isFetching && !list.data ? (
             <Loading />
           ) : list.isError ? (
-            <div className="p-3"><ErrorBox message="Could not load players." onRetry={() => list.refetch()} /></div>
+            <div className="p-3"><ErrorBox message={t("players.errorLoad")} onRetry={() => list.refetch()} /></div>
           ) : (list.data ?? []).length === 0 ? (
-            <div className="p-3"><Empty text={q ? "No matching players." : "No players yet."} /></div>
+            <div className="p-3"><Empty text={q ? t("players.emptyMatching") : t("players.emptyNone")} /></div>
           ) : (
             <table className="data">
               <thead>
-                <tr><th>Name</th><th>WhatsApp</th><th>Status</th><th></th></tr>
+                <tr>
+                  <th>{t("players.colName")}</th>
+                  <th>{t("players.colPhone")}</th>
+                  <th>{t("players.colStatus")}</th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
                 {(list.data ?? []).map((p) => (
@@ -104,14 +114,13 @@ export function PlayersPage() {
       </div>
       {pendingDelete && (
         <ConfirmModal
-          title={`Delete ${pendingDelete.name}?`}
+          title={t("players.deleteModalTitle", { name: pendingDelete.name })}
           body={
             <p>
-              <strong>{pendingDelete.name}</strong> will be permanently deleted.
-              Players with attendance, bills, or other history cannot be deleted.
+              {t("players.deleteModalBody", { name: pendingDelete.name })}
             </p>
           }
-          confirmLabel="Yes, delete"
+          confirmLabel={t("players.btnConfirmDelete")}
           busy={removeState.isLoading}
           onConfirm={confirmDelete}
           onCancel={() => setPendingDelete(null)}
@@ -122,6 +131,7 @@ export function PlayersPage() {
 }
 
 function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void }) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(player.name);
   const [error, setError] = useState("");
@@ -133,7 +143,7 @@ function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void 
       setEditing(false);
       setError("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not save.");
+      setError(e instanceof ApiError ? e.message : t("players.errorSave"));
     }
   }
 
@@ -154,18 +164,24 @@ function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void 
       <td className="whitespace-nowrap text-right">
         {editing ? (
           <>
-            <button type="button" className="mr-2 underline" disabled={updateState.isLoading || !name.trim()} onClick={save}>Save</button>
-            <button type="button" className="underline" onClick={() => { setEditing(false); setName(player.name); }}>Cancel</button>
+            <button type="button" className="mr-2 underline" disabled={updateState.isLoading || !name.trim()} onClick={save}>
+              {t("players.btnSave")}
+            </button>
+            <button type="button" className="underline" onClick={() => { setEditing(false); setName(player.name); }}>
+              {t("players.btnCancel")}
+            </button>
           </>
         ) : (
           <>
-            <button type="button" className="mr-2 underline" onClick={() => setEditing(true)}>Edit</button>
+            <button type="button" className="mr-2 underline" onClick={() => setEditing(true)}>
+              {t("players.btnEdit")}
+            </button>
             <button
               type="button"
               className="text-red-700 underline"
               onClick={onDelete}
             >
-              Delete
+              {t("players.btnDelete")}
             </button>
           </>
         )}
@@ -173,3 +189,4 @@ function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void 
     </tr>
   );
 }
+

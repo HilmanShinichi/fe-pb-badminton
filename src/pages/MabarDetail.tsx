@@ -88,7 +88,7 @@ function MabarDetailInner({
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-5">
           <Cell label="Profit / loss" value={rupiah(s.profit)} strong />
           <Cell label="Revenue" value={rupiah(s.revenue)} sub={`Paid bills ${rupiah(s.billed_paid ?? 0)}`} />
-          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)} · Shuttles ${rupiah(s.shuttlecock_cost)}`} />
+          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)}${(s.prepaid_courts ?? 0) > 0 ? ` · Prepaid −${rupiah(s.prepaid_courts)}` : ""} · Shuttles ${rupiah(s.shuttlecock_cost)}`} />
           <Cell label="Players present" value={String(s.players_present)} sub={`${s.players_listed} listed · ${s.no_show} no-shows`} />
           <Cell label="Shuttlecocks" value={`${s.shuttlecock_used} pcs`} sub="Matches + simple recap" />
         </dl>
@@ -388,6 +388,16 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
     <section aria-label="Attendance" className="h-fit rounded-xl border border-line bg-white shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <h2 className="text-sm font-semibold">Attendance · {rows.length} players</h2>
+        <span className="inline-flex gap-1">
+        {sessionType === "PERIOD" && !!periodId && (
+          <Btn
+            variant="plain"
+            disabled={saveState.isLoading}
+            onClick={() => setAttendance({ sessionId, seed_members: true }).unwrap().then(() => setError("")).catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not save."))}
+          >
+            Fill period members
+          </Btn>
+        )}
         <Btn
           variant="plain"
           disabled={saveState.isLoading}
@@ -395,6 +405,7 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
         >
           Mark all listed as present
         </Btn>
+        </span>
       </div>
       {selectedCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b border-line bg-court/40 px-3 py-2">

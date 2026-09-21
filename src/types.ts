@@ -116,3 +116,42 @@ export interface Product {
   active: boolean;
   stock: number;
 }
+
+export interface PeriodAttendanceMatrixSession {
+  id: string;
+  date: string;
+  status: string;
+  present_count: number;
+  total_kas_kok: number;
+}
+
+export interface PeriodAttendanceMatrixRow {
+  player_id: string;
+  player_name: string;
+  commitment_fee: number;
+  commitment_paid: boolean;
+  commitment_amount_paid: number;
+  attendances: Record<string, string>;
+  present_count: number;
+}
+
+export interface PeriodAttendanceMatrixNonMember {
+  session_id: string;
+  player_id: string;
+  player_name: string;
+  fee: number;
+  paid: boolean;
+  note: string;
+}
+
+export interface PeriodAttendanceMatrixResponse {
+  sessions: PeriodAttendanceMatrixSession[];
+  rows: PeriodAttendanceMatrixRow[];
+  non_members: PeriodAttendanceMatrixNonMember[];
+  commitment_fee: number;
+  member_contribution: number;
+  non_member_fee: number;
+  total_lapangan_paid: number;
+  total_kas_kok: number;
+}
+
