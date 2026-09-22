@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-paper text-ink antialiased;
+  @apply bg-paper text-ink antialiased overflow-x-hidden;
 }
 
 input, select, textarea {

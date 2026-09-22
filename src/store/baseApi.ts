@@ -55,6 +55,6 @@ const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = as
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: envelopeBaseQuery,
-  tagTypes: ["Dashboard", "Players", "Periods", "Members", "Mabar", "Attendance", "Matches", "SimpleStats", "Billing", "Inventory", "Finance", "Reports"],
+  tagTypes: ["Dashboard", "Players", "Periods", "Members", "Mabar", "Attendance", "Matches", "SimpleStats", "Billing", "Inventory", "Finance", "Reports", "MatchMaker"],
   endpoints: () => ({}),
 });

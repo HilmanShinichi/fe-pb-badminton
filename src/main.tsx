@@ -14,6 +14,8 @@ import { FinancePage } from "./pages/Finance";
 import { ReportsPage } from "./pages/Reports";
 import { NoShowTrackerPage } from "./pages/NoShowTracker";
 import { SimulatorPage } from "./pages/Simulator";
+import { MatchMakerListPage, MatchMakerDetailPage } from "./pages/MatchMaker";
+import { LiveEventPage, LiveIndexPage } from "./pages/Live";
 import { I18nProvider } from "./i18n";
 import "./index.css";
 
@@ -30,6 +32,8 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/live" element={<LiveIndexPage />} />
+            <Route path="/live/:id" element={<LiveEventPage />} />
             <Route path="/" element={<Guard><DashboardPage /></Guard>} />
             <Route path="/mabar" element={<Guard><MabarListPage /></Guard>} />
             <Route path="/mabar/:id" element={<Guard><MabarDetailPage /></Guard>} />
@@ -41,6 +45,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/finance" element={<Guard><FinancePage /></Guard>} />
             <Route path="/reports" element={<Guard><ReportsPage /></Guard>} />
             <Route path="/simulator" element={<Guard><SimulatorPage /></Guard>} />
+            <Route path="/match-maker" element={<Guard><MatchMakerListPage /></Guard>} />
+            <Route path="/match-maker/:id" element={<Guard><MatchMakerDetailPage /></Guard>} />
           </Routes>
         </BrowserRouter>
       </I18nProvider>

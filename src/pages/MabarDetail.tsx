@@ -78,13 +78,13 @@ function MabarDetailInner({
   }, [mode, sessionId]);
 
   return (
-    <div>
+    <div className="w-full min-w-0">
       <PageHead
         title={`${s.session.type === "PERIOD" ? "Period Open Play" : "Daily Open Play"} · ${dateId(s.session.date)}`}
         sub={s.session.period_name ?? s.session.venue_description ?? undefined}
         right={<Badge status={s.status} />}
       />
-      <section aria-label="Session result" className="mb-5 rounded-xl border border-line bg-white shadow-card">
+      <section aria-label="Session result" className="mb-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-5">
           <Cell label="Profit / loss" value={rupiah(s.profit)} strong />
           <Cell label="Revenue" value={rupiah(s.revenue)} sub={`Paid bills ${rupiah(s.billed_paid ?? 0)}`} />
@@ -96,9 +96,9 @@ function MabarDetailInner({
       {s.session.type === "DAILY_EVENT" && (
         <SessionCostPanel sessionId={sessionId} summary={s} onSaved={onRetry} />
       )}
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-2 min-w-0 w-full">
         <AttendancePanel sessionId={sessionId} sessionType={s.session.type} periodId={s.session.period_id ?? null} />
-        <div>
+        <div className="min-w-0 w-full">
           <div role="tablist" aria-label="Recap mode" className="mb-3 flex gap-1">
             {(["simple", "detail"] as const).map((m) => (
               <button
@@ -385,7 +385,7 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
   }
 
   return (
-    <section aria-label="Attendance" className="h-fit rounded-xl border border-line bg-white shadow-card">
+    <section aria-label="Attendance" className="h-fit rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <h2 className="text-sm font-semibold">Attendance · {rows.length} players</h2>
         <span className="inline-flex gap-1">
@@ -431,8 +431,9 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
       ) : rows.length === 0 ? (
         <div className="p-3"><Empty text="No attendance list yet. Add players below." /></div>
       ) : (
-        <table className="data">
-          <thead>
+        <div className="overflow-x-auto w-full">
+          <table className="data">
+            <thead>
             <tr>
               <th className="w-8">
                 <input
@@ -501,6 +502,7 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <div className="space-y-2 border-t border-line p-3">
         <div className="flex gap-2">
@@ -635,42 +637,44 @@ function SimpleRecapPanel({ sessionId, onRetry }: { sessionId: string; onRetry: 
       ) : present.length === 0 ? (
         <div className="p-3"><Empty text="Nobody marked PRESENT yet. Mark attendance first." /></div>
       ) : (
-        <table className="data">
-          <thead>
-            <tr><th>Player</th><th className="text-right">Plays</th><th className="text-right">Shuttles</th></tr>
-          </thead>
-          <tbody>
-            {present.map((p) => {
-              const v = get(p.player_id);
-              return (
-                <tr key={p.player_id}>
-                  <td className="font-medium">{p.player_name}</td>
-                  <td className="text-right">
-                    <span className="inline-flex items-center gap-1">
-                      <button type="button" aria-label={`Decrease plays for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { plays: Math.max(0, v.plays - 1) })}>−</button>
-                      <input aria-label={`Total plays for ${p.player_name}`} className="w-12 text-center tabular-nums" inputMode="numeric" value={v.plays} onChange={(e) => set(p.player_id, { plays: Math.max(0, Number(e.target.value) || 0) })} />
-                      <button type="button" aria-label={`Increase plays for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { plays: v.plays + 1 })}>+</button>
-                    </span>
-                  </td>
-                  <td className="text-right">
-                    <span className="inline-flex items-center gap-1">
-                      <button type="button" aria-label={`Decrease shuttles for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { cocks: Math.max(0, v.cocks - 1) })}>−</button>
-                      <input aria-label={`Total shuttles for ${p.player_name}`} className="w-12 text-center tabular-nums" inputMode="numeric" value={v.cocks} onChange={(e) => set(p.player_id, { cocks: Math.max(0, Number(e.target.value) || 0) })} />
-                      <button type="button" aria-label={`Increase shuttles for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { cocks: v.cocks + 1 })}>+</button>
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{present.length} players</td>
-              <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
-              <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalCocks}</td>
-            </tr>
-          </tfoot>
-        </table>
+        <div className="overflow-x-auto w-full">
+          <table className="data">
+            <thead>
+              <tr><th>Player</th><th className="text-right">Plays</th><th className="text-right">Shuttles</th></tr>
+            </thead>
+            <tbody>
+              {present.map((p) => {
+                const v = get(p.player_id);
+                return (
+                  <tr key={p.player_id}>
+                    <td className="font-medium">{p.player_name}</td>
+                    <td className="text-right">
+                      <span className="inline-flex items-center gap-1">
+                        <button type="button" aria-label={`Decrease plays for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { plays: Math.max(0, v.plays - 1) })}>−</button>
+                        <input aria-label={`Total plays for ${p.player_name}`} className="w-12 text-center tabular-nums" inputMode="numeric" value={v.plays} onChange={(e) => set(p.player_id, { plays: Math.max(0, Number(e.target.value) || 0) })} />
+                        <button type="button" aria-label={`Increase plays for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { plays: v.plays + 1 })}>+</button>
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <span className="inline-flex items-center gap-1">
+                        <button type="button" aria-label={`Decrease shuttles for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { cocks: Math.max(0, v.cocks - 1) })}>−</button>
+                        <input aria-label={`Total shuttles for ${p.player_name}`} className="w-12 text-center tabular-nums" inputMode="numeric" value={v.cocks} onChange={(e) => set(p.player_id, { cocks: Math.max(0, Number(e.target.value) || 0) })} />
+                        <button type="button" aria-label={`Increase shuttles for ${p.player_name}`} className="border border-line px-2 py-0.5" onClick={() => set(p.player_id, { cocks: v.cocks + 1 })}>+</button>
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{present.length} players</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalCocks}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
       <div className="flex items-center gap-2 border-t border-line p-3">
         <Btn disabled={!dirty || saveState.isLoading || present.length === 0} onClick={submit}>
@@ -731,7 +735,7 @@ function MatchesPanel({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <section aria-label="Matches" className="h-fit rounded-xl border border-line bg-white shadow-card">
+    <section aria-label="Matches" className="h-fit rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
       <h2 className="border-b border-line px-3 py-2 text-sm font-semibold">
         Detailed 2v2 (optional) · {matches.data?.length ?? 0} · {totalShuttles} shuttles used
       </h2>
@@ -743,48 +747,52 @@ function MatchesPanel({ sessionId }: { sessionId: string }) {
       ) : (matches.data ?? []).length === 0 ? (
         <div className="p-3"><Empty text="No matches yet. Record the first one below." /></div>
       ) : (
-        <table className="data">
-          <thead>
-            <tr><th>#</th><th>Players</th><th className="text-right">Shuttles</th><th></th></tr>
-          </thead>
-          <tbody>
-            {(matches.data ?? []).map((m) => (
-              <tr key={m.id}>
-                <td className="tabular-nums">{m.sequence}</td>
-                <td>{m.players.length ? m.players.map(nameOf).join(" · ") : "No names recorded"}</td>
-                <td className="text-right tabular-nums">{m.shuttlecock_used}</td>
-                <td className="text-right">
-                  <button type="button" className="text-red-700 underline" disabled={removeState.isLoading} onClick={() => remove({ matchId: m.id, sessionId })}>
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto w-full">
+          <table className="data">
+            <thead>
+              <tr><th>#</th><th>Players</th><th className="text-right">Shuttles</th><th></th></tr>
+            </thead>
+            <tbody>
+              {(matches.data ?? []).map((m) => (
+                <tr key={m.id}>
+                  <td className="tabular-nums">{m.sequence}</td>
+                  <td>{m.players.length ? m.players.map(nameOf).join(" · ") : "No names recorded"}</td>
+                  <td className="text-right tabular-nums">{m.shuttlecock_used}</td>
+                  <td className="text-right">
+                    <button type="button" className="text-red-700 underline" disabled={removeState.isLoading} onClick={() => remove({ matchId: m.id, sessionId })}>
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {usage.length > 0 && (
-        <table className="data border-t border-line">
-          <thead>
-            <tr><th>Player</th><th className="text-right">Plays</th><th className="text-right">Shuttles</th></tr>
-          </thead>
-          <tbody>
-            {usage.map((u) => (
-              <tr key={u.id}>
-                <td className="font-medium">{nameOf(u.id)}</td>
-                <td className="text-right tabular-nums">{u.playCount}</td>
-                <td className="text-right tabular-nums">{u.shuttles}</td>
+        <div className="overflow-x-auto w-full">
+          <table className="data border-t border-line">
+            <thead>
+              <tr><th>Player</th><th className="text-right">Plays</th><th className="text-right">Shuttles</th></tr>
+            </thead>
+            <tbody>
+              {usage.map((u) => (
+                <tr key={u.id}>
+                  <td className="font-medium">{nameOf(u.id)}</td>
+                  <td className="text-right tabular-nums">{u.playCount}</td>
+                  <td className="text-right tabular-nums">{u.shuttles}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{usage.length} named players</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalShuttles}</td>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{usage.length} named players</td>
-              <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
-              <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalShuttles}</td>
-            </tr>
-          </tfoot>
-        </table>
+            </tfoot>
+          </table>
+        </div>
       )}
       <div className="border-t border-line p-3">
         <h3 className="mb-2 text-sm font-semibold">New match</h3>

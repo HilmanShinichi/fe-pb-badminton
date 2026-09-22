@@ -4,7 +4,50 @@ export interface Player {
   phone: string | null;
   notes: string | null;
   status: string;
+  grade: string | null;
+  gender: string | null;
   created_at: string;
+}
+
+export const GRADES = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"] as const;
+
+export interface GenTeamPlayer {
+  player_id: string;
+  name: string;
+  grade: string | null;
+  gender: string | null;
+}
+
+export interface GenMatch {
+  id: string;
+  event_id: string;
+  round: number;
+  team1: GenTeamPlayer[];
+  team2: GenTeamPlayer[];
+  status: string;
+  court: number;
+  started_at: string | null;
+  ended_at: string | null;
+  shuttlecock_used: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MatchEventRow {
+  id: string;
+  name: string;
+  status: string;
+  court_count: number;
+  is_public: boolean;
+  created_at: string;
+  players: number;
+  matches: number;
+}
+
+export interface MatchEventDetail {
+  event: { id: string; name: string; status: string; court_count: number; is_public: boolean; show_grades: boolean; player_ids: string[]; created_at: string };
+  matches: GenMatch[];
+  counts: { player_id: string; name: string; grade: string | null; gender: string | null; arrival: number; played: number }[];
 }
 
 export interface Period {

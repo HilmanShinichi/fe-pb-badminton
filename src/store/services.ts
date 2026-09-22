@@ -2,7 +2,10 @@ import { baseApi } from "./baseApi";
 import type {
   AttendanceRow,
   BillRow,
+  GenMatch,
   MabarSession,
+  MatchEventDetail,
+  MatchEventRow,
   MatchRow,
   Membership,
   Period,
@@ -271,17 +274,52 @@ export const api = baseApi.injectEndpoints({
       query: () => "/api/v1/players?limit=200",
       providesTags: ["Players"],
     }),
-    createPlayer: build.mutation<Player, { name: string; phone: string | null; notes: string | null }>({
+    createPlayer: build.mutation<Player, { name: string; phone: string | null; notes: string | null; grade?: string | null; gender?: string | null }>({
       query: (body) => ({ url: "/api/v1/players", method: "POST", body }),
       invalidatesTags: ["Players"],
     }),
-    updatePlayer: build.mutation<Player, { id: string; name: string; phone: string | null; notes: string | null }>({
+    updatePlayer: build.mutation<Player, { id: string; name: string; phone: string | null; notes: string | null; grade?: string | null; gender?: string | null }>({
       query: ({ id, ...body }) => ({ url: `/api/v1/players/${id}`, method: "PATCH", body }),
       invalidatesTags: ["Players"],
     }),
     deletePlayer: build.mutation<unknown, string>({
       query: (id) => ({ url: `/api/v1/players/${id}`, method: "DELETE" }),
       invalidatesTags: ["Players"],
+    }),
+
+    matchEvents: build.query<MatchEventRow[], void>({
+      query: () => "/api/v1/match-events",
+      providesTags: ["MatchMaker"],
+    }),
+    matchEvent: build.query<MatchEventDetail, string>({
+      query: (id) => `/api/v1/match-events/${id}`,
+      providesTags: (_r, _e, id) => [{ type: "MatchMaker", id }],
+    }),
+    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number }>({
+      query: (body) => ({ url: "/api/v1/match-events", method: "POST", body }),
+      invalidatesTags: ["MatchMaker"],
+    }),
+    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; is_public?: boolean; show_grades?: boolean } }>({
+      query: ({ id, body }) => ({ url: `/api/v1/match-events/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["MatchMaker"],
+    }),
+    publicMatchEvents: build.query<{ id: string; name: string; created_at: string; matches: number }[], void>({
+      query: () => "/api/v1/public/match-events",
+    }),
+    publicMatchEvent: build.query<MatchEventDetail, string>({
+      query: (id) => `/api/v1/public/match-events/${id}`,
+    }),
+    deleteMatchEvent: build.mutation<unknown, string>({
+      query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
+      invalidatesTags: ["MatchMaker"],
+    }),
+    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number }>({
+      query: ({ eventId, rounds }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds } }),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
+    }),
+    updateGenMatch: build.mutation<GenMatch, { id: string; body: { team1?: string[]; team2?: string[]; status?: string; court?: number; shuttlecock_used?: number } }>({
+      query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["MatchMaker"],
     }),
 
     periods: build.query<Period[], void>({
@@ -581,6 +619,15 @@ export const {
   usePeriodMembersQuery,
   useAddMemberMutation,
   useRemoveMemberMutation,
+  useMatchEventsQuery,
+  useMatchEventQuery,
+  useCreateMatchEventMutation,
+  useUpdateMatchEventMutation,
+  useDeleteMatchEventMutation,
+  useGenerateMatchesMutation,
+  useUpdateGenMatchMutation,
+  usePublicMatchEventsQuery,
+  usePublicMatchEventQuery,
   usePeriodSessionsQuery,
   useShuttlecockMatrixQuery,
   useSessionBreakdownQuery,

@@ -10,6 +10,7 @@ export interface NavTranslations {
   finance: { label: string; desc: string };
   reports: { label: string; desc: string };
   simulator: { label: string; desc: string };
+  matchmaker: { label: string; desc: string };
   venues: { label: string; desc: string };
   logout: string;
   admin: string;
@@ -323,6 +324,10 @@ export interface PlayersTranslations {
   emptyNone: string;
   colName: string;
   colPhone: string;
+  colGrade: string;
+  colGender: string;
+  genderMale: string;
+  genderFemale: string;
   colStatus: string;
   deleteModalTitle: string;
   deleteModalBody: string;
@@ -333,6 +338,127 @@ export interface PlayersTranslations {
   btnCancel: string;
 }
 
+export interface MatchMakerTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  backToEvents: string;
+  newEventTitle: string;
+  eventNameLabel: string;
+  eventNamePlaceholder: string;
+  courtsLabel: string;
+  courtsHint: string;
+  poolSourceLabel: string;
+  poolSourceActive: string;
+  poolSourceSession: string;
+  poolSourceCustom: string;
+  sessionSelectLabel: string;
+  sessionSelectPrompt: string;
+  sessionPlayersCount: string;
+  sessionHint: string;
+  customPlayersLabel: string;
+  customSearchPlaceholder: string;
+  noMatchingPlayers: string;
+  poolCountText: string;
+  poolNeedMin: string;
+  btnCreateEvent: string;
+  btnCreating: string;
+  errorNeedFourSession: string;
+  errorNeedFourCustom: string;
+  errorCreateEvent: string;
+  errorDeleteEvent: string;
+  deleteModalTitle: string;
+  deleteModalBody: string;
+  eventsSectionTitle: string;
+  emptyEvents: string;
+  cardCourts: string;
+  cardUnlimitedCourts: string;
+  cardPlayers: string;
+  cardMatches: string;
+  btnManageDraw: string;
+  totalEventsStats: string;
+  colEvent: string;
+  colCourts: string;
+  colPlayers: string;
+  colMatches: string;
+  eventDetailSub: string;
+  generatorTitle: string;
+  generatorDesc: string;
+  roundsLabel: string;
+  btnGenerate: string;
+  btnGenerating: string;
+  errorSaveCourts: string;
+  errorGenerate: string;
+  noMatchesYet: string;
+  roundTitle: string;
+  roundMatchesCount: string;
+  courtNumber: string;
+  courtLabel: string;
+  courtUnlimited: string;
+  statusUpcoming: string;
+  statusPlaying: string;
+  statusEnded: string;
+  btnStartPlaying: string;
+  btnFinishMatch: string;
+  btnReopen: string;
+  btnEditTeams: string;
+  vs: string;
+  noGrade: string;
+  team1: string;
+  team2: string;
+  editTeamsModalTitle: string;
+  editTeamsModalHint: string;
+  errorPickAllFour: string;
+  errorSaveTeams: string;
+  btnSaveTeams: string;
+  playCountsTitle: string;
+  playCountsSub: string;
+  colNo: string;
+  colPlayer: string;
+  colGrade: string;
+  colGender: string;
+  colPlayed: string;
+  allRounds: string;
+  viewCards: string;
+  viewTable: string;
+}
+
+export interface MabarTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  filterAll: string;
+  filterPeriod: string;
+  filterDaily: string;
+  scheduleTitle: string;
+  fieldSessionType: string;
+  fieldPeriod: string;
+  selectPeriodPlaceholder: string;
+  fieldCourtCostPeriod: string;
+  hintCourtCostPeriod: string;
+  fieldVenueDescription: string;
+  hintVenueDescription: string;
+  fieldCourtCostDaily: string;
+  hintCourtCostDaily: string;
+  fieldUnitsPack: string;
+  hintUnitsPack: string;
+  fieldShuttlePackPrice: string;
+  hintShuttlePackPrice: string;
+  fieldShuttlePrice: string;
+  hintShuttlePriceCalc: string;
+  courtCostSplitNote: string;
+  fieldDate: string;
+  btnCreateSession: string;
+  btnCreating: string;
+  errorPeriodRequired: string;
+  errorVenueRequired: string;
+  errorCreateSession: string;
+  errorLoadSessions: string;
+  emptySessions: string;
+  colDate: string;
+  colType: string;
+  colVenuePeriod: string;
+  btnOpenSession: string;
+}
+
 export interface TranslationSchema {
   nav: NavTranslations;
   common: CommonTranslations;
@@ -341,4 +467,7 @@ export interface TranslationSchema {
   reports: ReportsTranslations;
   dashboard: DashboardTranslations;
   players: PlayersTranslations;
+  matchmaker: MatchMakerTranslations;
+  mabar: MabarTranslations;
 }
+

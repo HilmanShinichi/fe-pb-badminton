@@ -1,0 +1,1 @@
+export { GenderChip } from "./GenderChip";
