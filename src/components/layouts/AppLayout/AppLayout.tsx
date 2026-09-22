@@ -164,10 +164,14 @@ export function Layout({ children }: { children: ReactNode }) {
           open ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0 lg:w-16"
         }`}
       >
-        <div className="flex items-center gap-2.5 border-b border-paper/10 px-3 py-3 bg-black/15">
+        <div
+          className={`flex h-16 items-center border-b border-paper/10 bg-black/15 transition-all duration-300 ${
+            open ? "gap-3 px-3.5 justify-start" : "justify-center px-0"
+          }`}
+        >
           <button
             type="button"
-            className="shrink-0 rounded-md border border-paper/20 p-2 hover:bg-paper/10 transition-colors"
+            className="shrink-0 h-10 w-10 flex items-center justify-center rounded-xl border border-paper/20 hover:bg-paper/10 transition-colors"
             aria-label={open ? "Hide menu" : "Show menu"}
             aria-expanded={open}
             aria-controls="primary-sidebar"
@@ -191,63 +195,75 @@ export function Layout({ children }: { children: ReactNode }) {
               />
             </span>
           </button>
-          <Link
-            to="/"
-            onClick={closeOnMobile}
-            className={`min-w-0 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 lg:invisible"}`}
-          >
-            <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
-              PB <span className="bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent">KECEBONG</span>
-            </span>
-            <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">{isId ? "Manajer mabar badminton" : "Badminton open play manager"}</span>
-          </Link>
+          {open && (
+            <Link
+              to="/"
+              onClick={closeOnMobile}
+              className="min-w-0 flex flex-col transition-opacity duration-300"
+            >
+              <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
+                PB <span className="bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent">KECEBONG</span>
+              </span>
+              <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">{isId ? "Manajer mabar badminton" : "Badminton open play manager"}</span>
+            </Link>
+          )}
         </div>
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3">
-          <p
-            aria-hidden={!open}
-            className={`max-h-6 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300 ${
-              open ? "max-h-6 opacity-100" : "max-h-0 pb-0 opacity-0"
-            }`}
-          >
-            {isId ? "Sesi & Pemain" : "Sessions & Roster"}
-          </p>
-          <ul className="space-y-0.5">
+          {open && (
+            <p className="max-h-6 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
+              {isId ? "Sesi & Pemain" : "Sessions & Roster"}
+            </p>
+          )}
+          <ul className="space-y-1">
             {NAV.slice(0, 6).map((n) => (
               <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
             ))}
           </ul>
-          <p
-            aria-hidden={!open}
-            className={`max-h-10 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300 ${
-              open ? "max-h-10 opacity-100" : "max-h-0 pb-0 pt-0 opacity-0"
-            }`}
-          >
-            {isId ? "Kas & Laporan" : "Finance & Reports"}
-          </p>
-          <ul className="space-y-0.5">
+          {open ? (
+            <p className="max-h-10 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
+              {isId ? "Kas & Laporan" : "Finance & Reports"}
+            </p>
+          ) : (
+            <div className="my-2.5 mx-auto h-px w-6 bg-paper/15" />
+          )}
+          <ul className="space-y-1">
             {NAV.slice(6).map((n) => (
               <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
             ))}
           </ul>
         </nav>
-        <div
-          className={`border-t border-paper/15 px-3 py-3 transition-opacity duration-300 ${
-            open ? "opacity-100" : "opacity-0 lg:invisible"
-          }`}
-        >
-          <div className="mb-2.5">
-            <LanguageSwitcher className="w-full justify-between bg-black/30 border-paper/15 text-paper !p-1" />
+        {open ? (
+          <div className="border-t border-paper/15 px-3 py-3 transition-opacity duration-300">
+            <div className="mb-2.5">
+              <LanguageSwitcher className="w-full justify-between bg-black/30 border-paper/15 text-paper !p-1" />
+            </div>
+            <p className="truncate text-sm font-medium">{auth?.username ?? "Admin"}</p>
+            <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
+              {t("nav.logout")}
+            </button>
           </div>
-          <p className="truncate text-sm font-medium">{auth?.username ?? "Admin"}</p>
-          <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
-            {t("nav.logout")}
-          </button>
-        </div>
+        ) : (
+          <div className="border-t border-paper/15 py-3 flex flex-col items-center justify-center">
+            <button
+              type="button"
+              onClick={quit}
+              title={t("nav.logout")}
+              aria-label={t("nav.logout")}
+              className="h-10 w-10 flex items-center justify-center rounded-xl text-paper/70 hover:bg-white/10 hover:text-red-300 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        )}
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-hidden">
-        <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-md">
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 sm:gap-3 sm:px-5 lg:px-8">
+        <header className="sticky top-0 z-20 h-16 border-b border-line/80 bg-paper/90 backdrop-blur-md">
+          <div className="flex h-full items-center gap-2.5 px-3.5 sm:gap-3 sm:px-5 lg:px-8">
             <button
               type="button"
               className="inline-flex shrink-0 items-center justify-center rounded-lg border border-line bg-white p-2 text-ink shadow-2xs hover:bg-court/60 lg:hidden transition-colors"
@@ -305,48 +321,55 @@ function NavItem({
         onClick={onGo}
         title={label}
         className={({ isActive }) =>
-          `group relative flex items-center rounded-lg py-2 transition-all duration-200 ${
-            open ? "gap-3 px-2.5" : "justify-center px-0"
-          } ${
-            isActive
-              ? "bg-gradient-to-r from-white/20 to-white/10 text-white font-semibold shadow-2xs border-l-2 border-lime"
-              : "text-paper/75 hover:bg-white/8 hover:text-white"
+          `group relative flex items-center rounded-xl transition-all duration-200 ${
+            open
+              ? "gap-3 px-3 py-2.5 " +
+                (isActive
+                  ? "bg-white/15 text-white font-semibold shadow-2xs border-l-2 border-lime"
+                  : "text-paper/75 hover:bg-white/8 hover:text-white")
+              : "mx-auto h-10 w-10 justify-center p-0 " +
+                (isActive
+                  ? "bg-lime text-pine-deep font-bold shadow-md ring-1 ring-lime/40"
+                  : "text-paper/75 hover:bg-white/10 hover:text-white")
           }`
         }
       >
         {({ isActive }) => (
           <>
-            <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors">
-              <span
-                className={`flex h-full w-full items-center justify-center rounded-md ${
-                  isActive ? "bg-lime text-pine-deep font-bold" : "bg-black/20 text-paper/85"
-                }`}
-              >
-                {icon}
-              </span>
-              {!open && badge && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-lime" />
+            {open ? (
+              <>
+                <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors">
+                  <span
+                    className={`flex h-full w-full items-center justify-center rounded-md ${
+                      isActive ? "bg-lime text-pine-deep font-bold" : "bg-black/20 text-paper/85"
+                    }`}
+                  >
+                    {icon}
+                  </span>
                 </span>
-              )}
-            </span>
-            <span
-              aria-hidden={!open}
-              className={`min-w-0 flex-1 whitespace-nowrap transition-all duration-300 ${
-                open ? "w-full opacity-100" : "w-0 overflow-hidden opacity-0"
-              }`}
-            >
-              <span className="flex items-center justify-between gap-1.5">
-                <span className="block text-sm font-semibold leading-tight">{label}</span>
+                <span className="min-w-0 flex-1 whitespace-nowrap">
+                  <span className="flex items-center justify-between gap-1.5">
+                    <span className="block text-sm font-semibold leading-tight">{label}</span>
+                    {badge && (
+                      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-lime to-emerald-400 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-pine-deep shadow-2xs">
+                        {badge}
+                      </span>
+                    )}
+                  </span>
+                  <span className={`block text-xs leading-tight ${isActive ? "text-lime/90" : "text-paper/50"}`}>{desc}</span>
+                </span>
+              </>
+            ) : (
+              <span className="relative flex items-center justify-center">
+                {icon}
                 {badge && (
-                  <span className="inline-flex items-center rounded-full bg-gradient-to-r from-lime to-emerald-400 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-pine-deep shadow-2xs">
-                    {badge}
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-lime" />
                   </span>
                 )}
               </span>
-              <span className={`block text-xs leading-tight ${isActive ? "text-lime/90" : "text-paper/50"}`}>{desc}</span>
-            </span>
+            )}
           </>
         )}
       </NavLink>

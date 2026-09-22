@@ -302,6 +302,8 @@ export interface DashboardTranslations {
   deleteModalConfirm: string;
   errorLoad: string;
   errorDelete: string;
+  btnOpenSession: string;
+  btnDelete: string;
 }
 
 export interface PlayersTranslations {
@@ -459,6 +461,148 @@ export interface MabarTranslations {
   btnOpenSession: string;
 }
 
+export interface PeriodsTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  newPeriodTitle: string;
+  fieldName: string;
+  namePlaceholder: string;
+  fieldStartDate: string;
+  fieldEndDate: string;
+  fieldSessions: string;
+  fieldMemberPrice: string;
+  fieldContributionPerSession: string;
+  fieldNonMemberRate: string;
+  fieldVenueCostTotal: string;
+  hintVenueCostTotal: string;
+  fieldShuttlePackPrice: string;
+  fieldUnitsPerPack: string;
+  fieldShuttlePerSession: string;
+  hintShuttlePerSession: string;
+  btnCreatePeriod: string;
+  btnCreating: string;
+  errorCreatePeriod: string;
+  errorLoadPeriods: string;
+  emptyPeriods: string;
+  colPeriod: string;
+  colDates: string;
+  colSessions: string;
+  colStatus: string;
+  btnOpenPeriod: string;
+  sessionsCount: string;
+}
+
+export interface InventoryTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  deficitAlertTitle: string;
+  deficitAlertDesc: string;
+  btnFillBuyForm: string;
+  currentStockTitle: string;
+  errorLoadStock: string;
+  emptyProducts: string;
+  colProduct: string;
+  colFor: string;
+  colUnitsPack: string;
+  colPackPrice: string;
+  colStock: string;
+  btnEdit: string;
+  btnDelete: string;
+  editProductTitle: string;
+  fieldName: string;
+  fieldUnitsPack: string;
+  fieldPackPrice: string;
+  fieldUsedFor: string;
+  fieldActive: string;
+  optActive: string;
+  optInactive: string;
+  purposeGeneral: string;
+  purposeDaily: string;
+  purposePeriod: string;
+  btnSave: string;
+  btnCancel: string;
+  btnSaving: string;
+  newProductTitle: string;
+  btnSaveProduct: string;
+  errorSaveProduct: string;
+  errorDeleteProduct: string;
+  buyTubesTitle: string;
+  fieldProduct: string;
+  selectProductPlaceholder: string;
+  tabPacks: string;
+  tabPieces: string;
+  fieldPacks: string;
+  fieldPricePack: string;
+  fieldPieces: string;
+  fieldTotalPaid: string;
+  hintPricePerPieceAuto: string;
+  fieldNote: string;
+  hintOptional: string;
+  btnRecordPurchase: string;
+  btnRecordingPurchase: string;
+  errorRecordPurchase: string;
+  correctStockTitle: string;
+  hintSystemStock: string;
+  fieldCounted: string;
+  hintCounted: string;
+  placeholderCounted: string;
+  fieldDifference: string;
+  hintDifference: string;
+  fieldReason: string;
+  btnRecordCorrection: string;
+  btnRecordingCorrection: string;
+  errorRecordCorrection: string;
+  txHistoryTitle: string;
+  emptyTransactions: string;
+  colDate: string;
+  colProductTx: string;
+  colType: string;
+  colUnits: string;
+  colNote: string;
+  deleteModalTitle: string;
+  deleteModalForceTitle: string;
+  deleteModalBody: string;
+  deleteModalForceBody: string;
+  btnConfirmDelete: string;
+  btnConfirmDeleteAll: string;
+}
+
+export interface FinanceTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  filterAllPeriods: string;
+  filterPeriodLabel: string;
+  errorLoadSummary: string;
+  operatingProfit: string;
+  costSub: string;
+  totalRevenue: string;
+  cashInSub: string;
+  cashFlow: string;
+  cashOutSub: string;
+  shuttleUsage: string;
+  shuttleCostSub: string;
+  recordRevenueTitle: string;
+  fieldSource: string;
+  fieldAmount: string;
+  fieldRelatedSession: string;
+  optNoSession: string;
+  btnSaveRevenue: string;
+  btnSavingRevenue: string;
+  errorSaveRevenue: string;
+  recordExpenseTitle: string;
+  fieldCategory: string;
+  btnSaveExpense: string;
+  btnSavingExpense: string;
+  errorSaveExpense: string;
+  recentTxTitle: string;
+  emptyTransactions: string;
+  colDate: string;
+  colType: string;
+  colCategory: string;
+  colAmount: string;
+  colNote: string;
+}
+
 export interface TranslationSchema {
   nav: NavTranslations;
   common: CommonTranslations;
@@ -469,5 +613,9 @@ export interface TranslationSchema {
   players: PlayersTranslations;
   matchmaker: MatchMakerTranslations;
   mabar: MabarTranslations;
+  periods: PeriodsTranslations;
+  inventory: InventoryTranslations;
+  finance: FinanceTranslations;
 }
+
 

@@ -10,11 +10,13 @@ import {
 } from "../store/services";
 import { dateId, rupiah } from "../format";
 import { Badge, Btn, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead } from "../ui";
+import { useI18n } from "../i18n";
 
 const REVENUE_SOURCES = ["COMMITMENT_FEE", "ATTENDANCE_CONTRIBUTION", "NON_MEMBER_FEE", "DAILY_EVENT_CONTRIBUTION", "OTHER"];
 const EXPENSE_CATEGORIES = ["VENUE", "SHUTTLECOCK_PURCHASE", "EQUIPMENT", "REFUND", "OTHER"];
 
 export function FinancePage() {
+  const { t, lang } = useI18n();
   const [periodId, setPeriodId] = useState("");
   const qs = periodId ? `?period_id=${periodId}` : "";
   const summary = useFinanceSummaryQuery(qs);
@@ -41,7 +43,7 @@ export function FinancePage() {
       setRev({ ...rev, amount: "", note: "" });
       setRevError("");
     } catch (e) {
-      setRevError(e instanceof ApiError ? e.message : "Could not save revenue.");
+      setRevError(e instanceof ApiError ? e.message : t("finance.errorSaveRevenue"));
     }
   }
 
@@ -57,134 +59,229 @@ export function FinancePage() {
       setExp({ ...exp, amount: "", note: "" });
       setExpError("");
     } catch (e) {
-      setExpError(e instanceof ApiError ? e.message : "Could not save expense.");
+      setExpError(e instanceof ApiError ? e.message : t("finance.errorSaveExpense"));
     }
   }
 
   const s = summary.data;
 
   return (
-    <div>
+    <div className="w-full min-w-0 space-y-5">
       <PageHead
-        title="Finance"
-        sub="Revenue, expenses, operating profit, and cash flow."
+        title={t("finance.pageTitle")}
+        sub={t("finance.pageSubtitle")}
         right={
-          <select aria-label="Filter by period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
-            <option value="">All periods</option>
+          <select
+            aria-label={t("finance.filterPeriodLabel")}
+            className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs focus:border-pine"
+            value={periodId}
+            onChange={(e) => setPeriodId(e.target.value)}
+          >
+            <option value="">{t("finance.filterAllPeriods")}</option>
             {(periods.data ?? []).map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         }
       />
+
+      {/* Financial Summary */}
       {summary.isFetching && !s ? (
         <Loading />
       ) : summary.isError || !s ? (
-        <ErrorBox message="Could not load summary." onRetry={() => summary.refetch()} />
+        <ErrorBox message={t("finance.errorLoadSummary")} onRetry={() => summary.refetch()} />
       ) : (
-        <section aria-label="Financial summary" className="mb-5 rounded-xl border border-line bg-white shadow-card">
-          <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4">
-            <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`Cost ${rupiah(s.operating_cost)}`} />
-            <Cell label="Revenue" value={rupiah(s.total_revenue)} sub={`Cash in ${rupiah(s.cash_in)}`} />
-            <Cell label="Cash flow" value={rupiah(s.cash_flow)} sub={`Out ${rupiah(s.cash_out)}`} />
-            <Cell label="Shuttlecock usage" value={`${s.shuttlecock_used} pcs`} sub={`Cost ${rupiah(s.shuttlecock_usage_cost)}`} />
+        <section aria-label="Financial summary" className="rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
+          <dl className="grid grid-cols-1 divide-y sm:divide-y-0 sm:grid-cols-2 lg:grid-cols-4 sm:divide-x divide-line">
+            <Cell
+              label={t("finance.operatingProfit")}
+              value={rupiah(s.operating_profit)}
+              sub={t("finance.costSub", { cost: rupiah(s.operating_cost) })}
+              valueClass={s.operating_profit >= 0 ? "text-emerald-700" : "text-rose-700"}
+            />
+            <Cell
+              label={t("finance.totalRevenue")}
+              value={rupiah(s.total_revenue)}
+              sub={t("finance.cashInSub", { in: rupiah(s.cash_in) })}
+            />
+            <Cell
+              label={t("finance.cashFlow")}
+              value={rupiah(s.cash_flow)}
+              sub={t("finance.cashOutSub", { out: rupiah(s.cash_out) })}
+              valueClass={s.cash_flow >= 0 ? "text-emerald-700" : "text-rose-700"}
+            />
+            <Cell
+              label={t("finance.shuttleUsage")}
+              value={`${s.shuttlecock_used} pcs`}
+              sub={t("finance.shuttleCostSub", { cost: rupiah(s.shuttlecock_usage_cost) })}
+            />
           </dl>
         </section>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section aria-label="Record revenue" className="h-fit rounded-xl border border-line bg-white shadow-card p-3">
-          <h2 className="mb-3 text-sm font-semibold">Record revenue</h2>
-          <div className="space-y-3">
-            <Field label="Source">
+      {/* Record Revenue & Record Expense */}
+      <div className="grid gap-5 lg:grid-cols-2 min-w-0 w-full items-start">
+        {/* Record Revenue */}
+        <section aria-label="Record revenue" className="h-fit rounded-xl border border-line bg-white shadow-card p-4 min-w-0 w-full">
+          <div className="flex items-center gap-2 mb-3.5 pb-2.5 border-b border-line/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-court text-pine">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+            </div>
+            <h2 className="text-sm font-bold text-ink">{t("finance.recordRevenueTitle")}</h2>
+          </div>
+
+          <div className="space-y-3.5">
+            <Field label={t("finance.fieldSource")}>
               <select id="sumber" className="w-full" value={rev.source} onChange={(e) => setRev({ ...rev, source: e.target.value })}>
                 {REVENUE_SOURCES.map((x) => (
                   <option key={x} value={x}>{x}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Amount (Rp)">
+            <Field label={t("finance.fieldAmount")}>
               <MoneyInput id="nominal-masuk" value={Number(rev.amount) || 0} onChange={(n) => setRev({ ...rev, amount: n ? String(n) : "" })} />
             </Field>
-            <Field label="Related session" hint="Optional.">
+            <Field label={t("finance.fieldRelatedSession")} hint={t("inventory.hintOptional")}>
               <select id="sesi-masuk" className="w-full" value={rev.session_id} onChange={(e) => setRev({ ...rev, session_id: e.target.value })}>
-                <option value="">- No session -</option>
+                <option value="">{t("finance.optNoSession")}</option>
                 {(sessions.data ?? []).map((m) => (
-                  <option key={m.id} value={m.id}>{dateId(m.date)} · {m.type}</option>
+                  <option key={m.id} value={m.id}>{dateId(m.date, lang)} · {m.type}</option>
                 ))}
               </select>
             </Field>
+            <Field label={t("inventory.fieldNote")} hint={t("inventory.hintOptional")}>
+              <input id="catatan-masuk" className="w-full" value={rev.note} onChange={(e) => setRev({ ...rev, note: e.target.value })} />
+            </Field>
             {revError && <p role="alert" className="text-sm text-red-700">{revError}</p>}
-            <Btn disabled={!Number(rev.amount) || revState.isLoading} onClick={submitRevenue}>
-              {revState.isLoading ? "Saving…" : "Save revenue"}
+            <Btn className="w-full justify-center" disabled={!Number(rev.amount) || revState.isLoading} onClick={submitRevenue}>
+              {revState.isLoading ? t("finance.btnSavingRevenue") : t("finance.btnSaveRevenue")}
             </Btn>
           </div>
         </section>
 
-        <section aria-label="Record expense" className="h-fit rounded-xl border border-line bg-white shadow-card p-3">
-          <h2 className="mb-3 text-sm font-semibold">Record expense</h2>
-          <div className="space-y-3">
-            <Field label="Category">
+        {/* Record Expense */}
+        <section aria-label="Record expense" className="h-fit rounded-xl border border-line bg-white shadow-card p-4 min-w-0 w-full">
+          <div className="flex items-center gap-2 mb-3.5 pb-2.5 border-b border-line/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-court text-rose-700">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                <path d="M12 5v14M19 12l-7 7-7-7" />
+              </svg>
+            </div>
+            <h2 className="text-sm font-bold text-ink">{t("finance.recordExpenseTitle")}</h2>
+          </div>
+
+          <div className="space-y-3.5">
+            <Field label={t("finance.fieldCategory")}>
               <select id="kategori" className="w-full" value={exp.category} onChange={(e) => setExp({ ...exp, category: e.target.value })}>
                 {EXPENSE_CATEGORIES.map((x) => (
                   <option key={x} value={x}>{x}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Amount (Rp)">
+            <Field label={t("finance.fieldAmount")}>
               <MoneyInput id="nominal-keluar" value={Number(exp.amount) || 0} onChange={(n) => setExp({ ...exp, amount: n ? String(n) : "" })} />
             </Field>
-            <Field label="Related session" hint="Optional.">
+            <Field label={t("finance.fieldRelatedSession")} hint={t("inventory.hintOptional")}>
               <select id="sesi-keluar" className="w-full" value={exp.session_id} onChange={(e) => setExp({ ...exp, session_id: e.target.value })}>
-                <option value="">- No session -</option>
+                <option value="">{t("finance.optNoSession")}</option>
                 {(sessions.data ?? []).map((m) => (
-                  <option key={m.id} value={m.id}>{dateId(m.date)} · {m.type}</option>
+                  <option key={m.id} value={m.id}>{dateId(m.date, lang)} · {m.type}</option>
                 ))}
               </select>
             </Field>
+            <Field label={t("inventory.fieldNote")} hint={t("inventory.hintOptional")}>
+              <input id="catatan-keluar" className="w-full" value={exp.note} onChange={(e) => setExp({ ...exp, note: e.target.value })} />
+            </Field>
             {expError && <p role="alert" className="text-sm text-red-700">{expError}</p>}
-            <Btn disabled={!Number(exp.amount) || expState.isLoading} onClick={submitExpense}>
-              {expState.isLoading ? "Saving…" : "Save expense"}
+            <Btn className="w-full justify-center" disabled={!Number(exp.amount) || expState.isLoading} onClick={submitExpense}>
+              {expState.isLoading ? t("finance.btnSavingExpense") : t("finance.btnSaveExpense")}
             </Btn>
           </div>
         </section>
       </div>
 
-      <section aria-label="Transactions" className="mt-5 rounded-xl border border-line bg-white shadow-card">
-        <h2 className="border-b border-line px-3 py-2 text-sm font-semibold">Recent transactions</h2>
+      {/* Recent Transactions */}
+      <section aria-label="Transactions" className="rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
+        <h2 className="border-b border-line px-3.5 py-2.5 text-sm font-semibold text-ink">
+          {t("finance.recentTxTitle")}
+        </h2>
         {tx.isFetching && !tx.data ? (
           <Loading />
         ) : (tx.data ?? []).length === 0 ? (
-          <div className="p-3"><Empty text="No transactions yet." /></div>
+          <div className="p-3"><Empty text={t("finance.emptyTransactions")} /></div>
         ) : (
-          <table className="data">
-            <thead>
-              <tr><th>Date</th><th>Type</th><th>Category</th><th className="text-right">Amount</th><th>Note</th></tr>
-            </thead>
-            <tbody>
-              {(tx.data ?? []).map((t) => (
-                <tr key={t.id}>
-                  <td className="whitespace-nowrap">{dateId(t.occurred_at)}</td>
-                  <td><Badge status={t.kind} /></td>
-                  <td>{t.category}{t.player_name ? ` · ${t.player_name}` : ""}</td>
-                  <td className="text-right tabular-nums">{rupiah(t.amount)}</td>
-                  <td>{t.note ?? "—"}</td>
-                </tr>
+          <>
+            {/* Mobile Card List (sm:hidden) */}
+            <div className="divide-y divide-line/70 sm:hidden">
+              {(tx.data ?? []).map((tItem) => (
+                <div key={tItem.id} className="p-3.5 space-y-2 transition-colors hover:bg-court/25">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-ink truncate">
+                      {dateId(tItem.occurred_at, lang)}
+                    </span>
+                    <Badge status={tItem.kind} />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-ink truncate">
+                      {tItem.category}{tItem.player_name ? ` · ${tItem.player_name}` : ""}
+                    </span>
+                    <span className={`font-bold tabular-nums text-sm ${tItem.kind === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                      {tItem.kind === "IN" ? `+${rupiah(tItem.amount)}` : `−${rupiah(tItem.amount)}`}
+                    </span>
+                  </div>
+
+                  {tItem.note && (
+                    <p className="text-[11px] text-ink-soft bg-court/40 border border-line/60 rounded-md px-2 py-1">
+                      {tItem.note}
+                    </p>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop & Tablet Table (hidden sm:block) */}
+            <div className="overflow-x-auto w-full hidden sm:block">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>{t("finance.colDate")}</th>
+                    <th>{t("finance.colType")}</th>
+                    <th>{t("finance.colCategory")}</th>
+                    <th className="text-right">{t("finance.colAmount")}</th>
+                    <th>{t("finance.colNote")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(tx.data ?? []).map((tItem) => (
+                    <tr key={tItem.id}>
+                      <td className="whitespace-nowrap font-medium text-ink">{dateId(tItem.occurred_at, lang)}</td>
+                      <td><Badge status={tItem.kind} /></td>
+                      <td className="font-normal text-ink">{tItem.category}{tItem.player_name ? ` · ${tItem.player_name}` : ""}</td>
+                      <td className={`text-right font-bold tabular-nums ${tItem.kind === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                        {tItem.kind === "IN" ? `+${rupiah(tItem.amount)}` : `−${rupiah(tItem.amount)}`}
+                      </td>
+                      <td className="font-normal text-ink-soft">{tItem.note ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>
   );
 }
 
-function Cell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Cell({ label, value, sub, valueClass = "text-ink" }: { label: string; value: string; sub?: string; valueClass?: string }) {
   return (
-    <div className="px-3 py-2.5">
-      <dt className="text-xs uppercase tracking-wide text-ink-faint">{label}</dt>
-      <dd className="mt-0.5 text-base font-semibold tabular-nums">{value}</dd>
-      {sub && <dd className="text-xs text-ink-faint">{sub}</dd>}
+    <div className="px-3.5 py-3">
+      <dt className="text-xs uppercase tracking-wide text-ink-faint font-semibold">{label}</dt>
+      <dd className={`mt-1 text-lg font-bold tabular-nums ${valueClass}`}>{value}</dd>
+      {sub && <dd className="mt-0.5 text-xs text-ink-faint">{sub}</dd>}
     </div>
   );
 }
