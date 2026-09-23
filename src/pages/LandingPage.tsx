@@ -287,16 +287,16 @@ export function LandingPage() {
       <section
         id="hero"
         ref={heroRef}
-        className="relative overflow-hidden min-h-[640px] lg:min-h-[820px] flex flex-col justify-between pt-20 sm:pt-24 lg:pt-32 pb-8 sm:pb-12 bg-gradient-to-b from-[#e3f4ea] via-[#d6eee0] to-[#c7e5d3]"
+        className="relative overflow-hidden min-h-[600px] lg:min-h-[720px] flex flex-col justify-between pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12 bg-gradient-to-b from-[#e3f4ea] via-[#d6eee0] to-[#c7e5d3]"
       >
-        {/* DESKTOP BACKGROUND ARTWORK WITH PARALLAX (hidden on mobile to prevent stretching & text collision) */}
+        {/* DESKTOP BACKGROUND ARTWORK WITH PARALLAX (high-res 2K WebP, smooth natural scaling without over-zoom) */}
         <div
           className="hidden lg:block absolute inset-0 pointer-events-none transition-transform duration-300 ease-out"
           style={{
-            backgroundImage: "url('/landing-hero-bg.webp')",
+            backgroundImage: "url('/landing-hero-bg.webp?v=2')",
             backgroundSize: "cover",
             backgroundPosition: "center right",
-            transform: `translate3d(${mousePos.x * -12}px, ${mousePos.y * -12}px, 0) scale(1.03)`,
+            transform: `translate3d(${mousePos.x * -10}px, ${mousePos.y * -10}px, 0) scale(1.01)`,
           }}
         />
 
@@ -396,7 +396,7 @@ export function LandingPage() {
           {/* Dedicated Visual Showcase Card (Frog mascot is 100% visible, not covered by text!) */}
           <div className="relative mx-auto w-full aspect-[16/10] rounded-2xl overflow-hidden shadow-xl border-2 border-white/80 group">
             <img
-              src="/landing-hero-bg.webp"
+              src="/landing-hero-bg.webp?v=2"
               alt="PB Kecebong Mascot Artwork"
               className="w-full h-full object-cover"
             />
