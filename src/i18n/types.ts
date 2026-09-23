@@ -349,11 +349,14 @@ export interface MatchMakerTranslations {
   eventNamePlaceholder: string;
   courtsLabel: string;
   courtsHint: string;
+  baseLabel: string;
+  baseHint: string;
   poolSourceLabel: string;
   poolSourceActive: string;
   poolSourceSession: string;
   poolSourceCustom: string;
   sessionSelectLabel: string;
+  sessionPickLabel: string;
   sessionSelectPrompt: string;
   sessionPlayersCount: string;
   sessionHint: string;
@@ -414,6 +417,9 @@ export interface MatchMakerTranslations {
   btnSaveTeams: string;
   playCountsTitle: string;
   playCountsSub: string;
+  lateArrivalsTitle: string;
+  lateArrivalsDesc: string;
+  lateArrivalsAdd: string;
   colNo: string;
   colPlayer: string;
   colGrade: string;

@@ -295,11 +295,11 @@ export const api = baseApi.injectEndpoints({
       query: (id) => `/api/v1/match-events/${id}`,
       providesTags: (_r, _e, id) => [{ type: "MatchMaker", id }],
     }),
-    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number }>({
+    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number; base_played?: number }>({
       query: (body) => ({ url: "/api/v1/match-events", method: "POST", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; is_public?: boolean; show_grades?: boolean } }>({
+    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; base_played?: number; is_public?: boolean; show_grades?: boolean } }>({
       query: ({ id, body }) => ({ url: `/api/v1/match-events/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
@@ -316,6 +316,10 @@ export const api = baseApi.injectEndpoints({
     generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number }>({
       query: ({ eventId, rounds }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
+    }),
+    addEventPlayers: build.mutation<unknown, { eventId: string; player_ids: string[] }>({
+      query: ({ eventId, player_ids }) => ({ url: `/api/v1/match-events/${eventId}/players`, method: "POST", body: { player_ids } }),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker", "Players"],
     }),
     updateGenMatch: build.mutation<GenMatch, { id: string; body: { team1?: string[]; team2?: string[]; status?: string; court?: number; shuttlecock_used?: number } }>({
       query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
@@ -625,6 +629,7 @@ export const {
   useUpdateMatchEventMutation,
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
+  useAddEventPlayersMutation,
   useUpdateGenMatchMutation,
   usePublicMatchEventsQuery,
   usePublicMatchEventQuery,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../store/baseApi";
 import {
+  useAddEventPlayersMutation,
   useAttendanceQuery,
   useCreateMatchEventMutation,
   useDeleteMatchEventMutation,
@@ -14,7 +15,7 @@ import {
   useUpdateMatchEventMutation,
 } from "../store/services";
 import { useI18n } from "../i18n";
-import { ConfirmModal, DeleteRowButton, ErrorBox, Field, GenderChip, GradeChip, Loading, PageHead } from "../ui";
+import { Btn, ConfirmModal, DeleteRowButton, ErrorBox, Field, GenderChip, GradeChip, Loading, PageHead } from "../ui";
 import type { GenMatch, GenTeamPlayer } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
@@ -23,6 +24,7 @@ export function MatchMakerListPage() {
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [courts, setCourts] = useState(0);
+  const [base, setBase] = useState(0);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [poolSource, setPoolSource] = useState<"active" | "session" | "custom">("active");
@@ -38,16 +40,31 @@ export function MatchMakerListPage() {
   const [create, createState] = useCreateMatchEventMutation();
   const [remove, removeState] = useDeleteMatchEventMutation();
 
-  const SESSION_OK = ["PRESENT", "LISTED", "CONFIRMED"];
-  const sessionPoolIds = useMemo(
+  const sessionRows = useMemo(
     () =>
-      (poolAttendance.data ?? [])
-        .filter((a) => SESSION_OK.includes(a.status))
-        .sort((a, b) => (a.listed_at < b.listed_at ? -1 : a.listed_at > b.listed_at ? 1 : 0))
-        .map((a) => a.player_id),
+      [...(poolAttendance.data ?? [])]
+        .sort((a, b) => (a.listed_at < b.listed_at ? -1 : a.listed_at > b.listed_at ? 1 : 0)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [poolAttendance.data],
   );
+  const sessionIds = useMemo(() => new Set(sessionRows.map((a) => a.player_id)), [sessionRows]);
+  const playersById = useMemo(
+    () => new Map((allPlayers.data ?? []).map((p) => [p.id, p])),
+    [allPlayers.data],
+  );
+
+  // Picking a session pre-checks who is PRESENT (in check-in order);
+  // the user then adjusts manually — uncheck absentees, check late arrivals.
+  useEffect(() => {
+    if (poolSource !== "session" || !poolSessionId) return;
+    setCustomIds(
+      (poolAttendance.data ?? [])
+        .filter((a) => a.status === "PRESENT")
+        .sort((a, b) => (a.listed_at < b.listed_at ? -1 : a.listed_at > b.listed_at ? 1 : 0))
+        .map((a) => a.player_id),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poolSessionId]);
 
   const customList = useMemo(
     () => [...(allPlayers.data ?? [])].filter((p) => p.status === "ACTIVE").sort((a, b) => a.name.localeCompare(b.name)),
@@ -60,7 +77,7 @@ export function MatchMakerListPage() {
     return customList.filter((p) => p.name.toLowerCase().includes(q));
   }, [customList, customSearch]);
 
-  const poolCount = poolSource === "active" ? null : poolSource === "session" ? sessionPoolIds.length : customIds.length;
+  const poolCount = poolSource === "active" ? null : customIds.length;
 
   function toggleCustom(id: string) {
     setCustomIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -70,11 +87,12 @@ export function MatchMakerListPage() {
     if (!name.trim() || createState.isLoading) return;
     let player_ids: string[] | undefined;
     if (poolSource === "session") {
-      if (sessionPoolIds.length < 4) {
+      const picked = customIds.filter((pid) => sessionIds.has(pid));
+      if (picked.length < 4) {
         setError(t("matchmaker.errorNeedFourSession"));
         return;
       }
-      player_ids = sessionPoolIds;
+      player_ids = picked;
     } else if (poolSource === "custom") {
       if (customIds.length < 4) {
         setError(t("matchmaker.errorNeedFourCustom"));
@@ -83,9 +101,10 @@ export function MatchMakerListPage() {
       player_ids = [...customIds];
     }
     try {
-      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0) }).unwrap();
+      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0) }).unwrap();
       setName("");
       setCourts(0);
+      setBase(0);
       setCustomIds([]);
       setError("");
     } catch (e) {
@@ -161,6 +180,21 @@ export function MatchMakerListPage() {
               </div>
             </Field>
 
+            <Field label={t("matchmaker.baseLabel")} hint={t("matchmaker.baseHint")}>
+              <div className="relative">
+                <input
+                  id="event-base"
+                  type="number"
+                  min={0}
+                  max={999}
+                  className="w-full rounded-lg border border-line pl-8 pr-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                  value={base}
+                  onChange={(e) => setBase(Math.max(0, Number(e.target.value) || 0))}
+                />
+                <span className="pointer-events-none absolute left-2.5 top-2.5 text-xs text-ink-faint">▶️</span>
+              </div>
+            </Field>
+
             <Field label={t("matchmaker.poolSourceLabel")}>
               <select
                 id="pool-source"
@@ -175,24 +209,66 @@ export function MatchMakerListPage() {
             </Field>
 
             {poolSource === "session" && (
-              <Field
-                label={t("matchmaker.sessionSelectLabel")}
-                hint={poolSessionId ? t("matchmaker.sessionPlayersCount", { count: sessionPoolIds.length }) : t("matchmaker.sessionHint")}
-              >
-                <select
-                  id="pool-session"
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine bg-white"
-                  value={poolSessionId}
-                  onChange={(e) => setPoolSessionId(e.target.value)}
+              <>
+                <Field
+                  label={t("matchmaker.sessionSelectLabel")}
+                  hint={poolSessionId ? t("matchmaker.sessionPlayersCount", { count: customIds.length }) : t("matchmaker.sessionHint")}
                 >
-                  <option value="">{t("matchmaker.sessionSelectPrompt")}</option>
-                  {(sessions.data ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.date} · {s.type === "PERIOD" ? t("dashboard.period") : t("dashboard.daily")}{s.period_name ? ` · ${s.period_name}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+                  <select
+                    id="pool-session"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine bg-white"
+                    value={poolSessionId}
+                    onChange={(e) => setPoolSessionId(e.target.value)}
+                  >
+                    <option value="">{t("matchmaker.sessionSelectPrompt")}</option>
+                    {(sessions.data ?? []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.date} · {s.type === "PERIOD" ? t("dashboard.period") : t("dashboard.daily")}{s.period_name ? ` · ${s.period_name}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {poolSessionId && (
+                  <Field label={t("matchmaker.sessionPickLabel")}>
+                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-line bg-court/20 p-2">
+                      {sessionRows.length === 0 ? (
+                        <p className="p-2 text-center text-xs text-ink-faint">{t("matchmaker.noMatchingPlayers")}</p>
+                      ) : (
+                        sessionRows.map((a) => {
+                          const info = playersById.get(a.player_id);
+                          const arrival = customIds.indexOf(a.player_id);
+                          const isPicked = arrival >= 0;
+                          return (
+                            <label
+                              key={a.player_id}
+                              className={`flex items-center gap-2 rounded-md p-1.5 text-xs transition-colors cursor-pointer ${
+                                isPicked ? "bg-white shadow-2xs border border-emerald-200" : "hover:bg-white/80"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="rounded text-pine focus:ring-pine"
+                                checked={isPicked}
+                                onChange={() => toggleCustom(a.player_id)}
+                              />
+                              {isPicked && (
+                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-pine to-emerald-700 text-[10px] font-black text-lime shadow-2xs">
+                                  {arrival + 1}
+                                </span>
+                              )}
+                              <span className="font-semibold text-ink flex-1 truncate">{info?.name ?? a.player_name}</span>
+                              <span className={`rounded px-1 py-0.5 text-[10px] font-bold ${a.status === "PRESENT" ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
+                                {a.status}
+                              </span>
+                              {info?.grade && <GradeChip grade={info.grade} />}
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </Field>
+                )}
+              </>
             )}
 
             {poolSource === "custom" && (
@@ -447,11 +523,17 @@ export function MatchMakerDetailPage() {
   const [generate, genState] = useGenerateMatchesMutation();
   const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [courtsDraft, setCourtsDraft] = useState<number | null>(null);
+  const [baseDraft, setBaseDraft] = useState<number | null>(null);
   const courtCap = detail.data?.event.court_count ?? 0;
+  const baseCap = detail.data?.event.base_played ?? 0;
 
   useEffect(() => {
     if (detail.data) setCourtsDraft(detail.data.event.court_count ?? 0);
   }, [detail.data?.event.court_count]);
+
+  useEffect(() => {
+    if (detail.data) setBaseDraft(detail.data.event.base_played ?? 0);
+  }, [detail.data?.event.base_played]);
 
   async function saveCourts() {
     if (!id || courtsDraft === null || courtsDraft === courtCap || updateEventState.isLoading) return;
@@ -461,6 +543,17 @@ export function MatchMakerDetailPage() {
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
       setCourtsDraft(courtCap);
+    }
+  }
+
+  async function saveBase() {
+    if (!id || baseDraft === null || baseDraft === baseCap || updateEventState.isLoading) return;
+    try {
+      await updateEvent({ id, body: { base_played: Math.max(0, baseDraft || 0) } }).unwrap();
+      setGenError("");
+    } catch (e) {
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
+      setBaseDraft(baseCap);
     }
   }
 
@@ -556,6 +649,23 @@ export function MatchMakerDetailPage() {
                 />
               </div>
 
+              <div className="w-28">
+                <label className="block text-xs font-bold text-ink mb-1" title={t("matchmaker.baseHint")}>
+                  ▶️ {t("matchmaker.baseLabel")}
+                </label>
+                <input
+                  id="detail-base"
+                  type="number"
+                  min={0}
+                  max={999}
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                  value={baseDraft ?? 0}
+                  onChange={(e) => setBaseDraft(Math.max(0, Number(e.target.value) || 0))}
+                  onBlur={saveBase}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                />
+              </div>
+
               <div className="w-32">
                 <label className="block text-xs font-bold text-ink mb-1">
                   🔄 {t("matchmaker.roundsLabel")}
@@ -591,6 +701,11 @@ export function MatchMakerDetailPage() {
             eventId={detail.data.event.id}
             isPublic={detail.data.event.is_public ?? false}
             showGrades={detail.data.event.show_grades ?? false}
+          />
+
+          <LateArrivalsSection
+            eventId={detail.data.event.id}
+            poolIds={detail.data.event.player_ids ?? []}
           />
 
           {/* ROUND TABS FILTER (FOR EFFORTLESS NAVIGATION ON MOBILE/TABLET) */}
@@ -794,6 +909,58 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
         </div>
       )}
       {error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{error}</p>}
+    </section>
+  );
+}
+
+export function LateArrivalsSection({ eventId, poolIds }: { eventId: string; poolIds: string[] }) {
+  const { t } = useI18n();
+  const allPlayers = usePlayersAllQuery();
+  const [addPlayers, addState] = useAddEventPlayersMutation();
+  const [picked, setPicked] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const inPool = useMemo(() => new Set(poolIds), [poolIds]);
+  const candidates = useMemo(
+    () => [...(allPlayers.data ?? [])].filter((p) => p.status === "ACTIVE" && !inPool.has(p.id)).sort((a, b) => a.name.localeCompare(b.name)),
+    [allPlayers.data, inPool],
+  );
+
+  function toggle(id: string) {
+    setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function submit() {
+    if (picked.length === 0 || addState.isLoading) return;
+    try {
+      await addPlayers({ eventId, player_ids: picked }).unwrap();
+      setPicked([]);
+      setError("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not add players.");
+    }
+  }
+
+  if (candidates.length === 0) return null;
+  return (
+    <section aria-label={t("matchmaker.lateArrivalsTitle")} className="mb-5 rounded-2xl border border-line bg-white shadow-card p-4">
+      <h2 className="text-sm font-extrabold">🕐 {t("matchmaker.lateArrivalsTitle")}</h2>
+      <p className="mb-3 text-xs text-ink-soft">{t("matchmaker.lateArrivalsDesc")}</p>
+      <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-line bg-court/20 p-2">
+        {candidates.map((p) => (
+          <label key={p.id} className="flex items-center gap-2 rounded-md p-1.5 text-xs cursor-pointer hover:bg-white/80">
+            <input type="checkbox" className="rounded text-pine focus:ring-pine" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
+            <span className="font-semibold flex-1 truncate">{p.name}</span>
+            {p.grade && <GradeChip grade={p.grade} />}
+            {p.gender && <GenderChip gender={p.gender} />}
+          </label>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <Btn disabled={addState.isLoading || picked.length === 0} onClick={submit}>
+          {addState.isLoading ? "…" : t("matchmaker.lateArrivalsAdd", { count: picked.length })}
+        </Btn>
+        {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
+      </div>
     </section>
   );
 }

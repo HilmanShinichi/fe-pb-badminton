@@ -293,7 +293,7 @@ export function LandingPage() {
         <div
           className="hidden lg:block absolute inset-0 pointer-events-none transition-transform duration-300 ease-out"
           style={{
-            backgroundImage: "url('/landing-hero-bg.webp?v=2')",
+            backgroundImage: "url('/landing-hero-bg.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center right",
             transform: `translate3d(${mousePos.x * -10}px, ${mousePos.y * -10}px, 0) scale(1.01)`,
@@ -396,7 +396,7 @@ export function LandingPage() {
           {/* Dedicated Visual Showcase Card (Frog mascot is 100% visible, not covered by text!) */}
           <div className="relative mx-auto w-full aspect-[16/10] rounded-2xl overflow-hidden shadow-xl border-2 border-white/80 group">
             <img
-              src="/landing-hero-bg.webp?v=2"
+              src="/landing-hero-bg.webp"
               alt="PB Kecebong Mascot Artwork"
               className="w-full h-full object-cover"
             />
