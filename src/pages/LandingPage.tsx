@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store/store";
 import { useI18n } from "../i18n";
+import { API_BASE_URL } from "../store/baseApi";
 import { LanguageSwitcher } from "../components/atoms/LanguageSwitcher";
 import { ClubLogo } from "../components/atoms/ClubLogo";
 import { LogoUploadModal } from "../components/molecules/LogoUploadModal";
@@ -67,7 +68,7 @@ export function LandingPage() {
     let mounted = true;
     async function fetchSchedule() {
       try {
-        const res = await fetch("/api/v1/public/schedule");
+        const res = await fetch(`${API_BASE_URL}/api/v1/public/schedule`);
         if (res.ok) {
           const data = await res.json();
           if (mounted && Array.isArray(data.data)) {

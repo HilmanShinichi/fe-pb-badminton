@@ -27,7 +27,7 @@ export function toApiError(err: unknown): ApiError {
   return new ApiError(0, "UNKNOWN", "Network error.");
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
 
 const rawBase = fetchBaseQuery({
   baseUrl: API_BASE_URL,
