@@ -603,6 +603,48 @@ export interface FinanceTranslations {
   colNote: string;
 }
 
+export interface LandingTranslations {
+  navHome: string;
+  navAbout: string;
+  navSchedule: string;
+  navMember: string;
+  navFinance: string;
+  navLogin: string;
+  navDashboard: string;
+  heroTag: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDesc: string;
+  btnStart: string;
+  btnFeatures: string;
+  pillMembers: string;
+  pillSchedule: string;
+  pillShuttle: string;
+  pillFinance: string;
+  scrollExplore: string;
+  aboutTitle: string;
+  aboutSubtitle: string;
+  aboutDesc1: string;
+  aboutDesc2: string;
+  pillar1Title: string;
+  pillar1Desc: string;
+  pillar2Title: string;
+  pillar2Desc: string;
+  pillar3Title: string;
+  pillar3Desc: string;
+  scheduleTitle: string;
+  scheduleSubtitle: string;
+  scheduleEmpty: string;
+  scheduleLiveScore: string;
+  memberTitle: string;
+  memberSubtitle: string;
+  memberDesc: string;
+  financeTitle: string;
+  financeSubtitle: string;
+  financeDesc: string;
+  footerTagline: string;
+}
+
 export interface TranslationSchema {
   nav: NavTranslations;
   common: CommonTranslations;
@@ -616,6 +658,7 @@ export interface TranslationSchema {
   periods: PeriodsTranslations;
   inventory: InventoryTranslations;
   finance: FinanceTranslations;
+  landing: LandingTranslations;
 }
 
 

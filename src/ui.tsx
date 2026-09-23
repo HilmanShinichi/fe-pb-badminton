@@ -14,7 +14,8 @@ export {
   Loading,
   MoneyInput,
   OpenLink,
+  ClubLogo,
 } from "./components/atoms";
-export { ConfirmModal, Field, Panel } from "./components/molecules";
+export { ConfirmModal, Field, Panel, LogoUploadModal } from "./components/molecules";
 export { PageHead } from "./components/organisms/PageHead";
 export { Layout } from "./components/layouts/AppLayout";

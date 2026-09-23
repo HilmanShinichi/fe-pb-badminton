@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import type { RootState } from "../store/store";
-import { Btn, Field } from "../ui";
+import { Btn, Field, ClubLogo } from "../ui";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -14,7 +14,7 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (token) return <Navigate to="/" replace />;
+  if (token) return <Navigate to="/dashboard" replace />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +36,7 @@ export function LoginPage() {
       };
       if (!res.ok || !body.data) throw new Error(body.error?.message ?? "Sign-in failed.");
       login(body.data.token, body.data.username);
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
     } finally {
@@ -45,12 +45,18 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-pine px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-paper p-7 shadow-card">
-        <p className="text-base font-extrabold tracking-tight text-pine">
-          PB <span className="text-lime-deep">KECEBONG</span>
-        </p>
-        <p className="mb-5 mt-1 text-sm text-ink-soft">Sign in to manage open play.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#143728] via-[#1a4434] to-[#102a1f] px-4 py-8">
+      <div className="w-full max-w-sm rounded-2xl bg-paper p-7 shadow-2xl border border-line">
+        <div className="flex items-center gap-3.5 mb-5 pb-4 border-b border-line">
+          <ClubLogo size="lg" />
+          <div>
+            <p className="text-base font-extrabold tracking-tight text-pine">
+              PB <span className="text-lime-deep">KECEBONG</span>
+            </p>
+            <p className="text-xs text-ink-soft">Badminton Club Manager</p>
+          </div>
+        </div>
+        <p className="mb-4 text-xs font-medium text-ink-soft">Masuk untuk mengelola sesi dan keuangan.</p>
       <form onSubmit={submit} className="space-y-3">
         <Field label="Username">
           <input
@@ -76,10 +82,15 @@ export function LoginPage() {
             {error}
           </p>
         )}
-        <Btn type="submit" disabled={busy}>
+        <Btn type="submit" disabled={busy} className="w-full">
           {busy ? "Checking…" : "Sign in"}
         </Btn>
       </form>
+      <div className="mt-5 pt-4 border-t border-line text-center">
+        <Link to="/" className="text-xs font-semibold text-pine hover:underline">
+          ← Kembali ke Beranda
+        </Link>
+      </div>
       </div>
     </div>
   );

@@ -7,3 +7,4 @@ export { GradeChip } from "./GradeChip/GradeChip";
 export { LanguageSwitcher } from "./LanguageSwitcher/LanguageSwitcher";
 export { Loading } from "./Loading/Loading";
 export { MoneyInput } from "./MoneyInput/MoneyInput";
+export { ClubLogo } from "./ClubLogo";

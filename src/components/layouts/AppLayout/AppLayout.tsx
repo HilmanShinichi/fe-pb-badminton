@@ -3,11 +3,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../auth";
 import { useI18n } from "../../../i18n";
 import { LanguageSwitcher } from "../../atoms/LanguageSwitcher";
+import { ClubLogo } from "../../atoms/ClubLogo";
+import { LogoUploadModal } from "../../molecules/LogoUploadModal";
 
 const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string }> = [
   {
     itemKey: "dashboard",
-    to: "/",
+    to: "/dashboard",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
         <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
@@ -125,7 +127,8 @@ export function Layout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(() =>
     typeof window === "undefined" ? false : window.matchMedia("(min-width: 1024px)").matches,
   );
-  const active = NAV.find((n) => (n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to)));
+  const [logoModalOpen, setLogoModalOpen] = useState(false);
+  const active = NAV.find((n) => location.pathname === n.to || (n.to !== "/dashboard" && location.pathname.startsWith(n.to)));
   const activeLabel = active ? t(`nav.${active.itemKey}.label`) : "PB Kecebong";
   const activeDesc = active ? t(`nav.${active.itemKey}.desc`) : "";
 
@@ -166,7 +169,7 @@ export function Layout({ children }: { children: ReactNode }) {
       >
         <div
           className={`flex h-16 items-center border-b border-paper/10 bg-black/15 transition-all duration-300 ${
-            open ? "gap-3 px-3.5 justify-start" : "justify-center px-0"
+            open ? "gap-2.5 px-3 justify-start" : "justify-center px-0"
           }`}
         >
           <button
@@ -196,16 +199,24 @@ export function Layout({ children }: { children: ReactNode }) {
             </span>
           </button>
           {open && (
-            <Link
-              to="/"
-              onClick={closeOnMobile}
-              className="min-w-0 flex flex-col transition-opacity duration-300"
-            >
-              <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
-                PB <span className="bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent">KECEBONG</span>
-              </span>
-              <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">{isId ? "Manajer mabar badminton" : "Badminton open play manager"}</span>
-            </Link>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <ClubLogo
+                size="sm"
+                editable
+                onEdit={() => setLogoModalOpen(true)}
+                className="cursor-pointer"
+              />
+              <Link
+                to="/dashboard"
+                onClick={closeOnMobile}
+                className="min-w-0 flex flex-col transition-opacity duration-300 flex-1"
+              >
+                <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
+                  PB <span className="bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent">KECEBONG</span>
+                </span>
+                <span className="mt-0.5 block whitespace-nowrap text-xs text-paper/60">{isId ? "Manajer mabar badminton" : "Badminton open play manager"}</span>
+              </Link>
+            </div>
           )}
         </div>
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3">
@@ -237,13 +248,35 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="mb-2.5">
               <LanguageSwitcher className="w-full justify-between bg-black/30 border-paper/15 text-paper !p-1" />
             </div>
-            <p className="truncate text-sm font-medium">{auth?.username ?? "Admin"}</p>
+            <div className="flex items-center justify-between">
+              <p className="truncate text-sm font-medium">{auth?.username ?? "Admin"}</p>
+              <button
+                type="button"
+                onClick={() => setLogoModalOpen(true)}
+                className="text-[11px] text-lime hover:underline font-semibold"
+                title="Ganti logo klub"
+              >
+                Ubah Logo
+              </button>
+            </div>
             <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
               {t("nav.logout")}
             </button>
           </div>
         ) : (
-          <div className="border-t border-paper/15 py-3 flex flex-col items-center justify-center">
+          <div className="border-t border-paper/15 py-3 flex flex-col items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLogoModalOpen(true)}
+              title="Ganti Logo Klub"
+              aria-label="Ganti Logo Klub"
+              className="h-10 w-10 flex items-center justify-center rounded-xl text-paper/70 hover:bg-white/10 hover:text-lime transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4.5 w-4.5">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </button>
             <button
               type="button"
               onClick={quit}
@@ -291,6 +324,8 @@ export function Layout({ children }: { children: ReactNode }) {
         </header>
         <main className="mx-auto w-full max-w-7xl px-3.5 py-4 sm:px-5 sm:py-5 lg:px-8">{children}</main>
       </div>
+
+      <LogoUploadModal open={logoModalOpen} onClose={() => setLogoModalOpen(false)} />
     </div>
   );
 }
@@ -317,7 +352,7 @@ function NavItem({
     <li>
       <NavLink
         to={to}
-        end={to === "/"}
+        end={to === "/dashboard"}
         onClick={onGo}
         title={label}
         className={({ isActive }) =>

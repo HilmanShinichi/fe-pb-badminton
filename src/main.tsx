@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { store, type RootState } from "./store/store";
 import { Layout } from "./ui";
 import { LoginPage } from "./pages/Login";
+import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/Dashboard";
 import { MabarListPage, MabarDetailPage } from "./pages/Mabar";
 import { PeriodListPage, PeriodDetailPage } from "./pages/Periods";
@@ -34,7 +35,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/login" element={<LoginPage />} />
             <Route path="/live" element={<LiveIndexPage />} />
             <Route path="/live/:id" element={<LiveEventPage />} />
-            <Route path="/" element={<Guard><DashboardPage /></Guard>} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<Guard><DashboardPage /></Guard>} />
             <Route path="/mabar" element={<Guard><MabarListPage /></Guard>} />
             <Route path="/mabar/:id" element={<Guard><MabarDetailPage /></Guard>} />
             <Route path="/periods" element={<Guard><PeriodListPage /></Guard>} />
