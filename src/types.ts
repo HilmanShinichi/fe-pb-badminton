@@ -46,7 +46,7 @@ export interface MatchEventRow {
 }
 
 export interface MatchEventDetail {
-  event: { id: string; name: string; status: string; court_count: number; base_played: number; is_public: boolean; show_grades: boolean; player_ids: string[]; created_at: string };
+  event: { id: string; name: string; status: string; court_count: number; base_played: number; is_public: boolean; show_grades: boolean; player_ids: string[]; source_session_id?: string | null; created_at: string };
   matches: GenMatch[];
   counts: { player_id: string; name: string; grade: string | null; gender: string | null; arrival: number; played: number }[];
 }

@@ -400,6 +400,7 @@ export interface MatchMakerTranslations {
   roundTitle: string;
   roundMatchesCount: string;
   btnDeleteRound: string;
+  btnTopUpRound: string;
   roundDeleted: string;
   btnRegenerateRound: string;
   deleteRoundTitle: string;
@@ -429,6 +430,7 @@ export interface MatchMakerTranslations {
   lateArrivalsTitle: string;
   lateArrivalsDesc: string;
   lateArrivalsAdd: string;
+  lateArrivalsNeedSource: string;
   colNo: string;
   colPlayer: string;
   colGrade: string;

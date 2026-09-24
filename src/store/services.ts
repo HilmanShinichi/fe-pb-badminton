@@ -303,11 +303,11 @@ export const api = baseApi.injectEndpoints({
       query: (id) => `/api/v1/match-events/${id}`,
       providesTags: (_r, _e, id) => [{ type: "MatchMaker", id }],
     }),
-    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number; base_played?: number }>({
+    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number; base_played?: number; source_session_id?: string }>({
       query: (body) => ({ url: "/api/v1/match-events", method: "POST", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; base_played?: number; is_public?: boolean; show_grades?: boolean } }>({
+    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; base_played?: number; is_public?: boolean; show_grades?: boolean; source_session_id?: string } }>({
       query: ({ id, body }) => ({ url: `/api/v1/match-events/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
@@ -321,8 +321,8 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
-    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number; round?: number }>({
-      query: ({ eventId, rounds, round }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round } }),
+    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean }>({
+      query: ({ eventId, rounds, round, topup }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
     deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({

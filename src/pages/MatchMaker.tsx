@@ -54,18 +54,12 @@ export function MatchMakerListPage() {
     [allPlayers.data],
   );
 
-  // Picking a session pre-checks who is PRESENT (in check-in order);
-  // the user then adjusts manually — uncheck absentees, check late arrivals.
+  // Manual checklist: nothing is pre-checked. The user checks who actually
+  // came (in arrival order) and leaves absentees unchecked.
+  // Switching pool source starts clean.
   useEffect(() => {
-    if (poolSource !== "session" || !poolSessionId) return;
-    setCustomIds(
-      (poolAttendance.data ?? [])
-        .filter((a) => a.status === "PRESENT")
-        .sort((a, b) => (a.listed_at < b.listed_at ? -1 : a.listed_at > b.listed_at ? 1 : 0))
-        .map((a) => a.player_id),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poolSessionId]);
+    setCustomIds([]);
+  }, [poolSource, poolSessionId]);
 
   const customList = useMemo(
     () => [...(allPlayers.data ?? [])].filter((p) => p.status === "ACTIVE").sort((a, b) => a.name.localeCompare(b.name)),
@@ -102,7 +96,7 @@ export function MatchMakerListPage() {
       player_ids = [...customIds];
     }
     try {
-      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0) }).unwrap();
+      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
       setName("");
       setCourts(0);
       setBase(0);
@@ -570,10 +564,10 @@ export function MatchMakerDetailPage() {
     }
   }
 
-  async function runGenerateRound(round: number) {
+  async function runGenerateRound(round: number, topup = false) {
     if (!id || genState.isLoading) return;
     try {
-      await generate({ eventId: id, rounds: 1, round }).unwrap();
+      await generate({ eventId: id, rounds: 1, round, topup }).unwrap();
       setGenError("");
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
@@ -741,6 +735,7 @@ export function MatchMakerDetailPage() {
           <LateArrivalsSection
             eventId={detail.data.event.id}
             poolIds={detail.data.event.player_ids ?? []}
+            sourceSessionId={detail.data.event.source_session_id ?? null}
           />
 
           {/* ROUND TABS FILTER (FOR EFFORTLESS NAVIGATION ON MOBILE/TABLET) */}
@@ -794,7 +789,12 @@ export function MatchMakerDetailPage() {
                       {t("matchmaker.roundTitle", { round })} · {t("matchmaker.roundMatchesCount", { count: matches.length })}
                     </h2>
                   </div>
-                  <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
+                  <span className="inline-flex gap-1">
+                    <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(round, true)}>
+                      {t("matchmaker.btnTopUpRound")}
+                    </Btn>
+                    <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
+                  </span>
                 </div>
 
                 {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
@@ -975,17 +975,37 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
   );
 }
 
-export function LateArrivalsSection({ eventId, poolIds }: { eventId: string; poolIds: string[] }) {
+export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eventId: string; poolIds: string[]; sourceSessionId?: string | null }) {
   const { t } = useI18n();
   const allPlayers = usePlayersAllQuery();
+  const sessionAttendance = useAttendanceQuery(sourceSessionId ?? "", { skip: !sourceSessionId });
+  const sessions = useMabarListQuery("");
+  const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [addPlayers, addState] = useAddEventPlayersMutation();
   const [picked, setPicked] = useState<string[]>([]);
   const [error, setError] = useState("");
   const inPool = useMemo(() => new Set(poolIds), [poolIds]);
-  const candidates = useMemo(
-    () => [...(allPlayers.data ?? [])].filter((p) => p.status === "ACTIVE" && !inPool.has(p.id)).sort((a, b) => a.name.localeCompare(b.name)),
-    [allPlayers.data, inPool],
-  );
+  const playersById = useMemo(() => new Map((allPlayers.data ?? []).map((p) => [p.id, p])), [allPlayers.data]);
+  // Prefer the event's source session: only people from that session play.
+  // Fallback to all active players for events without a source.
+  // Only listed/present players count — mark ABSENT in the session to hide
+  // people who never showed up.
+  const SESSION_ALIVE = ["PRESENT", "LISTED", "CONFIRMED"];
+  const candidates = useMemo(() => {
+    if (sourceSessionId && sessionAttendance.data) {
+      return sessionAttendance.data
+        .filter((a) => !inPool.has(a.player_id) && SESSION_ALIVE.includes(a.status))
+        .sort((a, b) => (a.listed_at < b.listed_at ? -1 : a.listed_at > b.listed_at ? 1 : 0))
+        .map((a) => playersById.get(a.player_id) ?? { id: a.player_id, name: a.player_name, grade: null as string | null, gender: null as string | null, status: "ACTIVE" as const });
+    }
+    return [...(allPlayers.data ?? [])].filter((p) => p.status === "ACTIVE" && !inPool.has(p.id)).sort((a, b) => a.name.localeCompare(b.name));
+  }, [sourceSessionId, sessionAttendance.data, allPlayers.data, inPool, playersById]);
+  const [lateSearch, setLateSearch] = useState("");
+  const lateFiltered = useMemo(() => {
+    const q = lateSearch.trim().toLowerCase();
+    if (!q) return candidates;
+    return candidates.filter((p) => p.name.toLowerCase().includes(q));
+  }, [candidates, lateSearch]);
 
   function toggle(id: string) {
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -1002,20 +1022,64 @@ export function LateArrivalsSection({ eventId, poolIds }: { eventId: string; poo
     }
   }
 
+  async function setSource(sessionId: string) {
+    if (!sessionId || updateEventState.isLoading) return;
+    try {
+      await updateEvent({ id: eventId, body: { source_session_id: sessionId } }).unwrap();
+      setError("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not save source session.");
+    }
+  }
+
+  if (!sourceSessionId) {
+    return (
+      <section aria-label={t("matchmaker.lateArrivalsTitle")} className="mb-5 rounded-2xl border border-dashed border-line bg-white shadow-card p-4">
+        <h2 className="text-sm font-extrabold">🕐 {t("matchmaker.lateArrivalsTitle")}</h2>
+        <p className="mb-3 text-xs text-ink-soft">{t("matchmaker.lateArrivalsNeedSource")}</p>
+        <select
+          aria-label={t("matchmaker.sessionSelectLabel")}
+          className="w-full rounded-lg border border-line px-3 py-2 text-sm bg-white"
+          defaultValue=""
+          disabled={updateEventState.isLoading}
+          onChange={(e) => setSource(e.target.value)}
+        >
+          <option value="">{t("matchmaker.sessionSelectPrompt")}</option>
+          {(sessions.data ?? []).map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.date} · {s.type === "PERIOD" ? t("dashboard.period") : t("dashboard.daily")}{s.period_name ? ` · ${s.period_name}` : ""}
+            </option>
+          ))}
+        </select>
+        {error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{error}</p>}
+      </section>
+    );
+  }
+
   if (candidates.length === 0) return null;
   return (
     <section aria-label={t("matchmaker.lateArrivalsTitle")} className="mb-5 rounded-2xl border border-line bg-white shadow-card p-4">
       <h2 className="text-sm font-extrabold">🕐 {t("matchmaker.lateArrivalsTitle")}</h2>
       <p className="mb-3 text-xs text-ink-soft">{t("matchmaker.lateArrivalsDesc")}</p>
+      <input
+        className="mb-2 w-full rounded-lg border border-line px-3 py-1.5 text-xs focus:border-pine focus:outline-hidden"
+        placeholder={t("matchmaker.customSearchPlaceholder")}
+        value={lateSearch}
+        onChange={(e) => setLateSearch(e.target.value)}
+      />
       <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-line bg-court/20 p-2">
-        {candidates.map((p) => (
-          <label key={p.id} className="flex items-center gap-2 rounded-md p-1.5 text-xs cursor-pointer hover:bg-white/80">
-            <input type="checkbox" className="rounded text-pine focus:ring-pine" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
-            <span className="font-semibold flex-1 truncate">{p.name}</span>
-            {p.grade && <GradeChip grade={p.grade} />}
-            {p.gender && <GenderChip gender={p.gender} />}
-          </label>
-        ))}
+        {lateFiltered.length === 0 ? (
+          <p className="p-2 text-center text-xs text-ink-faint">{t("matchmaker.noMatchingPlayers")}</p>
+        ) : (
+          lateFiltered.map((p) => (
+            <label key={p.id} className="flex items-center gap-2 rounded-md p-1.5 text-xs cursor-pointer hover:bg-white/80">
+              <input type="checkbox" className="rounded text-pine focus:ring-pine" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
+              <span className="font-semibold flex-1 truncate">{p.name}</span>
+              {p.grade && <GradeChip grade={p.grade} />}
+              {p.gender && <GenderChip gender={p.gender} />}
+            </label>
+          ))
+        )}
       </div>
       <div className="mt-3 flex items-center gap-2">
         <Btn disabled={addState.isLoading || picked.length === 0} onClick={submit}>
