@@ -14,11 +14,14 @@ import { GRADES } from "../types";
 export function PlayersPage() {
   const { t } = useI18n();
   const [q, setQ] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fGrade, setFGrade] = useState("");
+  const [fGender, setFGender] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", notes: "", grade: "", gender: "" });
   const [formError, setFormError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Player | null>(null);
   const [actionError, setActionError] = useState("");
-  const list = usePlayersQuery(q);
+  const list = usePlayersQuery({ q, status: fStatus || undefined, grade: fGrade || undefined, gender: fGender || undefined });
   const [create, createState] = useCreatePlayerMutation();
   const [removePlayer, removeState] = useDeletePlayerMutation();
 
@@ -144,6 +147,43 @@ export function PlayersPage() {
                 onChange={(e) => setQ(e.target.value)}
               />
               <span className="pointer-events-none absolute left-2.5 top-2 sm:top-2.5 text-xs text-ink-faint">🔍</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <label className="sr-only" htmlFor="filter-status">{t("players.colStatus")}</label>
+              <select
+                id="filter-status"
+                className="rounded-lg border border-line px-2 py-1.5 text-xs font-semibold bg-white"
+                value={fStatus}
+                onChange={(e) => setFStatus(e.target.value)}
+              >
+                <option value="">{t("players.colStatus")}: {t("players.filterAll")}</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+              <label className="sr-only" htmlFor="filter-grade">{t("players.colGrade")}</label>
+              <select
+                id="filter-grade"
+                className="rounded-lg border border-line px-2 py-1.5 text-xs font-semibold bg-white"
+                value={fGrade}
+                onChange={(e) => setFGrade(e.target.value)}
+              >
+                <option value="">{t("players.colGrade")}: {t("players.filterAll")}</option>
+                <option value="none">{t("players.filterNoGrade")}</option>
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <label className="sr-only" htmlFor="filter-gender">{t("players.colGender")}</label>
+              <select
+                id="filter-gender"
+                className="rounded-lg border border-line px-2 py-1.5 text-xs font-semibold bg-white"
+                value={fGender}
+                onChange={(e) => setFGender(e.target.value)}
+              >
+                <option value="">{t("players.colGender")}: {t("players.filterAll")}</option>
+                <option value="L">♂ {t("players.genderMale")}</option>
+                <option value="P">♀ {t("players.genderFemale")}</option>
+              </select>
             </div>
             <span className="text-xs font-bold text-ink-soft">
               {playersList.length} {t("players.colPlayer").toLowerCase()}

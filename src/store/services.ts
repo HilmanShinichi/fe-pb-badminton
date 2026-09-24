@@ -266,8 +266,16 @@ export const api = baseApi.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
 
-    players: build.query<Player[], string>({
-      query: (q) => `/api/v1/players${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    players: build.query<Player[], { q?: string; status?: string; grade?: string; gender?: string }>({
+      query: (args) => {
+        const qs = new URLSearchParams();
+        if (args.q) qs.set("q", args.q);
+        if (args.status) qs.set("status", args.status);
+        if (args.grade) qs.set("grade", args.grade);
+        if (args.gender) qs.set("gender", args.gender);
+        const s = qs.toString();
+        return `/api/v1/players${s ? `?${s}` : ""}`;
+      },
       providesTags: ["Players"],
     }),
     playersAll: build.query<Player[], void>({
@@ -313,8 +321,12 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
-    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number }>({
-      query: ({ eventId, rounds }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds } }),
+    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number; round?: number }>({
+      query: ({ eventId, rounds, round }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round } }),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
+    }),
+    deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({
+      query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/rounds/${round}`, method: "DELETE" }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
     addEventPlayers: build.mutation<unknown, { eventId: string; player_ids: string[] }>({
@@ -629,6 +641,7 @@ export const {
   useUpdateMatchEventMutation,
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
+  useDeleteEventRoundMutation,
   useAddEventPlayersMutation,
   useUpdateGenMatchMutation,
   usePublicMatchEventsQuery,

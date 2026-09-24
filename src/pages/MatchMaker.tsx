@@ -5,6 +5,7 @@ import {
   useAddEventPlayersMutation,
   useAttendanceQuery,
   useCreateMatchEventMutation,
+  useDeleteEventRoundMutation,
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
   useMabarListQuery,
@@ -521,6 +522,8 @@ export function MatchMakerDetailPage() {
   const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
   const [genError, setGenError] = useState("");
   const [generate, genState] = useGenerateMatchesMutation();
+  const [deleteRound, deleteRoundState] = useDeleteEventRoundMutation();
+  const [pendingRoundDelete, setPendingRoundDelete] = useState<number | null>(null);
   const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [courtsDraft, setCourtsDraft] = useState<number | null>(null);
   const [baseDraft, setBaseDraft] = useState<number | null>(null);
@@ -567,6 +570,28 @@ export function MatchMakerDetailPage() {
     }
   }
 
+  async function runGenerateRound(round: number) {
+    if (!id || genState.isLoading) return;
+    try {
+      await generate({ eventId: id, rounds: 1, round }).unwrap();
+      setGenError("");
+    } catch (e) {
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
+    }
+  }
+
+  async function confirmRoundDelete() {
+    if (!id || pendingRoundDelete === null || deleteRoundState.isLoading) return;
+    try {
+      await deleteRound({ eventId: id, round: pendingRoundDelete }).unwrap();
+      setPendingRoundDelete(null);
+      setGenError("");
+    } catch (e) {
+      setPendingRoundDelete(null);
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
+    }
+  }
+
   const grouped = useMemo(() => {
     const map = new Map<number, GenMatch[]>();
     for (const m of detail.data?.matches ?? []) {
@@ -578,6 +603,15 @@ export function MatchMakerDetailPage() {
   }, [detail.data]);
 
   const allRoundNumbers = useMemo(() => grouped.map(([r]) => r), [grouped]);
+
+  const missingRounds = useMemo(() => {
+    if (grouped.length === 0) return [];
+    const max = Math.max(...grouped.map(([r]) => r));
+    const have = new Set(grouped.map(([r]) => r));
+    const out: number[] = [];
+    for (let r = 1; r <= max; r++) if (!have.has(r)) out.push(r);
+    return out;
+  }, [grouped]);
 
   const filteredGrouped = useMemo(() => {
     if (activeRoundTab === "ALL") return grouped;
@@ -685,6 +719,7 @@ export function MatchMakerDetailPage() {
                 type="button"
                 disabled={genState.isLoading}
                 onClick={runGenerate}
+                title={t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })}
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
@@ -759,6 +794,7 @@ export function MatchMakerDetailPage() {
                       {t("matchmaker.roundTitle", { round })} · {t("matchmaker.roundMatchesCount", { count: matches.length })}
                     </h2>
                   </div>
+                  <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
                 </div>
 
                 {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
@@ -769,6 +805,32 @@ export function MatchMakerDetailPage() {
                 </div>
               </section>
             ))
+          )}
+
+          {missingRounds
+            .filter((r) => activeRoundTab === "ALL" || activeRoundTab === r)
+            .map((r) => (
+              <section key={`missing-${r}`} aria-label={`Round ${r} empty`} className="space-y-3">
+                <div className="flex items-center justify-between border-b border-dashed border-line pb-2">
+                  <h2 className="text-sm font-extrabold text-ink-faint">
+                    {t("matchmaker.roundTitle", { round: r })} · {t("matchmaker.roundDeleted")}
+                  </h2>
+                  <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
+                    {t("matchmaker.btnRegenerateRound", { round: r })}
+                  </Btn>
+                </div>
+              </section>
+            ))}
+
+          {pendingRoundDelete !== null && (
+            <ConfirmModal
+              title={t("matchmaker.deleteRoundTitle", { round: pendingRoundDelete })}
+              body={<p>{t("matchmaker.deleteRoundBody", { round: pendingRoundDelete })}</p>}
+              confirmLabel={t("matchmaker.btnConfirmDeleteRound")}
+              busy={deleteRoundState.isLoading}
+              onConfirm={confirmRoundDelete}
+              onCancel={() => setPendingRoundDelete(null)}
+            />
           )}
 
           {/* PLAYER PLAY COUNTS LEADERBOARD */}

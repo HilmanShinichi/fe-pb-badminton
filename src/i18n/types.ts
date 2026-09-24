@@ -328,6 +328,8 @@ export interface PlayersTranslations {
   colPhone: string;
   colGrade: string;
   colGender: string;
+  filterAll: string;
+  filterNoGrade: string;
   genderMale: string;
   genderFemale: string;
   colStatus: string;
@@ -389,6 +391,7 @@ export interface MatchMakerTranslations {
   generatorTitle: string;
   generatorDesc: string;
   roundsLabel: string;
+  addRoundsHint: string;
   btnGenerate: string;
   btnGenerating: string;
   errorSaveCourts: string;
@@ -396,6 +399,12 @@ export interface MatchMakerTranslations {
   noMatchesYet: string;
   roundTitle: string;
   roundMatchesCount: string;
+  btnDeleteRound: string;
+  roundDeleted: string;
+  btnRegenerateRound: string;
+  deleteRoundTitle: string;
+  deleteRoundBody: string;
+  btnConfirmDeleteRound: string;
   courtNumber: string;
   courtLabel: string;
   courtUnlimited: string;
