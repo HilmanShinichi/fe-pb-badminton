@@ -847,7 +847,8 @@ export function MatchMakerDetailPage() {
                     <th>{t("matchmaker.colPlayer")}</th>
                     <th>{t("matchmaker.colGrade")}</th>
                     <th>{t("matchmaker.colGender")}</th>
-                    <th className="w-36 text-right">{t("matchmaker.colPlayed")}</th>
+                    <th className="w-24 text-right">{t("matchmaker.colPlayed")}</th>
+                    <th className="w-24 text-right">{t("matchmaker.colRefereed")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -882,6 +883,7 @@ export function MatchMakerDetailPage() {
                               <span className="tabular-nums font-extrabold text-sm text-ink">{c.played}</span>
                             </div>
                           </td>
+                          <td className="text-right tabular-nums font-extrabold text-sm text-ink">🧑‍⚖️ {c.refereed ?? 0}</td>
                         </tr>
                       );
                     });
@@ -1217,6 +1219,11 @@ function MatchCard({
           <span className="rounded-md bg-pine/10 border border-pine/20 px-2 py-0.5 text-[11px] font-black uppercase text-pine">
             R-{m.round}
           </span>
+          {(m.wave ?? 1) > 1 && (
+            <span className="rounded-md bg-sky-100 border border-sky-200 px-2 py-0.5 text-[11px] font-black uppercase text-sky-900" title="Plays after wave 1 finishes">
+              Gel. {m.wave}
+            </span>
+          )}
           {m.status !== "UPCOMING" && (
             <span className="rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
               ⏱ {fmtClock(elapsedSec)}
@@ -1277,6 +1284,34 @@ function MatchCard({
       </div>
 
       {error && <p role="alert" className="px-3 py-1 text-xs text-red-700 font-semibold">{error}</p>}
+
+      {/* REFEREE BAR */}
+      <div className="flex items-center gap-2 border-t border-line/60 px-3.5 py-2 bg-court/20">
+        <span className="text-xs font-extrabold text-ink-soft">🧑‍⚖️ {t("matchmaker.refereeLabel")}</span>
+        {locked ? (
+          <span className="text-xs font-bold">{m.referee?.name ?? "—"}</span>
+        ) : (
+          <select
+            aria-label={t("matchmaker.refereeLabel")}
+            className="min-w-0 flex-1 rounded-lg border border-line px-2 py-1 text-xs font-semibold bg-white"
+            value={m.referee?.player_id ?? ""}
+            disabled={updateState.isLoading}
+            onChange={async (e) => {
+              try {
+                await update({ id: m.id, body: { referee_id: e.target.value } }).unwrap();
+                setError("");
+              } catch (err) {
+                setError(err instanceof ApiError ? err.message : "Could not save referee.");
+              }
+            }}
+          >
+            <option value="">—</option>
+            {[...pool].sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
+              <option key={p.player_id} value={p.player_id}>{p.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* CARD ACTION FOOTER */}
       <div className="flex items-center justify-between gap-2 border-t border-line px-3.5 py-2.5 bg-white">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { usePublicMatchEventQuery, usePublicMatchEventsQuery } from "../store/services";
 import { Empty, ErrorBox, Loading } from "../ui";
 import { TeamPanel, fmtClock } from "./MatchMaker";
@@ -32,7 +32,7 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
       <div className="flex items-center justify-between gap-2 border-b border-line bg-court/30 px-3.5 py-2.5">
-        <span className="text-[11px] font-black uppercase text-pine">Round {m.round}</span>
+        <span className="text-[11px] font-black uppercase text-pine">Round {m.round}{(m.wave ?? 1) > 1 ? ` · Gel. ${m.wave}` : ""}</span>
         <span className="inline-flex items-center gap-2">
           {m.status !== "UPCOMING" && (
             <span className="rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
@@ -56,6 +56,7 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
       </div>
       <div className="border-t border-line px-3.5 py-1.5 text-xs text-ink-faint">
         🏸 {m.shuttlecock_used ?? 0} shuttlecocks
+        {m.referee && <span> · 🧑‍⚖️ {m.referee.name}</span>}
       </div>
     </article>
   );
@@ -112,6 +113,22 @@ export function LiveEventPage() {
       <p className="mb-4 text-sm text-ink-soft">
         {detail.data ? `${detail.data.matches.length} matches · auto-refreshes` : "Loading…"}
       </p>
+      {detail.data && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Link
+            to={`/live/${id}/played`}
+            className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40"
+          >
+            ▶ Played: {detail.data.counts.reduce((a, c) => a + c.played, 0)}
+          </Link>
+          <Link
+            to={`/live/${id}/refereed`}
+            className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40"
+          >
+            🧑‍⚖️ Refereed: {detail.data.counts.reduce((a, c) => a + (c.refereed ?? 0), 0)}
+          </Link>
+        </div>
+      )}
       {detail.isFetching && !detail.data ? (
         <Loading />
       ) : detail.isError || !detail.data ? (
@@ -132,4 +149,84 @@ export function LiveEventPage() {
       )}
     </div>
   );
+}
+
+function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  // Always refetch on mount so Back lands on fresh numbers.
+  const detail = usePublicMatchEventQuery(id ?? "", {
+    skip: !id,
+    pollingInterval: 10000,
+    refetchOnMountOrArgChange: true,
+  });
+  const isPlayed = kind === "played";
+  const rows = useMemo(() => {
+    const list = [...(detail.data?.counts ?? [])];
+    list.sort((a, b) =>
+      isPlayed ? b.played - a.played || a.name.localeCompare(b.name) : (b.refereed ?? 0) - (a.refereed ?? 0) || a.name.localeCompare(b.name),
+    );
+    return list;
+  }, [detail.data, isPlayed]);
+
+  return (
+    <div className="mx-auto max-w-3xl p-4">
+      <p className="mb-1 text-xs uppercase tracking-wide text-ink-faint">
+        <Link className="underline" to="/live">Live</Link>
+        {" · "}
+        <Link className="underline" to={id ? `/live/${id}` : "/live"}>Event</Link>
+        {" · read-only"}
+      </p>
+      <h1 className="text-xl font-black">
+        {isPlayed ? "▶ Played" : "🧑‍⚖️ Refereed"} · {detail.data?.event.name ?? "…"}
+      </h1>
+      <p className="mb-4 text-sm text-ink-soft">Ended + playing matches only · auto-refreshes</p>
+      {detail.isFetching && !detail.data ? (
+        <Loading />
+      ) : detail.isError || !detail.data ? (
+        <ErrorBox message="Event not found or not public." onRetry={() => detail.refetch()} />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="w-12">No</th>
+                  <th>Player</th>
+                  <th className="text-right">{isPlayed ? "Played" : "Refereed"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c, i) => (
+                  <tr key={c.player_id}>
+                    <td className="tabular-nums text-ink-faint">{i + 1}</td>
+                    <td className="font-medium">
+                      {c.name}
+                      {c.grade ? <span className="ml-2 text-xs text-ink-faint">{c.grade}</span> : null}
+                    </td>
+                    <td className="text-right font-bold tabular-nums">{isPlayed ? c.played : (c.refereed ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(id ? `/live/${id}` : "/live")}
+            className="mt-4 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40"
+          >
+            ← Back
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function LivePlayedPage() {
+  return <LiveCountsPage kind="played" />;
+}
+
+export function LiveRefereedPage() {
+  return <LiveCountsPage kind="refereed" />;
 }

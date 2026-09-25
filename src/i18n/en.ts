@@ -463,6 +463,8 @@ export const en: TranslationSchema = {
     colGrade: "Grade",
     colGender: "Gender",
     colPlayed: "Played",
+    colRefereed: "Ref",
+    refereeLabel: "Referee",
     allRounds: "All Rounds",
     viewCards: "Card View",
     viewTable: "Table View",

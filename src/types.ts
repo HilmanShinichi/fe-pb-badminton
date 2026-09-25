@@ -11,6 +11,11 @@ export interface Player {
 
 export const GRADES = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"] as const;
 
+export interface GenReferee {
+  player_id: string;
+  name: string;
+}
+
 export interface GenTeamPlayer {
   player_id: string;
   name: string;
@@ -22,8 +27,10 @@ export interface GenMatch {
   id: string;
   event_id: string;
   round: number;
+  wave: number;
   team1: GenTeamPlayer[];
   team2: GenTeamPlayer[];
+  referee: GenReferee | null;
   status: string;
   court: number;
   started_at: string | null;
@@ -48,7 +55,7 @@ export interface MatchEventRow {
 export interface MatchEventDetail {
   event: { id: string; name: string; status: string; court_count: number; base_played: number; is_public: boolean; show_grades: boolean; player_ids: string[]; source_session_id?: string | null; created_at: string };
   matches: GenMatch[];
-  counts: { player_id: string; name: string; grade: string | null; gender: string | null; arrival: number; played: number }[];
+  counts: { player_id: string; name: string; grade: string | null; gender: string | null; arrival: number; played: number; refereed: number }[];
 }
 
 export interface Period {

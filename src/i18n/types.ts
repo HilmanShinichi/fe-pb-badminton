@@ -436,6 +436,8 @@ export interface MatchMakerTranslations {
   colGrade: string;
   colGender: string;
   colPlayed: string;
+  colRefereed: string;
+  refereeLabel: string;
   allRounds: string;
   viewCards: string;
   viewTable: string;

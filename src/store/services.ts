@@ -333,7 +333,7 @@ export const api = baseApi.injectEndpoints({
       query: ({ eventId, player_ids }) => ({ url: `/api/v1/match-events/${eventId}/players`, method: "POST", body: { player_ids } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker", "Players"],
     }),
-    updateGenMatch: build.mutation<GenMatch, { id: string; body: { team1?: string[]; team2?: string[]; status?: string; court?: number; shuttlecock_used?: number } }>({
+    updateGenMatch: build.mutation<GenMatch, { id: string; body: { team1?: string[]; team2?: string[]; status?: string; court?: number; shuttlecock_used?: number; referee_id?: string | null } }>({
       query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
