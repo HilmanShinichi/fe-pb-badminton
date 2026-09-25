@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../store/baseApi";
 import {
   useAddEventPlayersMutation,
+  useAdjustEventCountMutation,
   useAttendanceQuery,
   useCreateMatchEventMutation,
   useDeleteEventRoundMutation,
@@ -39,16 +40,59 @@ import {
   IconWhistle,
   Loading,
   PageHead,
+  RoundProgress,
 } from "../components";
 import type { GenMatch, GenTeamPlayer } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
+
+// Minus and plus around a count. Every press asks for confirmation before the
+// number moves, so a mis-tap never changes a record.
+function CountStepper({
+  value,
+  kind,
+  playerName,
+  onRequest,
+}: {
+  value: number;
+  kind: "played" | "refereed";
+  playerName: string;
+  onRequest: (delta: number) => void;
+}) {
+  const { t } = useI18n();
+  const label = kind === "played" ? t("matchmaker.colPlayed") : t("matchmaker.colRefereed");
+  const button = "flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-white text-base font-black leading-none text-ink transition-colors hover:bg-court focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:text-ink-faint/60 disabled:hover:bg-white";
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        className={button}
+        disabled={value <= 0}
+        onClick={() => onRequest(-1)}
+        aria-label={t("matchmaker.countMinusAria", { label, name: playerName })}
+        title={t("matchmaker.countMinusAria", { label, name: playerName })}
+      >
+        −
+      </button>
+      <button
+        type="button"
+        className={button}
+        onClick={() => onRequest(1)}
+        aria-label={t("matchmaker.countPlusAria", { label, name: playerName })}
+        title={t("matchmaker.countPlusAria", { label, name: playerName })}
+      >
+        +
+      </button>
+    </span>
+  );
+}
 
 export function MatchMakerListPage() {
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [courts, setCourts] = useState(0);
   const [base, setBase] = useState(0);
+  const [maxMatches, setMaxMatches] = useState(0);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [poolSource, setPoolSource] = useState<"active" | "session" | "custom">("active");
@@ -119,10 +163,11 @@ export function MatchMakerListPage() {
       player_ids = [...customIds];
     }
     try {
-      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
+      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), max_rounds: Math.max(0, maxMatches || 0), source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
       setName("");
       setCourts(0);
       setBase(0);
+      setMaxMatches(0);
       setCustomIds([]);
       setError("");
     } catch (e) {
@@ -210,6 +255,21 @@ export function MatchMakerListPage() {
                   onChange={(e) => setBase(Math.max(0, Number(e.target.value) || 0))}
                 />
                 <IconPlay className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
+              </div>
+            </Field>
+
+            <Field label={t("matchmaker.maxMatchesLabel")} hint={t("matchmaker.maxMatchesHint")}>
+              <div className="relative">
+                <input
+                  id="event-max-matches"
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="w-full rounded-lg border border-line pl-8 pr-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                  value={maxMatches}
+                  onChange={(e) => setMaxMatches(Math.max(0, Number(e.target.value) || 0))}
+                />
+                <IconStopwatch className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
 
@@ -462,6 +522,14 @@ export function MatchMakerListPage() {
                         </span>
                       )}
                     </div>
+
+                    <RoundProgress
+                      rounds={ev.rounds}
+                      maxRounds={ev.max_rounds}
+                      label={t("matchmaker.roundProgressLabel")}
+                      unlimitedLabel={t("matchmaker.roundProgressUnlimited", { count: ev.rounds })}
+                      className="mt-3"
+                    />
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between">
@@ -485,6 +553,7 @@ export function MatchMakerListPage() {
                     <th className="text-right">{t("matchmaker.colCourts")}</th>
                     <th className="text-right">{t("matchmaker.colPlayers")}</th>
                     <th className="text-right">{t("matchmaker.colMatches")}</th>
+                    <th className="text-right">{t("matchmaker.roundProgressLabel")}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -502,6 +571,9 @@ export function MatchMakerListPage() {
                       </td>
                       <td className="text-right tabular-nums">{ev.players}</td>
                       <td className="text-right tabular-nums">{ev.matches}</td>
+                      <td className="text-right tabular-nums">
+                        {ev.max_rounds > 0 ? `${ev.rounds}/${ev.max_rounds}` : ev.rounds}
+                      </td>
                       <td className="text-right">
                         <DeleteRowButton
                           label={t("common.delete")}
@@ -613,15 +685,25 @@ export function MatchMakerDetailPage() {
   const [generate, genState] = useGenerateMatchesMutation();
   const [deleteRound, deleteRoundState] = useDeleteEventRoundMutation();
   const [pendingRoundDelete, setPendingRoundDelete] = useState<number | null>(null);
+  const [pendingCount, setPendingCount] = useState<{ playerId: string; name: string; field: "played" | "refereed"; from: number; to: number } | null>(null);
+  const [adjustCount, adjustCountState] = useAdjustEventCountMutation();
   const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [courtsDraft, setCourtsDraft] = useState<number | null>(null);
   const [baseDraft, setBaseDraft] = useState<number | null>(null);
+  const [maxMatchesDraft, setMaxMatchesDraft] = useState<number | null>(null);
   const [genModalOpen, setGenModalOpen] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [genPhase, setGenPhase] = useState("");
   const [genDone, setGenDone] = useState(false);
   const courtCap = detail.data?.event.court_count ?? 0;
   const baseCap = detail.data?.event.base_played ?? 0;
+  const maxMatches = detail.data?.event.max_rounds ?? 0;
+  const highestRound = detail.data?.matches.length ? Math.max(...detail.data.matches.map((m) => m.round)) : 0;
+  // The event's match limit decides how many rounds may still be added.
+  const roundsLeft = maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5;
+  const roundsCap = Math.max(1, Math.min(5, roundsLeft));
+  // Played and refereed bars share the event's match limit as their scale.
+  const countScale = maxMatches > 0 ? maxMatches : 5;
 
   useEffect(() => {
     if (detail.data) setCourtsDraft(detail.data.event.court_count ?? 0);
@@ -630,6 +712,14 @@ export function MatchMakerDetailPage() {
   useEffect(() => {
     if (detail.data) setBaseDraft(detail.data.event.base_played ?? 0);
   }, [detail.data?.event.base_played]);
+
+  useEffect(() => {
+    if (detail.data) setMaxMatchesDraft(detail.data.event.max_rounds ?? 0);
+  }, [detail.data?.event.max_rounds]);
+
+  useEffect(() => {
+    setRounds((prev) => Math.min(Math.max(1, prev), Math.max(1, Math.min(5, maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5))));
+  }, [maxMatches, highestRound]);
 
   async function saveCourts() {
     if (!id || courtsDraft === null || courtsDraft === courtCap || updateEventState.isLoading) return;
@@ -650,6 +740,17 @@ export function MatchMakerDetailPage() {
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
       setBaseDraft(baseCap);
+    }
+  }
+
+  async function saveMaxMatches() {
+    if (!id || maxMatchesDraft === null || maxMatchesDraft === maxMatches || updateEventState.isLoading) return;
+    try {
+      await updateEvent({ id, body: { max_rounds: Math.max(0, maxMatchesDraft || 0) } }).unwrap();
+      setGenError("");
+    } catch (e) {
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveMaxMatches"));
+      setMaxMatchesDraft(maxMatches);
     }
   }
 
@@ -709,6 +810,30 @@ export function MatchMakerDetailPage() {
     await runWithProgress(async () => {
       await generate({ eventId: id, rounds: 1, round, topup }).unwrap();
     });
+  }
+
+  // Stepper presses only queue a change; the dialog is what saves it.
+  function requestCountChange(playerId: string, name: string, field: "played" | "refereed", from: number, delta: number) {
+    if (adjustCountState.isLoading) return;
+    setPendingCount({ playerId, name, field, from, to: from + delta });
+  }
+
+  async function confirmCountChange() {
+    if (!id || !pendingCount || adjustCountState.isLoading) return;
+    const change = pendingCount;
+    try {
+      await adjustCount({
+        eventId: id,
+        playerId: change.playerId,
+        played_delta: change.field === "played" ? change.to - change.from : 0,
+        refereed_delta: change.field === "refereed" ? change.to - change.from : 0,
+      }).unwrap();
+      setPendingCount(null);
+      setGenError("");
+    } catch (e) {
+      setPendingCount(null);
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorAdjustCount"));
+    }
   }
 
   async function confirmRoundDelete() {
@@ -833,6 +958,24 @@ export function MatchMakerDetailPage() {
                 />
               </div>
 
+              <div className="w-28">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={t("matchmaker.maxMatchesHint")}>
+                  <IconStopwatch className="h-3.5 w-3.5 text-pine" />
+                  <span>{t("matchmaker.maxMatchesLabel")}</span>
+                </label>
+                <input
+                  id="detail-max-matches"
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                  value={maxMatchesDraft ?? 0}
+                  onChange={(e) => setMaxMatchesDraft(Math.max(0, Number(e.target.value) || 0))}
+                  onBlur={saveMaxMatches}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                />
+              </div>
+
               <div className="w-32">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
                   <IconRotate className="h-3.5 w-3.5 text-pine" />
@@ -842,18 +985,23 @@ export function MatchMakerDetailPage() {
                   id="rounds"
                   type="number"
                   min={1}
-                  max={5}
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                  max={roundsCap}
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:bg-ink/5 disabled:text-ink-faint"
                   value={rounds}
+                  disabled={roundsLeft <= 0}
                   onChange={(e) => setRounds(Math.max(0, Number(e.target.value) || 0))}
                 />
               </div>
 
               <button
                 type="button"
-                disabled={genState.isLoading || genModalOpen}
+                disabled={genState.isLoading || genModalOpen || roundsLeft <= 0}
                 onClick={runGenerate}
-                title={t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })}
+                title={
+                  maxMatches > 0
+                    ? t("matchmaker.roundsLeftHint", { count: roundsLeft })
+                    : t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
+                }
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
               >
                 {genModalOpen ? (
@@ -870,8 +1018,20 @@ export function MatchMakerDetailPage() {
                   </>
                 )}
               </button>
+
+              <div className="min-w-[180px] flex-1 sm:max-w-xs">
+                <RoundProgress
+                  rounds={highestRound}
+                  maxRounds={maxMatches}
+                  label={t("matchmaker.roundProgressLabel")}
+                  unlimitedLabel={t("matchmaker.roundProgressUnlimited", { count: highestRound })}
+                />
+              </div>
             </div>
 
+            {maxMatches > 0 && roundsLeft <= 0 && (
+              <p className="mt-3 text-xs font-semibold text-ink-soft">{t("matchmaker.limitReached", { count: maxMatches })}</p>
+            )}
             {genError && <p role="alert" className="mt-3 text-xs font-semibold text-red-700">{genError}</p>}
           </section>
 
@@ -989,60 +1149,183 @@ export function MatchMakerDetailPage() {
             />
           )}
 
+          {pendingCount && (
+            <ConfirmModal
+              title={t("matchmaker.adjustCountTitle", { label: pendingCount.field === "played" ? t("matchmaker.colPlayed") : t("matchmaker.colRefereed") })}
+              body={
+                <p>
+                  {t("matchmaker.adjustCountBody", {
+                    name: pendingCount.name,
+                    label: pendingCount.field === "played" ? t("matchmaker.colPlayed") : t("matchmaker.colRefereed"),
+                    from: pendingCount.from,
+                    to: pendingCount.to,
+                  })}
+                </p>
+              }
+              confirmLabel={t("matchmaker.btnConfirmAdjustCount")}
+              busyLabel={t("matchmaker.adjustCountSaving")}
+              confirmVariant="primary"
+              busy={adjustCountState.isLoading}
+              onConfirm={confirmCountChange}
+              onCancel={() => setPendingCount(null)}
+            />
+          )}
+
           {/* PLAYER PLAY COUNTS LEADERBOARD */}
           <section aria-label={t("matchmaker.playCountsTitle")} className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
-            <div className="border-b border-line bg-gradient-to-r from-court/50 via-white to-court/30 px-4 py-3">
-              <h2 className="text-sm font-extrabold text-ink">{t("matchmaker.playCountsTitle")}</h2>
-              <p className="text-xs text-ink-faint">{t("matchmaker.playCountsSub")}</p>
+            <div className="border-b border-line bg-gradient-to-r from-court/50 via-white to-court/30 px-4 py-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-extrabold text-ink">{t("matchmaker.playCountsTitle")}</h2>
+                <p className="text-xs text-ink-faint">{t("matchmaker.playCountsSub")}</p>
+              </div>
+              <span className="text-xs font-bold text-ink-soft bg-white/80 border border-line/60 rounded-full px-2.5 py-0.5 shadow-2xs">
+                {(detail.data.counts ?? []).length} {t("matchmaker.colPlayers")}
+              </span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th className="w-12">{t("matchmaker.colNo")}</th>
-                    <th>{t("matchmaker.colPlayer")}</th>
-                    <th>{t("matchmaker.colGrade")}</th>
-                    <th>{t("matchmaker.colGender")}</th>
-                    <th className="w-36 text-right">{t("matchmaker.colPlayed")} (Max 5)</th>
-                    <th className="w-36 text-right">{t("matchmaker.colRefereed")} (Max 5)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const sorted = [...(detail.data.counts ?? [])].sort(
-                      (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
-                    );
-                    return sorted.map((c, idx) => {
-                      return (
-                        <tr key={c.player_id} className="hover:bg-court/30 transition-colors">
-                          <td className="tabular-nums font-semibold text-ink-faint">{idx + 1}</td>
-                          <td className="font-bold text-ink">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime">
-                                {c.name.slice(0, 1).toUpperCase()}
+
+            {(() => {
+              const sorted = [...(detail.data.counts ?? [])].sort(
+                (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
+              );
+
+              if (sorted.length === 0) {
+                return (
+                  <p className="p-8 text-center text-xs font-semibold text-ink-faint">
+                    {t("matchmaker.noMatchingPlayers")}
+                  </p>
+                );
+              }
+
+              return (
+                <>
+                  {/* MOBILE RESPONSIVE CARD VIEW (NO HORIZONTAL SCROLL) */}
+                  <div className="divide-y divide-line/60 md:hidden">
+                    {sorted.map((c, idx) => (
+                      <div key={c.player_id} className="p-3.5 space-y-2.5 hover:bg-court/20 transition-colors">
+                        {/* Header: Rank #, Avatar, Name, Grade & Gender */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-black text-ink-soft">
+                              {idx + 1}
+                            </span>
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-xs font-black text-lime shadow-2xs">
+                              {c.name.slice(0, 1).toUpperCase()}
+                            </span>
+                            <span className="font-extrabold text-sm text-ink truncate">
+                              {c.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {c.grade ? <GradeChip grade={c.grade} /> : null}
+                            {c.gender ? <GenderChip gender={c.gender} /> : null}
+                          </div>
+                        </div>
+
+                        {/* Stat Bars: Bermain & Wasit */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {/* Bermain */}
+                          <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/90 border border-slate-200/60 px-3 py-2">
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-ink-soft shrink-0">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                                <IconPlay className="h-2.5 w-2.5" />
                               </span>
-                              <span>{c.name}</span>
+                              <span>{t("matchmaker.colPlayed")}</span>
+                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <CountStepper
+                                value={c.played}
+                                kind="played"
+                                playerName={c.name}
+                                onRequest={(delta) => requestCountChange(c.player_id, c.name, "played", c.played, delta)}
+                              />
+                              <CountProgressBar value={c.played} max={countScale} kind="played" showIcon={false} />
                             </div>
-                          </td>
-                          <td>{c.grade ? <GradeChip grade={c.grade} /> : <span className="text-ink-faint text-xs">—</span>}</td>
-                          <td>{c.gender ? <GenderChip gender={c.gender} /> : <span className="text-ink-faint text-xs">—</span>}</td>
-                          <td className="text-right">
-                            <div className="flex justify-end">
-                              <CountProgressBar value={c.played} max={5} kind="played" />
+                          </div>
+
+                          {/* Wasit */}
+                          <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/90 border border-slate-200/60 px-3 py-2">
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-ink-soft shrink-0">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-700">
+                                <IconWhistle className="h-3 w-3" />
+                              </span>
+                              <span>{t("matchmaker.colRefereed")}</span>
+                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <CountStepper
+                                value={c.refereed ?? 0}
+                                kind="refereed"
+                                playerName={c.name}
+                                onRequest={(delta) => requestCountChange(c.player_id, c.name, "refereed", c.refereed ?? 0, delta)}
+                              />
+                              <CountProgressBar value={c.refereed ?? 0} max={countScale} kind="refereed" showIcon={false} />
                             </div>
-                          </td>
-                          <td className="text-right">
-                            <div className="flex justify-end">
-                              <CountProgressBar value={c.refereed ?? 0} max={5} kind="refereed" />
-                            </div>
-                          </td>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* DESKTOP VIEW (DATA TABLE) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="data">
+                      <thead>
+                        <tr>
+                          <th className="w-12">{t("matchmaker.colNo")}</th>
+                          <th>{t("matchmaker.colPlayer")}</th>
+                          <th>{t("matchmaker.colGrade")}</th>
+                          <th>{t("matchmaker.colGender")}</th>
+                          <th className="w-36 text-right">
+                            {t("matchmaker.colPlayed")} ({maxMatches > 0 ? t("matchmaker.barMaxOf", { count: maxMatches }) : t("matchmaker.barMaxOpen")})
+                          </th>
+                          <th className="w-36 text-right">
+                            {t("matchmaker.colRefereed")} ({maxMatches > 0 ? t("matchmaker.barMaxOf", { count: maxMatches }) : t("matchmaker.barMaxOpen")})
+                          </th>
                         </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
+                      </thead>
+                      <tbody>
+                        {sorted.map((c, idx) => (
+                          <tr key={c.player_id} className="hover:bg-court/30 transition-colors">
+                            <td className="tabular-nums font-semibold text-ink-faint">{idx + 1}</td>
+                            <td className="font-bold text-ink">
+                              <div className="flex items-center gap-2">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime">
+                                  {c.name.slice(0, 1).toUpperCase()}
+                                </span>
+                                <span>{c.name}</span>
+                              </div>
+                            </td>
+                            <td>{c.grade ? <GradeChip grade={c.grade} /> : <span className="text-ink-faint text-xs">—</span>}</td>
+                            <td>{c.gender ? <GenderChip gender={c.gender} /> : <span className="text-ink-faint text-xs">—</span>}</td>
+                            <td className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <CountStepper
+                                  value={c.played}
+                                  kind="played"
+                                  playerName={c.name}
+                                  onRequest={(delta) => requestCountChange(c.player_id, c.name, "played", c.played, delta)}
+                                />
+                                <CountProgressBar value={c.played} max={countScale} kind="played" />
+                              </div>
+                            </td>
+                            <td className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <CountStepper
+                                  value={c.refereed ?? 0}
+                                  kind="refereed"
+                                  playerName={c.name}
+                                  onRequest={(delta) => requestCountChange(c.player_id, c.name, "refereed", c.refereed ?? 0, delta)}
+                                />
+                                <CountProgressBar value={c.refereed ?? 0} max={countScale} kind="refereed" />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </section>
 
           <div>

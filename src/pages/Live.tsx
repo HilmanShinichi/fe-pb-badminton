@@ -10,6 +10,7 @@ import {
   IconStopwatch,
   IconWhistle,
   Loading,
+  RoundProgress,
 } from "../components";
 import { TeamPanel, fmtClock } from "./MatchMaker";
 import type { GenMatch } from "../types";
@@ -99,6 +100,13 @@ export function LiveIndexPage() {
             <Link key={ev.id} to={`/live/${ev.id}`} className="block rounded-xl border border-line bg-white p-3 shadow-card hover:border-pine/40">
               <span className="font-bold">{ev.name}</span>
               <span className="block text-xs text-ink-soft">{ev.matches} matches</span>
+              <RoundProgress
+                rounds={ev.rounds}
+                maxRounds={ev.max_rounds}
+                label={`${ev.rounds} round${ev.rounds === 1 ? "" : "s"}`}
+                unlimitedLabel={`${ev.rounds} rounds · no limit`}
+                className="mt-2"
+              />
             </Link>
           ))}
         </div>
@@ -129,9 +137,18 @@ export function LiveEventPage() {
         <Link className="underline" to="/live">Live</Link> · read-only
       </p>
       <h1 className="text-xl font-black">{detail.data?.event.name ?? "Match event"}</h1>
-      <p className="mb-4 text-sm text-ink-soft">
+      <p className="text-sm text-ink-soft">
         {detail.data ? `${detail.data.matches.length} matches · auto-refreshes` : "Loading…"}
       </p>
+      {detail.data && (
+        <RoundProgress
+          rounds={grouped.length ? grouped[grouped.length - 1][0] : 0}
+          maxRounds={detail.data.event.max_rounds ?? 0}
+          label="Rounds played"
+          unlimitedLabel={`${grouped.length ? grouped[grouped.length - 1][0] : 0} rounds · no limit`}
+          className="mb-4 max-w-sm"
+        />
+      )}
       {detail.data && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Link
@@ -186,6 +203,7 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
     refetchOnMountOrArgChange: true,
   });
   const isPlayed = kind === "played";
+  const countScale = (detail.data?.event.max_rounds ?? 0) > 0 ? (detail.data?.event.max_rounds ?? 0) : 5;
   const rows = useMemo(() => {
     const list = [...(detail.data?.counts ?? [])];
     list.sort((a, b) =>
@@ -227,7 +245,9 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
                 <tr>
                   <th className="w-12">No</th>
                   <th>Player</th>
-                  <th className="text-right">{isPlayed ? "Played (Max 5)" : "Refereed (Max 5)"}</th>
+                  <th className="text-right">
+                    {isPlayed ? "Played" : "Refereed"} ({countScale > 0 ? `Max ${countScale}` : "Max 5"})
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -242,7 +262,7 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
                       <div className="flex justify-end">
                         <CountProgressBar
                           value={isPlayed ? c.played : (c.refereed ?? 0)}
-                          max={5}
+                          max={countScale}
                           kind={kind}
                         />
                       </div>

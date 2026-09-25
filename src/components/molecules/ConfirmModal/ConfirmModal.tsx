@@ -8,6 +8,8 @@ export function ConfirmModal({
   confirmLabel,
   cancelLabel,
   busy,
+  busyLabel,
+  confirmVariant = "danger",
   onConfirm,
   onCancel,
 }: {
@@ -16,13 +18,15 @@ export function ConfirmModal({
   confirmLabel?: string;
   cancelLabel?: string;
   busy?: boolean;
+  busyLabel?: string;
+  confirmVariant?: "primary" | "danger";
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const { isId } = useI18n();
   const cLabel = confirmLabel ?? (isId ? "Ya, hapus" : "Yes, delete");
   const cancelText = cancelLabel ?? (isId ? "Batal" : "No, keep it");
-  const deletingText = isId ? "Menghapus…" : "Deleting…";
+  const deletingText = busyLabel ?? (isId ? "Menghapus…" : "Deleting…");
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -42,7 +46,7 @@ export function ConfirmModal({
           <Btn variant="plain" disabled={busy} onClick={onCancel}>
             {cancelText}
           </Btn>
-          <Btn variant="danger" disabled={busy} onClick={onConfirm}>
+          <Btn variant={confirmVariant} disabled={busy} onClick={onConfirm}>
             {busy ? deletingText : cLabel}
           </Btn>
         </div>

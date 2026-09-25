@@ -25,8 +25,11 @@ export function CountProgressBar({
 }: CountProgressBarProps) {
   const isPlayed = kind === "played";
   const safeVal = Math.max(0, value ?? 0);
-  const pct = Math.min(100, Math.round((safeVal / max) * 100));
-  const isMaxReached = safeVal >= max;
+  const scale = Math.max(1, max);
+  const pct = Math.min(100, Math.round((safeVal / scale) * 100));
+  const isMaxReached = safeVal >= scale;
+  // One segment per planned match, capped so wide limits stay readable.
+  const segments = Math.max(1, Math.min(scale, 5));
 
   return (
     <div
@@ -50,13 +53,16 @@ export function CountProgressBar({
         </span>
       )}
 
-      {/* 5-Unit Visual Progress Track */}
+      {/* Progress track, split into one segment per planned match */}
       <div className="relative h-2 w-16 sm:w-20 overflow-hidden rounded-full bg-slate-100 border border-slate-200/80">
-        {/* Subtle 5-segment tick marks */}
-        <div className="absolute inset-0 z-10 flex justify-between pointer-events-none px-[20%]">
-          <span className="h-full w-px bg-white/60" />
-          <span className="h-full w-px bg-white/60" />
-          <span className="h-full w-px bg-white/60" />
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {Array.from({ length: Math.max(0, segments - 1) }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute top-0 h-full w-px bg-white/70"
+              style={{ left: `${((i + 1) / segments) * 100}%` }}
+            />
+          ))}
         </div>
 
         {/* Fill Gradient */}
@@ -70,7 +76,7 @@ export function CountProgressBar({
         />
       </div>
 
-      {/* Numeric count formatted as X/5 */}
+      {/* Numeric count against the planned match limit */}
       <div className="flex items-baseline tabular-nums text-xs font-black text-ink min-w-[28px] text-right">
         <span
           className={

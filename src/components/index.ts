@@ -10,6 +10,7 @@ export { MoneyInput } from "./atoms/MoneyInput";
 export { ConfirmModal } from "./molecules/ConfirmModal";
 export { Field } from "./molecules/Field";
 export { Panel } from "./molecules/Panel";
+export { RoundProgress } from "./molecules/RoundProgress/RoundProgress";
 export { PageHead } from "./organisms/PageHead";
 export { Layout } from "./layouts/AppLayout";
 export {

@@ -11,6 +11,7 @@ import type {
   Period,
   PeriodAttendanceMatrixResponse,
   Player,
+  PlayerCount,
   Product,
   SimpleStatRow,
 } from "../types";
@@ -303,15 +304,15 @@ export const api = baseApi.injectEndpoints({
       query: (id) => `/api/v1/match-events/${id}`,
       providesTags: (_r, _e, id) => [{ type: "MatchMaker", id }],
     }),
-    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number; base_played?: number; source_session_id?: string }>({
+    createMatchEvent: build.mutation<unknown, { name: string; player_ids?: string[]; court_count?: number; base_played?: number; max_rounds?: number; source_session_id?: string }>({
       query: (body) => ({ url: "/api/v1/match-events", method: "POST", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; base_played?: number; is_public?: boolean; show_grades?: boolean; source_session_id?: string } }>({
+    updateMatchEvent: build.mutation<unknown, { id: string; body: { name?: string; court_count?: number; base_played?: number; max_rounds?: number; is_public?: boolean; show_grades?: boolean; source_session_id?: string } }>({
       query: ({ id, body }) => ({ url: `/api/v1/match-events/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    publicMatchEvents: build.query<{ id: string; name: string; created_at: string; matches: number }[], void>({
+    publicMatchEvents: build.query<{ id: string; name: string; created_at: string; matches: number; rounds: number; max_rounds: number }[], void>({
       query: () => "/api/v1/public/match-events",
     }),
     publicMatchEvent: build.query<MatchEventDetail, string>({
@@ -327,6 +328,14 @@ export const api = baseApi.injectEndpoints({
     }),
     deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({
       query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/rounds/${round}`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
+    }),
+    adjustEventCount: build.mutation<PlayerCount, { eventId: string; playerId: string; played_delta: number; refereed_delta: number }>({
+      query: ({ eventId, playerId, played_delta, refereed_delta }) => ({
+        url: `/api/v1/match-events/${eventId}/counts/${playerId}`,
+        method: "PATCH",
+        body: { played_delta, refereed_delta },
+      }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
     addEventPlayers: build.mutation<unknown, { eventId: string; player_ids: string[] }>({
@@ -642,6 +651,7 @@ export const {
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
   useDeleteEventRoundMutation,
+  useAdjustEventCountMutation,
   useAddEventPlayersMutation,
   useUpdateGenMatchMutation,
   usePublicMatchEventsQuery,
