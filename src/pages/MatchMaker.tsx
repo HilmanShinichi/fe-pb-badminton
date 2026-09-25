@@ -16,7 +16,30 @@ import {
   useUpdateMatchEventMutation,
 } from "../store/services";
 import { useI18n } from "../i18n";
-import { Btn, ConfirmModal, DeleteRowButton, ErrorBox, Field, GenderChip, GradeChip, Loading, PageHead } from "../ui";
+import {
+  Btn,
+  ConfirmModal,
+  CountProgressBar,
+  DeleteRowButton,
+  ErrorBox,
+  Field,
+  GenderChip,
+  GradeChip,
+  IconCheck,
+  IconClock,
+  IconCourt,
+  IconGlobe,
+  IconPlay,
+  IconRotate,
+  IconShuttlecock,
+  IconSparkles,
+  IconStopwatch,
+  IconSwords,
+  IconUsers,
+  IconWhistle,
+  Loading,
+  PageHead,
+} from "../components";
 import type { GenMatch, GenTeamPlayer } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
@@ -171,7 +194,7 @@ export function MatchMakerListPage() {
                   value={courts}
                   onChange={(e) => setCourts(Math.max(0, Number(e.target.value) || 0))}
                 />
-                <span className="pointer-events-none absolute left-2.5 top-2.5 text-xs text-ink-faint">🏸</span>
+                <IconCourt className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-ink-faint" />
               </div>
             </Field>
 
@@ -186,7 +209,7 @@ export function MatchMakerListPage() {
                   value={base}
                   onChange={(e) => setBase(Math.max(0, Number(e.target.value) || 0))}
                 />
-                <span className="pointer-events-none absolute left-2.5 top-2.5 text-xs text-ink-faint">▶️</span>
+                <IconPlay className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
 
@@ -421,20 +444,20 @@ export function MatchMakerListPage() {
                     {/* STATS CHIPS WITH GRADIENTS */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-xs font-bold text-emerald-900">
-                        <span>🏸</span>
+                        <IconCourt className="h-3.5 w-3.5 text-emerald-700" />
                         {ev.court_count > 0 ? t("matchmaker.cardCourts", { count: ev.court_count }) : t("matchmaker.cardUnlimitedCourts")}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200/80 px-2.5 py-1 text-xs font-bold text-sky-900">
-                        <span>👥</span>
+                        <IconUsers className="h-3.5 w-3.5 text-sky-700" />
                         {t("matchmaker.cardPlayers", { count: ev.players })}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-xs font-bold text-amber-900">
-                        <span>⚔️</span>
+                        <IconSwords className="h-3.5 w-3.5 text-amber-700" />
                         {t("matchmaker.cardMatches", { count: ev.matches })}
                       </span>
                       {ev.is_public && (
                         <span className="inline-flex items-center gap-1.5 rounded-lg bg-lime/20 border border-lime/50 px-2.5 py-1 text-xs font-bold text-pine">
-                          <span>🌐</span>
+                          <IconGlobe className="h-3.5 w-3.5 text-pine" />
                           Live
                         </span>
                       )}
@@ -469,10 +492,10 @@ export function MatchMakerListPage() {
                   {eventList.map((ev) => (
                     <tr key={ev.id}>
                       <td>
-                        <Link className="font-bold text-pine hover:underline" to={`/match-maker/${ev.id}`}>
-                          {ev.name}
+                        <Link className="font-bold text-pine hover:underline inline-flex items-center gap-1.5" to={`/match-maker/${ev.id}`}>
+                          <span>{ev.name}</span>
+                          {ev.is_public && <IconGlobe className="h-3.5 w-3.5 text-pine" title="Public live" />}
                         </Link>
-                        {ev.is_public && <span title="Public live"> 🌐</span>}
                       </td>
                       <td className="text-right tabular-nums">
                         {ev.court_count > 0 ? ev.court_count : t("matchmaker.cardUnlimitedCourts")}
@@ -507,6 +530,78 @@ export function MatchMakerListPage() {
   );
 }
 
+function GenerationProgressModal({
+  visible,
+  progress,
+  phase,
+  isDone,
+}: {
+  visible: boolean;
+  progress: number;
+  phase: string;
+  isDone: boolean;
+}) {
+  if (!visible) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI Matchmaker Generation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-300/60 bg-white p-6 shadow-2xl">
+        <div className="flex items-center gap-3.5 mb-5">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#143728] to-[#1e523b] text-lime shadow-md">
+            {isDone ? (
+              <IconCheck className="h-6 w-6 text-lime" />
+            ) : (
+              <IconSparkles className="h-6 w-6 animate-pulse text-lime" />
+            )}
+            {!isDone && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-lime" />
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-black text-ink">AI Matchmaker Engine</h3>
+            <p className="text-xs text-ink-soft truncate">
+              {isDone ? "Selesai! Menyajikan pertandingan..." : "Menyusun jadwal pertandingan berimbang..."}
+            </p>
+          </div>
+        </div>
+
+        {/* Phase Text and Big Percentage */}
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <span className="text-xs font-bold text-pine min-h-[1.25rem] truncate">
+            {phase}
+          </span>
+          <span className="text-2xl font-black tabular-nums text-ink">
+            {progress}%
+          </span>
+        </div>
+
+        {/* High-Tech Animated Progress Track */}
+        <div className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-pine via-emerald-500 to-lime transition-all duration-150 ease-out shadow-xs"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-[11px] font-semibold text-ink-faint">
+          <span>AI Fair Play & Skill Balancing</span>
+          <span className="tabular-nums">
+            {isDone ? "100% Selesai" : `${progress}%`}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MatchMakerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -521,6 +616,10 @@ export function MatchMakerDetailPage() {
   const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [courtsDraft, setCourtsDraft] = useState<number | null>(null);
   const [baseDraft, setBaseDraft] = useState<number | null>(null);
+  const [genModalOpen, setGenModalOpen] = useState(false);
+  const [genProgress, setGenProgress] = useState(0);
+  const [genPhase, setGenPhase] = useState("");
+  const [genDone, setGenDone] = useState(false);
   const courtCap = detail.data?.event.court_count ?? 0;
   const baseCap = detail.data?.event.base_played ?? 0;
 
@@ -554,24 +653,62 @@ export function MatchMakerDetailPage() {
     }
   }
 
-  async function runGenerate() {
-    if (!id || genState.isLoading) return;
+  async function runWithProgress(task: () => Promise<void>) {
+    setGenModalOpen(true);
+    setGenDone(false);
+    setGenProgress(5);
+    setGenPhase(t("matchmaker.genStage1"));
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const current = Math.min(92, Math.round(5 + (1 - Math.exp(-elapsed / 1200)) * 87));
+      setGenProgress(current);
+
+      if (current < 25) {
+        setGenPhase(t("matchmaker.genStage1"));
+      } else if (current < 55) {
+        setGenPhase(t("matchmaker.genStage2"));
+      } else if (current < 80) {
+        setGenPhase(t("matchmaker.genStage3"));
+      } else {
+        setGenPhase(t("matchmaker.genStage4"));
+      }
+    }, 60);
+
     try {
-      await generate({ eventId: id, rounds: Math.max(1, Math.min(5, rounds || 1)) }).unwrap();
+      await task();
+      clearInterval(interval);
+      setGenProgress(100);
+      setGenPhase(t("matchmaker.genStageDone"));
+      setGenDone(true);
+      setTimeout(() => {
+        setGenModalOpen(false);
+        setGenDone(false);
+        setGenProgress(0);
+      }, 450);
       setGenError("");
     } catch (e) {
+      clearInterval(interval);
+      setGenModalOpen(false);
+      setGenDone(false);
+      setGenProgress(0);
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
     }
   }
 
+  async function runGenerate() {
+    if (!id || genState.isLoading || genModalOpen) return;
+    await runWithProgress(async () => {
+      await generate({ eventId: id, rounds: Math.max(1, Math.min(5, rounds || 1)) }).unwrap();
+    });
+  }
+
   async function runGenerateRound(round: number, topup = false) {
-    if (!id || genState.isLoading) return;
-    try {
+    if (!id || genState.isLoading || genModalOpen) return;
+    await runWithProgress(async () => {
       await generate({ eventId: id, rounds: 1, round, topup }).unwrap();
-      setGenError("");
-    } catch (e) {
-      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
-    }
+    });
   }
 
   async function confirmRoundDelete() {
@@ -661,8 +798,9 @@ export function MatchMakerDetailPage() {
 
             <div className="mt-4 flex flex-wrap items-end gap-3 sm:gap-4">
               <div className="w-28">
-                <label className="block text-xs font-bold text-ink mb-1">
-                  🏸 {t("matchmaker.courtsLabel")}
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
+                  <IconCourt className="h-3.5 w-3.5 text-pine" />
+                  <span>{t("matchmaker.courtsLabel")}</span>
                 </label>
                 <input
                   id="detail-courts"
@@ -678,8 +816,9 @@ export function MatchMakerDetailPage() {
               </div>
 
               <div className="w-28">
-                <label className="block text-xs font-bold text-ink mb-1" title={t("matchmaker.baseHint")}>
-                  ▶️ {t("matchmaker.baseLabel")}
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={t("matchmaker.baseHint")}>
+                  <IconPlay className="h-3 w-3 text-pine" />
+                  <span>{t("matchmaker.baseLabel")}</span>
                 </label>
                 <input
                   id="detail-base"
@@ -695,8 +834,9 @@ export function MatchMakerDetailPage() {
               </div>
 
               <div className="w-32">
-                <label className="block text-xs font-bold text-ink mb-1">
-                  🔄 {t("matchmaker.roundsLabel")}
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
+                  <IconRotate className="h-3.5 w-3.5 text-pine" />
+                  <span>{t("matchmaker.roundsLabel")}</span>
                 </label>
                 <input
                   id="rounds"
@@ -711,20 +851,36 @@ export function MatchMakerDetailPage() {
 
               <button
                 type="button"
-                disabled={genState.isLoading}
+                disabled={genState.isLoading || genModalOpen}
                 onClick={runGenerate}
                 title={t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })}
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                {genState.isLoading ? t("matchmaker.btnGenerating") : t("matchmaker.btnGenerate", { count: rounds || 1 })}
+                {genModalOpen ? (
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-lime border-t-transparent" />
+                    <span className="tabular-nums font-black">{genProgress}%</span>
+                  </span>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    {t("matchmaker.btnGenerate", { count: rounds || 1 })}
+                  </>
+                )}
               </button>
             </div>
 
             {genError && <p role="alert" className="mt-3 text-xs font-semibold text-red-700">{genError}</p>}
           </section>
+
+          <GenerationProgressModal
+            visible={genModalOpen}
+            progress={genProgress}
+            phase={genPhase}
+            isDone={genDone}
+          />
 
           <PublicLiveSection
             eventId={detail.data.event.id}
@@ -847,8 +1003,8 @@ export function MatchMakerDetailPage() {
                     <th>{t("matchmaker.colPlayer")}</th>
                     <th>{t("matchmaker.colGrade")}</th>
                     <th>{t("matchmaker.colGender")}</th>
-                    <th className="w-24 text-right">{t("matchmaker.colPlayed")}</th>
-                    <th className="w-24 text-right">{t("matchmaker.colRefereed")}</th>
+                    <th className="w-36 text-right">{t("matchmaker.colPlayed")} (Max 5)</th>
+                    <th className="w-36 text-right">{t("matchmaker.colRefereed")} (Max 5)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -856,9 +1012,7 @@ export function MatchMakerDetailPage() {
                     const sorted = [...(detail.data.counts ?? [])].sort(
                       (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
                     );
-                    const maxPlayed = Math.max(1, ...sorted.map((s) => s.played));
                     return sorted.map((c, idx) => {
-                      const pct = Math.round((c.played / maxPlayed) * 100);
                       return (
                         <tr key={c.player_id} className="hover:bg-court/30 transition-colors">
                           <td className="tabular-nums font-semibold text-ink-faint">{idx + 1}</td>
@@ -873,17 +1027,15 @@ export function MatchMakerDetailPage() {
                           <td>{c.grade ? <GradeChip grade={c.grade} /> : <span className="text-ink-faint text-xs">—</span>}</td>
                           <td>{c.gender ? <GenderChip gender={c.gender} /> : <span className="text-ink-faint text-xs">—</span>}</td>
                           <td className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden hidden sm:block">
-                                <div
-                                  className="bg-gradient-to-r from-pine to-emerald-500 h-full rounded-full transition-all duration-300"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                              <span className="tabular-nums font-extrabold text-sm text-ink">{c.played}</span>
+                            <div className="flex justify-end">
+                              <CountProgressBar value={c.played} max={5} kind="played" />
                             </div>
                           </td>
-                          <td className="text-right tabular-nums font-extrabold text-sm text-ink">🧑‍⚖️ {c.refereed ?? 0}</td>
+                          <td className="text-right">
+                            <div className="flex justify-end">
+                              <CountProgressBar value={c.refereed ?? 0} max={5} kind="refereed" />
+                            </div>
+                          </td>
                         </tr>
                       );
                     });
@@ -935,7 +1087,10 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
 
   return (
     <section aria-label="Public live view" className="mb-5 rounded-2xl border border-line bg-white shadow-card p-4">
-      <h2 className="text-sm font-extrabold">🌐 Public live view</h2>
+      <h2 className="text-sm font-extrabold flex items-center gap-1.5">
+        <IconGlobe className="h-4 w-4 text-pine" />
+        <span>Public live view</span>
+      </h2>
       <p className="mb-3 text-xs text-ink-soft">Read-only page anyone with the link can open. No login, no editing.</p>
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm font-semibold">
@@ -965,7 +1120,13 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
             onClick={copy}
             className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold hover:bg-court/60"
           >
-            {copied ? "Copied ✓" : "Copy link"}
+            {copied ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700">
+                <IconCheck className="h-3.5 w-3.5" /> Copied
+              </span>
+            ) : (
+              "Copy link"
+            )}
           </button>
           <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-pine underline">
             Open →
@@ -1037,7 +1198,10 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
   if (!sourceSessionId) {
     return (
       <section aria-label={t("matchmaker.lateArrivalsTitle")} className="mb-5 rounded-2xl border border-dashed border-line bg-white shadow-card p-4">
-        <h2 className="text-sm font-extrabold">🕐 {t("matchmaker.lateArrivalsTitle")}</h2>
+        <h2 className="text-sm font-extrabold flex items-center gap-1.5">
+          <IconClock className="h-4 w-4 text-pine" />
+          <span>{t("matchmaker.lateArrivalsTitle")}</span>
+        </h2>
         <p className="mb-3 text-xs text-ink-soft">{t("matchmaker.lateArrivalsNeedSource")}</p>
         <select
           aria-label={t("matchmaker.sessionSelectLabel")}
@@ -1061,7 +1225,10 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
   if (candidates.length === 0) return null;
   return (
     <section aria-label={t("matchmaker.lateArrivalsTitle")} className="mb-5 rounded-2xl border border-line bg-white shadow-card p-4">
-      <h2 className="text-sm font-extrabold">🕐 {t("matchmaker.lateArrivalsTitle")}</h2>
+      <h2 className="text-sm font-extrabold flex items-center gap-1.5">
+        <IconClock className="h-4 w-4 text-pine" />
+        <span>{t("matchmaker.lateArrivalsTitle")}</span>
+      </h2>
       <p className="mb-3 text-xs text-ink-soft">{t("matchmaker.lateArrivalsDesc")}</p>
       <input
         className="mb-2 w-full rounded-lg border border-line px-3 py-1.5 text-xs focus:border-pine focus:outline-hidden"
@@ -1135,7 +1302,7 @@ function MatchCard({
 }: {
   match: GenMatch;
   maxCourt: number;
-  pool: { player_id: string; name: string; grade: string | null; gender?: string | null }[];
+  pool: { player_id: string; name: string; grade: string | null; gender?: string | null; refereed?: number }[];
 }) {
   const { t } = useI18n();
   const [update, updateState] = useUpdateGenMatchMutation();
@@ -1225,18 +1392,23 @@ function MatchCard({
             </span>
           )}
           {m.status !== "UPCOMING" && (
-            <span className="rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
-              ⏱ {fmtClock(elapsedSec)}
+            <span className="inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
+              <IconStopwatch className="h-3 w-3 text-ink-soft" />
+              <span>{fmtClock(elapsedSec)}</span>
             </span>
           )}
         </div>
           {locked ? (
-            <span className="text-xs font-extrabold text-ink-soft">
-              🏸 {m.court ? t("matchmaker.courtNumber", { court: m.court }) : t("matchmaker.courtUnlimited")}
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
+              <IconCourt className="h-3.5 w-3.5 text-pine" />
+              <span>{m.court ? t("matchmaker.courtNumber", { court: m.court }) : t("matchmaker.courtUnlimited")}</span>
             </span>
           ) : (
             <label className="flex items-center gap-1 text-xs font-extrabold text-ink">
-              <span>🏸 {t("matchmaker.courtLabel")}</span>
+              <span className="inline-flex items-center gap-1">
+                <IconCourt className="h-3.5 w-3.5 text-pine" />
+                <span>{t("matchmaker.courtLabel")}</span>
+              </span>
               <input
                 aria-label="Court number"
                 type="number"
@@ -1287,7 +1459,10 @@ function MatchCard({
 
       {/* REFEREE BAR */}
       <div className="flex items-center gap-2 border-t border-line/60 px-3.5 py-2 bg-court/20">
-        <span className="text-xs font-extrabold text-ink-soft">🧑‍⚖️ {t("matchmaker.refereeLabel")}</span>
+        <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
+          <IconWhistle className="h-3.5 w-3.5 text-amber-700" />
+          <span>{t("matchmaker.refereeLabel")}</span>
+        </span>
         {locked ? (
           <span className="text-xs font-bold">{m.referee?.name ?? "—"}</span>
         ) : (
@@ -1307,7 +1482,9 @@ function MatchCard({
           >
             <option value="">—</option>
             {[...pool].sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
-              <option key={p.player_id} value={p.player_id}>{p.name}</option>
+              <option key={p.player_id} value={p.player_id}>
+                {p.name} ({p.refereed ?? 0}/5 wasit)
+              </option>
             ))}
           </select>
         )}
@@ -1343,7 +1520,9 @@ function MatchCard({
         </div>
 
         <div className="flex items-center gap-1" title="Shuttlecocks used">
-          <span className="text-xs font-extrabold text-ink-soft">🏸</span>
+          <span className="inline-flex items-center text-xs font-extrabold text-ink-soft">
+            <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700" />
+          </span>
           {!locked ? (
             <>
               <button

@@ -394,6 +394,13 @@ export interface MatchMakerTranslations {
   addRoundsHint: string;
   btnGenerate: string;
   btnGenerating: string;
+  genModalTitle: string;
+  genModalSub: string;
+  genStage1: string;
+  genStage2: string;
+  genStage3: string;
+  genStage4: string;
+  genStageDone: string;
   errorSaveCourts: string;
   errorGenerate: string;
   noMatchesYet: string;

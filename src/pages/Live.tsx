@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { usePublicMatchEventQuery, usePublicMatchEventsQuery } from "../store/services";
-import { Empty, ErrorBox, Loading } from "../ui";
+import {
+  CountProgressBar,
+  Empty,
+  ErrorBox,
+  IconPlay,
+  IconShuttlecock,
+  IconStopwatch,
+  IconWhistle,
+  Loading,
+} from "../components";
 import { TeamPanel, fmtClock } from "./MatchMaker";
 import type { GenMatch } from "../types";
 
@@ -35,8 +44,9 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
         <span className="text-[11px] font-black uppercase text-pine">Round {m.round}{(m.wave ?? 1) > 1 ? ` · Gel. ${m.wave}` : ""}</span>
         <span className="inline-flex items-center gap-2">
           {m.status !== "UPCOMING" && (
-            <span className="rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
-              ⏱ {fmtClock(elapsed)}
+            <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
+              <IconStopwatch className="h-3 w-3 text-ink-soft" />
+              {fmtClock(elapsed)}
             </span>
           )}
           {m.court > 0 && (
@@ -54,9 +64,18 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
         </div>
         <TeamPanel team={m.team2} align="right" />
       </div>
-      <div className="border-t border-line px-3.5 py-1.5 text-xs text-ink-faint">
-        🏸 {m.shuttlecock_used ?? 0} shuttlecocks
-        {m.referee && <span> · 🧑‍⚖️ {m.referee.name}</span>}
+      <div className="flex flex-wrap items-center gap-3 border-t border-line px-3.5 py-1.5 text-xs text-ink-faint">
+        <span className="inline-flex items-center gap-1.5">
+          <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700" />
+          <span>{m.shuttlecock_used ?? 0} shuttlecocks</span>
+        </span>
+        {m.referee && (
+          <span className="inline-flex items-center gap-1.5">
+            <span>·</span>
+            <IconWhistle className="h-3.5 w-3.5 text-amber-700" />
+            <span>{m.referee.name}</span>
+          </span>
+        )}
       </div>
     </article>
   );
@@ -117,15 +136,21 @@ export function LiveEventPage() {
         <div className="mb-4 flex flex-wrap gap-2">
           <Link
             to={`/live/${id}/played`}
-            className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40"
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40 transition-colors"
           >
-            ▶ Played: {detail.data.counts.reduce((a, c) => a + c.played, 0)}
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+              <IconPlay className="h-2.5 w-2.5" />
+            </span>
+            <span>Played: {detail.data.counts.reduce((a, c) => a + c.played, 0)}</span>
           </Link>
           <Link
             to={`/live/${id}/refereed`}
-            className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40"
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40 transition-colors"
           >
-            🧑‍⚖️ Refereed: {detail.data.counts.reduce((a, c) => a + (c.refereed ?? 0), 0)}
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-700">
+              <IconWhistle className="h-3 w-3" />
+            </span>
+            <span>Refereed: {detail.data.counts.reduce((a, c) => a + (c.refereed ?? 0), 0)}</span>
           </Link>
         </div>
       )}
@@ -177,8 +202,17 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
         <Link className="underline" to={id ? `/live/${id}` : "/live"}>Event</Link>
         {" · read-only"}
       </p>
-      <h1 className="text-xl font-black">
-        {isPlayed ? "▶ Played" : "🧑‍⚖️ Refereed"} · {detail.data?.event.name ?? "…"}
+      <h1 className="flex items-center gap-2 text-xl font-black">
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-lg ${
+            isPlayed ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {isPlayed ? <IconPlay className="h-3.5 w-3.5" /> : <IconWhistle className="h-4 w-4" />}
+        </span>
+        <span>
+          {isPlayed ? "Played" : "Refereed"} · {detail.data?.event.name ?? "…"}
+        </span>
       </h1>
       <p className="mb-4 text-sm text-ink-soft">Ended + playing matches only · auto-refreshes</p>
       {detail.isFetching && !detail.data ? (
@@ -193,7 +227,7 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
                 <tr>
                   <th className="w-12">No</th>
                   <th>Player</th>
-                  <th className="text-right">{isPlayed ? "Played" : "Refereed"}</th>
+                  <th className="text-right">{isPlayed ? "Played (Max 5)" : "Refereed (Max 5)"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +238,15 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
                       {c.name}
                       {c.grade ? <span className="ml-2 text-xs text-ink-faint">{c.grade}</span> : null}
                     </td>
-                    <td className="text-right font-bold tabular-nums">{isPlayed ? c.played : (c.refereed ?? 0)}</td>
+                    <td className="text-right">
+                      <div className="flex justify-end">
+                        <CountProgressBar
+                          value={isPlayed ? c.played : (c.refereed ?? 0)}
+                          max={5}
+                          kind={kind}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
