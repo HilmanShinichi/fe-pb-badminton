@@ -625,7 +625,7 @@ function SimpleRecapPanel({ sessionId, onRetry }: { sessionId: string; onRetry: 
     <section aria-label="Simple recap" className="h-fit rounded-xl border border-line bg-white shadow-card">
       <div className="border-b border-line px-3 py-2">
         <h2 className="text-sm font-semibold">
-          Simple recap · {present.length} present · {totalPlays} plays · {totalCocks} shuttles
+          Simple recap · {present.length} present · {totalPlays / 4} plays · {totalCocks / 4} shuttles
         </h2>
         <p className="mt-0.5 text-xs text-ink-faint">
           Only this is required: present names + total plays + total shuttles. No need to enter 2 vs 2 per match. Stock &amp; billing follow these numbers.
@@ -669,8 +669,12 @@ function SimpleRecapPanel({ sessionId, onRetry }: { sessionId: string; onRetry: 
             <tfoot>
               <tr>
                 <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{present.length} players</td>
-                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
-                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalCocks}</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${totalPlays} (÷4 = ${totalPlays / 4})`}>
+                  {totalPlays / 4}
+                </td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${totalCocks} (÷4 = ${totalCocks / 4})`}>
+                  {totalCocks / 4}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -787,7 +791,9 @@ function MatchesPanel({ sessionId }: { sessionId: string }) {
             <tfoot>
               <tr>
                 <td className="px-3 py-2 text-xs font-semibold text-ink-soft">{usage.length} named players</td>
-                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalPlays}</td>
+                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${totalPlays} (÷4 = ${totalPlays / 4})`}>
+                  {totalPlays / 4}
+                </td>
                 <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">{totalShuttles}</td>
               </tr>
             </tfoot>
