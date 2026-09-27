@@ -1054,7 +1054,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
   const sessionUsage = useMemo(
     () =>
       (matchList.data ?? []).reduce((a, m) => a + m.shuttlecock_used, 0) +
-      (simple.data ?? []).reduce((a, r) => a + r.shuttlecock_used, 0),
+      Math.round((simple.data ?? []).reduce((a, r) => a + r.shuttlecock_used, 0) / 4),
     [matchList.data, simple.data],
   );
   const stockPick = useMemo(() => {
@@ -1175,8 +1175,8 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                   {rupiah((bills.data ?? []).reduce((a, b) => a + b.court_share, 0))}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {(bills.data ?? []).reduce((a, b) => a + b.shuttlecock_count, 0)}
+                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${(bills.data ?? []).reduce((a, b) => a + b.shuttlecock_count, 0)} (÷4)`}>
+                  {((bills.data ?? []).reduce((a, b) => a + b.shuttlecock_count, 0)) / 4}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                   {rupiah((bills.data ?? []).reduce((a, b) => a + b.shuttlecock_contribution, 0))}
@@ -1229,8 +1229,8 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                   {rupiah((bills.data ?? []).reduce((a, b) => a + b.total, 0))}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {(bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)}
+                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${(bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)} (÷4)`}>
+                  {((bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)) / 4}
                 </td>
                 <td />
                 <td />
