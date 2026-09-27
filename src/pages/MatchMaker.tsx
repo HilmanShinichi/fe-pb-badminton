@@ -1546,22 +1546,28 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
 export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left" | "right" }) {
   return (
     <div
-      className={`flex-1 rounded-xl border border-emerald-900/10 bg-white/90 p-2.5 shadow-2xs flex flex-col justify-center space-y-2 ${
+      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/90 p-2.5 shadow-2xs flex flex-col justify-center space-y-2 ${
         align === "right" ? "text-right items-end" : "text-left items-start"
       }`}
     >
       {team.map((p) => {
         const initial = p.name.trim().slice(0, 1).toUpperCase();
         return (
-          <div key={p.player_id} className={`flex items-center gap-2 max-w-full ${align === "right" ? "flex-row-reverse" : "flex-row"}`}>
+          <div
+            key={p.player_id}
+            className={`flex items-center gap-2 w-full min-w-0 ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
+          >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime shadow-2xs">
               {initial}
             </span>
-            <div className="min-w-0">
-              <span className="block text-xs sm:text-sm font-bold text-ink leading-tight truncate" title={p.name}>
+            <div className={`min-w-0 flex-1 overflow-hidden ${align === "right" ? "text-right" : "text-left"}`}>
+              <span
+                className="block text-xs sm:text-sm font-bold text-ink leading-tight truncate"
+                title={p.name}
+              >
                 {p.name}
               </span>
-              <span className="mt-0.5 inline-flex items-center gap-1">
+              <span className={`mt-0.5 flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
                 {p.grade ? <GradeChip grade={p.grade} /> : <span className="text-[10px] text-ink-faint">—</span>}
                 {p.gender && <GenderChip gender={p.gender} />}
               </span>

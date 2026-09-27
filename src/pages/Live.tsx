@@ -71,10 +71,10 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
           <span>{m.shuttlecock_used ?? 0} shuttlecocks</span>
         </span>
         {m.referee && (
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 min-w-0" title={m.referee.name}>
             <span>·</span>
-            <IconWhistle className="h-3.5 w-3.5 text-amber-700" />
-            <span>{m.referee.name}</span>
+            <IconWhistle className="h-3.5 w-3.5 shrink-0 text-amber-700" />
+            <span className="truncate max-w-[140px] sm:max-w-[180px]">{m.referee.name}</span>
           </span>
         )}
       </div>
