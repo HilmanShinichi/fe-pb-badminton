@@ -346,6 +346,10 @@ export const api = baseApi.injectEndpoints({
       query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
+    deleteGenMatch: build.mutation<unknown, string>({
+      query: (id) => ({ url: `/api/v1/generated-matches/${id}`, method: "DELETE" }),
+      invalidatesTags: ["MatchMaker"],
+    }),
 
     periods: build.query<Period[], void>({
       query: () => "/api/v1/periods",
@@ -654,6 +658,7 @@ export const {
   useAdjustEventCountMutation,
   useAddEventPlayersMutation,
   useUpdateGenMatchMutation,
+  useDeleteGenMatchMutation,
   usePublicMatchEventsQuery,
   usePublicMatchEventQuery,
   usePeriodSessionsQuery,

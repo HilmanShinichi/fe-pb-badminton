@@ -429,6 +429,11 @@ export interface MatchMakerTranslations {
   deleteRoundTitle: string;
   deleteRoundBody: string;
   btnConfirmDeleteRound: string;
+  btnDeleteCard: string;
+  deleteCardTitle: string;
+  deleteCardBody: string;
+  btnConfirmDeleteCard: string;
+  errorDeleteCard: string;
   courtNumber: string;
   courtLabel: string;
   courtUnlimited: string;

@@ -7,6 +7,7 @@ import {
   useAttendanceQuery,
   useCreateMatchEventMutation,
   useDeleteEventRoundMutation,
+  useDeleteGenMatchMutation,
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
   useMabarListQuery,
@@ -1595,7 +1596,9 @@ function MatchCard({
 }) {
   const { t } = useI18n();
   const [update, updateState] = useUpdateGenMatchMutation();
+  const [removeCard, removeCardState] = useDeleteGenMatchMutation();
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [court, setCourt] = useState(m.court ?? 0);
   const [cocks, setCocks] = useState(m.shuttlecock_used ?? 0);
   const [error, setError] = useState("");
@@ -1661,6 +1664,17 @@ function MatchCard({
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not save shuttlecock count.");
       setCocks(m.shuttlecock_used ?? 0);
+    }
+  }
+
+  async function confirmDeleteCard() {
+    try {
+      await removeCard(m.id).unwrap();
+      setError("");
+      setConfirmingDelete(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t("matchmaker.errorDeleteCard"));
+      setConfirmingDelete(false);
     }
   }
 
@@ -1846,9 +1860,28 @@ function MatchCard({
         >
           {t("matchmaker.btnEditTeams")}
         </button>
+        <button
+          type="button"
+          aria-label={t("matchmaker.btnDeleteCard")}
+          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
+          disabled={removeCardState.isLoading}
+          onClick={() => setConfirmingDelete(true)}
+        >
+          {t("matchmaker.btnDeleteCard")}
+        </button>
       </div>
 
       {editing && <EditTeamsModal match={m} pool={pool} onClose={() => setEditing(false)} />}
+      {confirmingDelete && (
+        <ConfirmModal
+          title={t("matchmaker.deleteCardTitle")}
+          body={<p>{t("matchmaker.deleteCardBody")}</p>}
+          confirmLabel={t("matchmaker.btnConfirmDeleteCard")}
+          busy={removeCardState.isLoading}
+          onConfirm={confirmDeleteCard}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </article>
   );
 }
