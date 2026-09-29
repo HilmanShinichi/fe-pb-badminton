@@ -30,6 +30,24 @@ export function toApiError(err: unknown): ApiError {
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
 
+// Protected app routes (Guard-ed in main.tsx). Used to decide whether an
+// expired session should bounce the user to /login; public pages (landing,
+// live) only drop the stale token silently.
+export function isProtectedRoute(path: string): boolean {
+  return (
+    path.startsWith("/dashboard") ||
+    path.startsWith("/mabar") ||
+    path.startsWith("/periods") ||
+    path.startsWith("/players") ||
+    path.startsWith("/no-shows") ||
+    path.startsWith("/inventory") ||
+    path.startsWith("/finance") ||
+    path.startsWith("/reports") ||
+    path.startsWith("/simulator") ||
+    path.startsWith("/match-maker")
+  );
+}
+
 const rawBase = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
@@ -60,19 +78,7 @@ const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = as
         /* store already gone */
       }
       if (typeof window !== "undefined") {
-        const path = window.location.pathname;
-        const protectedRoute =
-          path.startsWith("/dashboard") ||
-          path.startsWith("/mabar") ||
-          path.startsWith("/periods") ||
-          path.startsWith("/players") ||
-          path.startsWith("/no-shows") ||
-          path.startsWith("/inventory") ||
-          path.startsWith("/finance") ||
-          path.startsWith("/reports") ||
-          path.startsWith("/simulator") ||
-          path.startsWith("/match-maker");
-        if (protectedRoute) window.location.replace("/login");
+        if (isProtectedRoute(window.location.pathname)) window.location.replace("/login");
       }
     }
     return { error: apiErr };

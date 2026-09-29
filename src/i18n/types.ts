@@ -32,6 +32,8 @@ export interface CommonTranslations {
   all: string;
   filter: string;
   downloadCsv: string;
+  downloading: string;
+  downloadFailed: string;
   yes: string;
   no: string;
   error: string;
@@ -324,6 +326,7 @@ export interface PlayersTranslations {
   errorDelete: string;
   emptyMatching: string;
   emptyNone: string;
+  colNo: string;
   colName: string;
   colPhone: string;
   colGrade: string;

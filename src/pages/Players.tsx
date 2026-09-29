@@ -201,8 +201,8 @@ export function PlayersPage() {
             <>
               {/* MOBILE RESPONSIVE CARDS (FITS SCREEN 100%, NO HORIZONTAL SCROLL) */}
               <div className="divide-y divide-line/70 block sm:hidden">
-                {playersList.map((p) => (
-                  <PlayerMobileCard key={p.id} player={p} onDelete={() => setPendingDelete(p)} />
+                {playersList.map((p, i) => (
+                  <PlayerMobileCard key={p.id} index={i + 1} player={p} onDelete={() => setPendingDelete(p)} />
                 ))}
               </div>
 
@@ -211,6 +211,7 @@ export function PlayersPage() {
                 <table className="data">
                   <thead>
                     <tr>
+                      <th>{t("players.colNo")}</th>
                       <th>{t("players.colName")}</th>
                       <th>{t("players.colPhone")}</th>
                       <th>{t("players.colGrade")}</th>
@@ -220,8 +221,8 @@ export function PlayersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {playersList.map((p) => (
-                      <PlayerRow key={p.id} player={p} onDelete={() => setPendingDelete(p)} />
+                    {playersList.map((p, i) => (
+                      <PlayerRow key={p.id} index={i + 1} player={p} onDelete={() => setPendingDelete(p)} />
                     ))}
                   </tbody>
                 </table>
@@ -253,7 +254,7 @@ export function PlayersPage() {
  * Mobile-optimized player card that takes 100% of the screen width
  * and avoids any horizontal scrolling on small phone viewports.
  */
-function PlayerMobileCard({ player, onDelete }: { player: Player; onDelete: () => void }) {
+function PlayerMobileCard({ index, player, onDelete }: { index: number; player: Player; onDelete: () => void }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(player.name);
@@ -365,6 +366,9 @@ function PlayerMobileCard({ player, onDelete }: { player: Player; onDelete: () =
   return (
     <div className="flex items-center justify-between gap-2.5 p-3 hover:bg-court/30 transition-colors">
       <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <span className="w-6 shrink-0 text-center text-[11px] font-black tabular-nums text-ink-faint">
+          {index}
+        </span>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-xs font-black text-lime shadow-2xs">
           {initial}
         </span>
@@ -422,7 +426,7 @@ function PlayerMobileCard({ player, onDelete }: { player: Player; onDelete: () =
 /**
  * Tablet and Desktop table row with real styled buttons.
  */
-function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void }) {
+function PlayerRow({ index, player, onDelete }: { index: number; player: Player; onDelete: () => void }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(player.name);
@@ -453,6 +457,7 @@ function PlayerRow({ player, onDelete }: { player: Player; onDelete: () => void 
 
   return (
     <tr className="hover:bg-court/40 transition-colors">
+      <td className="tabular-nums text-ink-soft">{index}</td>
       <td>
         {editing ? (
           <span>

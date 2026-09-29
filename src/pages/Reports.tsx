@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useSelector } from "react-redux";
 import {
   useMabarListQuery,
   usePeriodsQuery,
@@ -11,10 +10,10 @@ import {
   useReportShuttlecockQuery,
   type ReportFilterParams,
 } from "../store/services";
-import type { RootState } from "../store/store";
 import { num, rateBp, rupiah } from "../format";
 import { useI18n } from "../i18n";
 import { Empty, ErrorBox, Loading, PageHead } from "../ui";
+import { downloadAuthedCsv } from "../utils/download";
 
 type Tab = "attendance" | "noshow" | "shuttlecock" | "usage" | "financial" | "inactive";
 
@@ -67,7 +66,8 @@ export function ReportsPage() {
   const { t, dateFormatted, isId } = useI18n();
   const [tab, setTab] = useState<Tab>("attendance");
   const [months, setMonths] = useState(6);
-  const token = useSelector((s: RootState) => s.auth.token);
+  const [downloading, setDownloading] = useState(false);
+  const [dlError, setDlError] = useState("");
 
   // Scope filter state
   const [scopeMode, setScopeMode] = useState<ScopeMode>("ALL");
@@ -142,11 +142,20 @@ export function ReportsPage() {
         title={t("reports.pageTitle")}
         sub={t("reports.pageSubtitle")}
         right={
-          <a
-            className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-card transition-all hover:border-pine/40 hover:bg-court/80"
-            href={csvHref(tab, months, reportFilter, token || undefined)}
-            onClick={(e) => {
-              if (!token) e.preventDefault();
+          <button
+            type="button"
+            disabled={downloading}
+            className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-card transition-all hover:border-pine/40 hover:bg-court/80 disabled:opacity-50"
+            onClick={async () => {
+              setDlError("");
+              setDownloading(true);
+              try {
+                await downloadAuthedCsv(csvPath(tab, months, reportFilter), `report-${tab}.csv`);
+              } catch (e) {
+                setDlError(e instanceof Error ? e.message : t("common.downloadFailed"));
+              } finally {
+                setDownloading(false);
+              }
             }}
           >
             <svg className="h-4 w-4 text-pine" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -154,10 +163,15 @@ export function ReportsPage() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            {t("reports.btnDownloadCsv")}
-          </a>
+            {downloading ? t("common.downloading") : t("reports.btnDownloadCsv")}
+          </button>
         }
       />
+      {dlError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
+          {dlError}
+        </p>
+      )}
 
       {/* Scope Filter Panel */}
       <section aria-label="Scope Filter" className="rounded-xl border border-line bg-white p-3.5 shadow-card space-y-3">
@@ -353,9 +367,8 @@ export function ReportsPage() {
   );
 }
 
-function csvHref(tab: Tab, months: number, filter: ReportFilterParams, token?: string): string {
+function csvPath(tab: Tab, months: number, filter: ReportFilterParams): string {
   const qs = new URLSearchParams();
-  if (token) qs.set("token", token);
   if (filter.scope && filter.scope !== "ALL") qs.set("scope", filter.scope);
   if (filter.period_id) qs.set("period_id", filter.period_id);
   if (filter.session_id) qs.set("session_id", filter.session_id);

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useSelector } from "react-redux";
 import {
   useDeleteNoShowIncidentMutation,
   useMabarListQuery,
@@ -11,10 +10,10 @@ import {
   type NoShowTrackerParams,
   type NoShowTrackerPlayer,
 } from "../store/services";
-import type { RootState } from "../store/store";
 import { num, rateBp } from "../format";
 import { useI18n } from "../i18n";
 import { Badge, ErrorBox, Loading, PageHead } from "../ui";
+import { downloadAuthedCsv } from "../utils/download";
 
 type ScopeMode = "ALL" | "PERIOD" | "DAILY";
 type PeriodSubMode = "FULL_PERIOD" | "PER_PERIOD";
@@ -23,8 +22,9 @@ type ViewTab = "leaderboard" | "incidents";
 type LeaderboardSort = "incidents" | "rate" | "recent" | "name";
 
 export function NoShowTrackerPage() {
-  const token = useSelector((s: RootState) => s.auth.token);
   const { t, dateFormatted, isId } = useI18n();
+  const [downloading, setDownloading] = useState(false);
+  const [dlError, setDlError] = useState("");
 
   // Time filter: 0 = all time, 3, 6, 9, 12 months
   const [months, setMonths] = useState<number>(6);
@@ -186,10 +186,9 @@ export function NoShowTrackerPage() {
     return t("common.all");
   }, [scopeMode, periodSubMode, selectedPeriodId, periods, dailySubMode, selectedSessionId, dailySessions, t, dateFormatted, isId]);
 
-  function csvHref(): string {
+  function csvPath(): string {
     const qs = new URLSearchParams();
     qs.set("format", "csv");
-    if (token) qs.set("token", token);
     if (queryParams.months) qs.set("months", String(queryParams.months));
     if (queryParams.scope && queryParams.scope !== "ALL") qs.set("scope", queryParams.scope);
     if (queryParams.period_id) qs.set("period_id", queryParams.period_id);
@@ -216,11 +215,20 @@ export function NoShowTrackerPage() {
               </svg>
               {t("noShow.btnRecordManual")}
             </button>
-            <a
-              className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-card transition-all hover:border-pine/40 hover:bg-court/80"
-              href={csvHref()}
-              onClick={(e) => {
-                if (!token) e.preventDefault();
+            <button
+              type="button"
+              disabled={downloading}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-card transition-all hover:border-pine/40 hover:bg-court/80 disabled:opacity-50"
+              onClick={async () => {
+                setDlError("");
+                setDownloading(true);
+                try {
+                  await downloadAuthedCsv(csvPath(), "no-show-tracker.csv");
+                } catch (e) {
+                  setDlError(e instanceof Error ? e.message : t("common.downloadFailed"));
+                } finally {
+                  setDownloading(false);
+                }
               }}
             >
               <svg className="h-4 w-4 text-pine" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -228,11 +236,16 @@ export function NoShowTrackerPage() {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              {t("common.downloadCsv")}
-            </a>
+              {downloading ? t("common.downloading") : t("common.downloadCsv")}
+            </button>
           </div>
         }
       />
+      {dlError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
+          {dlError}
+        </p>
+      )}
 
       {notice && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-800 shadow-xs">
