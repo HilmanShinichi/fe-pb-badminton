@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "./store";
+import { clearCredentials } from "./authSlice";
 
 export class ApiError extends Error {
   code: string;
@@ -47,7 +48,35 @@ const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = as
   // Return (don't throw): throwing makes RTK Query wrap the error in a
   // CUSTOM_ERROR envelope, which breaks `instanceof ApiError` checks and
   // hides backend error codes/messages from every catch site.
-  if (result.error) return { error: toApiError(result.error) };
+  if (result.error) {
+    const apiErr = toApiError(result.error);
+    // Expired token or rotated JWT_SECRET after deploy: drop the stale
+    // session and send protected pages back to login instead of rendering
+    // raw {"code":"UNAUTHORIZED"} errors on every screen.
+    if (apiErr.status === 401 && apiErr.code === "UNAUTHORIZED") {
+      try {
+        api.dispatch(clearCredentials());
+      } catch {
+        /* store already gone */
+      }
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        const protectedRoute =
+          path.startsWith("/dashboard") ||
+          path.startsWith("/mabar") ||
+          path.startsWith("/periods") ||
+          path.startsWith("/players") ||
+          path.startsWith("/no-shows") ||
+          path.startsWith("/inventory") ||
+          path.startsWith("/finance") ||
+          path.startsWith("/reports") ||
+          path.startsWith("/simulator") ||
+          path.startsWith("/match-maker");
+        if (protectedRoute) window.location.replace("/login");
+      }
+    }
+    return { error: apiErr };
+  }
   const body = result.data as { data?: unknown };
   return { data: (body?.data ?? body) as unknown };
 };
