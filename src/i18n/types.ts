@@ -424,6 +424,16 @@ export interface MatchMakerTranslations {
   lastGeneratedBy: string;
   lastGeneratedLocal: string;
   aiFailureCause: string;
+  webAiBtn: string;
+  webAiTitle: string;
+  webAiDesc: string;
+  webAiRoundTarget: string;
+  webAiCopy: string;
+  webAiCopied: string;
+  webAiPasteLabel: string;
+  webAiPastePh: string;
+  webAiSubmit: string;
+  webAiCancel: string;
   errorSaveCourts: string;
   errorSaveMaxMatches: string;
   settingsSaving: string;

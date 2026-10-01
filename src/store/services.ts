@@ -327,6 +327,13 @@ export const api = baseApi.injectEndpoints({
       query: ({ eventId, rounds, round, topup }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
+    generatePrompt: build.mutation<{ round: number; prompt: string }, { eventId: string; round?: number }>({
+      query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/generate-prompt`, method: "POST", body: { round } }),
+    }),
+    generateManual: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; round?: number; raw: string }>({
+      query: ({ eventId, round, raw }) => ({ url: `/api/v1/match-events/${eventId}/generate-manual`, method: "POST", body: { round, raw } }),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
+    }),
     deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({
       query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/rounds/${round}`, method: "DELETE" }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
@@ -655,6 +662,8 @@ export const {
   useUpdateMatchEventMutation,
   useDeleteMatchEventMutation,
   useGenerateMatchesMutation,
+  useGeneratePromptMutation,
+  useGenerateManualMutation,
   useDeleteEventRoundMutation,
   useAdjustEventCountMutation,
   useAddEventPlayersMutation,

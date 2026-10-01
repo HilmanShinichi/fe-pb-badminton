@@ -9,7 +9,9 @@ import {
   useDeleteEventRoundMutation,
   useDeleteGenMatchMutation,
   useDeleteMatchEventMutation,
+  useGenerateManualMutation,
   useGenerateMatchesMutation,
+  useGeneratePromptMutation,
   useMabarListQuery,
   useMatchEventQuery,
   useMatchEventsQuery,
@@ -689,6 +691,13 @@ export function MatchMakerDetailPage() {
   const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
   const [genError, setGenError] = useState("");
   const [generate, genState] = useGenerateMatchesMutation();
+  const [fetchPrompt, promptState] = useGeneratePromptMutation();
+  const [submitManual, manualState] = useGenerateManualMutation();
+  const [webAiOpen, setWebAiOpen] = useState(false);
+  const [webPrompt, setWebPrompt] = useState<{ round: number; prompt: string } | null>(null);
+  const [webRaw, setWebRaw] = useState("");
+  const [webError, setWebError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [deleteRound, deleteRoundState] = useDeleteEventRoundMutation();
   const [pendingRoundDelete, setPendingRoundDelete] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<{ playerId: string; name: string; field: "played" | "refereed"; from: number; to: number } | null>(null);
@@ -874,6 +883,64 @@ export function MatchMakerDetailPage() {
     await runWithProgress(async () => {
       return generate({ eventId: id, rounds: 1, round, topup }).unwrap();
     });
+  }
+
+  // Manual web-AI flow: fetch the exact prompt, let the user run it in
+  // ChatGPT/Groq web (no API key), then validate + save the pasted answer.
+  async function openWebAi() {
+    if (!id || webAiOpen) return;
+    setWebAiOpen(true);
+    setWebPrompt(null);
+    setWebRaw("");
+    setWebError("");
+    setCopied(false);
+    try {
+      const res = await fetchPrompt({ eventId: id }).unwrap();
+      setWebPrompt(res);
+    } catch (e) {
+      setWebError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
+    }
+  }
+
+  async function copyWebPrompt() {
+    if (!webPrompt) return;
+    try {
+      await navigator.clipboard.writeText(webPrompt.prompt);
+    } catch {
+      const el = document.getElementById("webai-prompt") as HTMLTextAreaElement | null;
+      if (el) {
+        el.select();
+        document.execCommand("copy");
+      }
+    }
+    setCopied(true);
+  }
+
+  function rememberManualAi(ai: GenerateAIMeta) {
+    setLastAi(ai);
+    if (id) {
+      try {
+        localStorage.setItem(`mm-last-ai:${id}`, JSON.stringify(ai));
+      } catch {
+        /* storage blocked: in-memory label still shows */
+      }
+    }
+  }
+
+  async function submitWebAi() {
+    if (!id || manualState.isLoading || !webRaw.trim()) return;
+    setWebError("");
+    try {
+      const res = await submitManual({ eventId: id, raw: webRaw }).unwrap();
+      const ai = aiFromResult(res);
+      if (ai) rememberManualAi(ai);
+      setWebAiOpen(false);
+      setWebPrompt(null);
+      setWebRaw("");
+      setGenError("");
+    } catch (e) {
+      setWebError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
+    }
   }
 
   // Stepper presses only queue a change; the dialog is what saves it.
@@ -1085,6 +1152,17 @@ export function MatchMakerDetailPage() {
                 )}
               </button>
 
+              <button
+                type="button"
+                disabled={genState.isLoading || genModalOpen || webAiOpen || manualState.isLoading || roundsLeft <= 0}
+                onClick={openWebAi}
+                title={t("matchmaker.webAiDesc")}
+                className="flex items-center gap-2 rounded-xl border border-pine/40 bg-white py-2.5 px-4 text-sm font-extrabold text-pine shadow-2xs hover:bg-court/60 active:scale-[0.99] transition-all disabled:opacity-50"
+              >
+                <IconSparkles className="h-4 w-4" />
+                {t("matchmaker.webAiBtn")}
+              </button>
+
               <div className="min-w-[180px] flex-1 sm:max-w-xs">
                 <RoundProgress
                   rounds={highestRound}
@@ -1124,6 +1202,91 @@ export function MatchMakerDetailPage() {
             phase={genPhase}
             isDone={genDone}
           />
+
+          {webAiOpen && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("matchmaker.webAiTitle")}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+            >
+              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-emerald-300/60 bg-white p-5 shadow-2xl">
+                <div className="flex items-start justify-between gap-3 mb-1">
+                  <div>
+                    <h3 className="text-base font-black text-ink">{t("matchmaker.webAiTitle")}</h3>
+                    <p className="text-xs text-ink-soft mt-0.5">{t("matchmaker.webAiDesc")}</p>
+                  </div>
+                  {webPrompt && (
+                    <span className="shrink-0 rounded-full bg-pine px-2.5 py-0.5 text-xs font-black text-lime">
+                      {t("matchmaker.webAiRoundTarget", { round: webPrompt.round })}
+                    </span>
+                  )}
+                </div>
+
+                {promptState.isLoading && !webPrompt && !webError ? (
+                  <p className="py-6 text-center text-sm font-semibold text-ink-soft">{t("matchmaker.btnGenerating")}</p>
+                ) : (
+                  <>
+                    <label htmlFor="webai-prompt" className="mt-3 mb-1 block text-xs font-bold text-ink">
+                      1. {t("matchmaker.webAiCopy")}
+                    </label>
+                    <textarea
+                      id="webai-prompt"
+                      readOnly
+                      rows={8}
+                      className="w-full rounded-lg border border-line bg-court/20 px-3 py-2 font-mono text-xs text-ink focus:outline-hidden"
+                      value={webPrompt?.prompt ?? ""}
+                      placeholder={t("matchmaker.btnGenerating")}
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        disabled={!webPrompt}
+                        onClick={copyWebPrompt}
+                        className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-extrabold text-pine shadow-2xs hover:bg-court/60 disabled:opacity-50"
+                      >
+                        {copied ? t("matchmaker.webAiCopied") : t("matchmaker.webAiCopy")}
+                      </button>
+                    </div>
+
+                    <label htmlFor="webai-raw" className="mt-4 mb-1 block text-xs font-bold text-ink">
+                      2. {t("matchmaker.webAiPasteLabel")}
+                    </label>
+                    <textarea
+                      id="webai-raw"
+                      rows={6}
+                      className="w-full rounded-lg border border-line px-3 py-2 font-mono text-xs text-ink focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                      value={webRaw}
+                      onChange={(e) => setWebRaw(e.target.value)}
+                      placeholder={t("matchmaker.webAiPastePh")}
+                    />
+                    {webError && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{webError}</p>}
+
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWebAiOpen(false)}
+                        className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold text-ink-soft hover:bg-court/60"
+                      >
+                        {t("matchmaker.webAiCancel")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={manualState.isLoading || !webRaw.trim() || !webPrompt}
+                        onClick={submitWebAi}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
+                      >
+                        {manualState.isLoading && (
+                          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-lime border-t-transparent" />
+                        )}
+                        {t("matchmaker.webAiSubmit")}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           <PublicLiveSection
             eventId={detail.data.event.id}
