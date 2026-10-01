@@ -70,6 +70,20 @@ export interface MatchEventDetail {
   counts: PlayerCount[];
 }
 
+export interface GenerateAIMeta {
+  label: string;
+  provider: string;
+  model: string;
+  fallback: boolean;
+  local_fallback: boolean;
+  error?: string | null;
+}
+
+export interface GenerateMatchesResponse {
+  matches: GenMatch[];
+  ai?: GenerateAIMeta | null;
+}
+
 export interface Period {
   id: string;
   name: string;

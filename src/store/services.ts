@@ -3,6 +3,7 @@ import type {
   AttendanceRow,
   BillRow,
   GenMatch,
+  GenerateMatchesResponse,
   MabarSession,
   MatchEventDetail,
   MatchEventRow,
@@ -322,7 +323,7 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
-    generateMatches: build.mutation<GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean }>({
+    generateMatches: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean }>({
       query: ({ eventId, rounds, round, topup }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),

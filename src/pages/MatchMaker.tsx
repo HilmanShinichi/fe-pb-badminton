@@ -43,7 +43,7 @@ import {
   PageHead,
   RoundProgress,
 } from "../components";
-import type { GenMatch, GenTeamPlayer } from "../types";
+import type { GenMatch, GenTeamPlayer, GenerateAIMeta, GenerateMatchesResponse } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
 
@@ -91,9 +91,9 @@ function CountStepper({
 export function MatchMakerListPage() {
   const { t } = useI18n();
   const [name, setName] = useState("");
-  const [courts, setCourts] = useState(0);
-  const [base, setBase] = useState(0);
-  const [maxMatches, setMaxMatches] = useState(0);
+  const [courts, setCourts] = useState(3);
+  const [base, setBase] = useState(1);
+  const [maxMatches, setMaxMatches] = useState(4);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [poolSource, setPoolSource] = useState<"active" | "session" | "custom">("active");
@@ -166,9 +166,9 @@ export function MatchMakerListPage() {
     try {
       await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), max_rounds: Math.max(0, maxMatches || 0), source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
       setName("");
-      setCourts(0);
-      setBase(0);
-      setMaxMatches(0);
+      setCourts(3);
+      setBase(1);
+      setMaxMatches(4);
       setCustomIds([]);
       setError("");
     } catch (e) {
@@ -231,45 +231,50 @@ export function MatchMakerListPage() {
 
             <Field label={t("matchmaker.courtsLabel")} hint={t("matchmaker.courtsHint")}>
               <div className="relative">
-                <input
+                <select
                   id="event-courts"
-                  type="number"
-                  min={0}
-                  max={99}
-                  className="w-full rounded-lg border border-line pl-8 pr-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                  className="w-full appearance-none rounded-lg border border-line bg-white pl-8 pr-8 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
                   value={courts}
-                  onChange={(e) => setCourts(Math.max(0, Number(e.target.value) || 0))}
-                />
+                  onChange={(e) => setCourts(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {n === 0 ? `0 (${t("matchmaker.cardUnlimitedCourts")})` : n}
+                    </option>
+                  ))}
+                </select>
                 <IconCourt className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-ink-faint" />
               </div>
             </Field>
 
             <Field label={t("matchmaker.baseLabel")} hint={t("matchmaker.baseHint")}>
               <div className="relative">
-                <input
+                <select
                   id="event-base"
-                  type="number"
-                  min={0}
-                  max={999}
-                  className="w-full rounded-lg border border-line pl-8 pr-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                  className="w-full appearance-none rounded-lg border border-line bg-white pl-8 pr-8 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
                   value={base}
-                  onChange={(e) => setBase(Math.max(0, Number(e.target.value) || 0))}
-                />
+                  onChange={(e) => setBase(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
                 <IconPlay className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
 
             <Field label={t("matchmaker.maxMatchesLabel")} hint={t("matchmaker.maxMatchesHint")}>
               <div className="relative">
-                <input
+                <select
                   id="event-max-matches"
-                  type="number"
-                  min={0}
-                  max={99}
-                  className="w-full rounded-lg border border-line pl-8 pr-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                  className="w-full appearance-none rounded-lg border border-line bg-white pl-8 pr-8 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
                   value={maxMatches}
-                  onChange={(e) => setMaxMatches(Math.max(0, Number(e.target.value) || 0))}
-                />
+                  onChange={(e) => setMaxMatches(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
                 <IconStopwatch className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
@@ -696,6 +701,9 @@ export function MatchMakerDetailPage() {
   const [genProgress, setGenProgress] = useState(0);
   const [genPhase, setGenPhase] = useState("");
   const [genDone, setGenDone] = useState(false);
+  const [lastAi, setLastAi] = useState<GenerateAIMeta | null>(null);
+  const [saveNote, setSaveNote] = useState("");
+  const savingSettings = updateEventState.isLoading;
   const courtCap = detail.data?.event.court_count ?? 0;
   const baseCap = detail.data?.event.base_played ?? 0;
   const maxMatches = detail.data?.event.max_rounds ?? 0;
@@ -722,40 +730,86 @@ export function MatchMakerDetailPage() {
     setRounds((prev) => Math.min(Math.max(1, prev), Math.max(1, Math.min(5, maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5))));
   }, [maxMatches, highestRound]);
 
-  async function saveCourts() {
-    if (!id || courtsDraft === null || courtsDraft === courtCap || updateEventState.isLoading) return;
+  // Generator settings save immediately on change (no blur needed), so an
+  // edit can never be silently lost on refresh. The control locks while the
+  // request is in flight; a failure snaps the draft back to the server value.
+  async function saveCourts(next: number) {
+    if (!id || next === courtCap || savingSettings) return;
+    setCourtsDraft(next);
+    setSaveNote(t("matchmaker.settingsSaving"));
     try {
-      await updateEvent({ id, body: { court_count: Math.max(0, courtsDraft || 0) } }).unwrap();
+      await updateEvent({ id, body: { court_count: next } }).unwrap();
       setGenError("");
+      setSaveNote(t("matchmaker.settingsSaved"));
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
       setCourtsDraft(courtCap);
+      setSaveNote("");
     }
   }
 
-  async function saveBase() {
-    if (!id || baseDraft === null || baseDraft === baseCap || updateEventState.isLoading) return;
+  async function saveBase(next: number) {
+    if (!id || next === baseCap || savingSettings) return;
+    setBaseDraft(next);
+    setSaveNote(t("matchmaker.settingsSaving"));
     try {
-      await updateEvent({ id, body: { base_played: Math.max(0, baseDraft || 0) } }).unwrap();
+      await updateEvent({ id, body: { base_played: next } }).unwrap();
       setGenError("");
+      setSaveNote(t("matchmaker.settingsSaved"));
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
       setBaseDraft(baseCap);
+      setSaveNote("");
     }
   }
 
-  async function saveMaxMatches() {
-    if (!id || maxMatchesDraft === null || maxMatchesDraft === maxMatches || updateEventState.isLoading) return;
+  async function saveMaxMatches(next: number) {
+    if (!id || next === maxMatches || savingSettings) return;
+    setMaxMatchesDraft(next);
+    setSaveNote(t("matchmaker.settingsSaving"));
     try {
-      await updateEvent({ id, body: { max_rounds: Math.max(0, maxMatchesDraft || 0) } }).unwrap();
+      await updateEvent({ id, body: { max_rounds: next } }).unwrap();
       setGenError("");
+      setSaveNote(t("matchmaker.settingsSaved"));
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveMaxMatches"));
       setMaxMatchesDraft(maxMatches);
+      setSaveNote("");
     }
   }
 
-  async function runWithProgress(task: () => Promise<void>) {
+  function aiFromResult(res: GenerateMatchesResponse | GenMatch[] | unknown): GenerateAIMeta | null {
+    if (!res || Array.isArray(res)) return null;
+    const ai = (res as GenerateMatchesResponse).ai;
+    return ai ?? null;
+  }
+
+  function aiDoneText(ai: GenerateAIMeta | null): string {
+    if (!ai) return t("matchmaker.genStageDone");
+    if (ai.provider === "local" || ai.label === "Lokal") return t("matchmaker.genStageDoneLocal");
+    return t("matchmaker.genStageDoneAI", { label: ai.label, model: ai.model });
+  }
+
+  function lastGeneratedText(ai: GenerateAIMeta | null): string {
+    if (!ai) return "";
+    if (ai.provider === "local" || ai.label === "Lokal") return t("matchmaker.lastGeneratedLocal");
+    return t("matchmaker.lastGeneratedBy", { label: ai.label, model: ai.model });
+  }
+
+  // Remember the last AI per event so the "latest generated by" line
+  // survives a page refresh.
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem(`mm-last-ai:${id}`);
+      setLastAi(raw ? (JSON.parse(raw) as GenerateAIMeta) : null);
+    } catch {
+      setLastAi(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function runWithProgress(task: () => Promise<GenerateMatchesResponse | GenMatch[] | unknown>) {
     setGenModalOpen(true);
     setGenDone(false);
     setGenProgress(5);
@@ -779,16 +833,25 @@ export function MatchMakerDetailPage() {
     }, 60);
 
     try {
-      await task();
+      const res = await task();
       clearInterval(interval);
       setGenProgress(100);
-      setGenPhase(t("matchmaker.genStageDone"));
+      const ai = aiFromResult(res);
+      if (ai && id) {
+        setLastAi(ai);
+        try {
+          localStorage.setItem(`mm-last-ai:${id}`, JSON.stringify(ai));
+        } catch {
+          /* storage full or blocked: in-memory label still shows */
+        }
+      }
+      setGenPhase(aiDoneText(ai));
       setGenDone(true);
       setTimeout(() => {
         setGenModalOpen(false);
         setGenDone(false);
         setGenProgress(0);
-      }, 450);
+      }, 1400);
       setGenError("");
     } catch (e) {
       clearInterval(interval);
@@ -802,14 +865,14 @@ export function MatchMakerDetailPage() {
   async function runGenerate() {
     if (!id || genState.isLoading || genModalOpen) return;
     await runWithProgress(async () => {
-      await generate({ eventId: id, rounds: Math.max(1, Math.min(5, rounds || 1)) }).unwrap();
+      return generate({ eventId: id, rounds: Math.max(1, Math.min(5, rounds || 1)) }).unwrap();
     });
   }
 
   async function runGenerateRound(round: number, topup = false) {
     if (!id || genState.isLoading || genModalOpen) return;
     await runWithProgress(async () => {
-      await generate({ eventId: id, rounds: 1, round, topup }).unwrap();
+      return generate({ eventId: id, rounds: 1, round, topup }).unwrap();
     });
   }
 
@@ -928,17 +991,19 @@ export function MatchMakerDetailPage() {
                   <IconCourt className="h-3.5 w-3.5 text-pine" />
                   <span>{t("matchmaker.courtsLabel")}</span>
                 </label>
-                <input
+                <select
                   id="detail-courts"
-                  type="number"
-                  min={0}
-                  max={99}
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
-                  value={courtsDraft ?? 0}
-                  onChange={(e) => setCourtsDraft(Math.max(0, Number(e.target.value) || 0))}
-                  onBlur={saveCourts}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                />
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  value={courtsDraft ?? courtCap}
+                  disabled={savingSettings}
+                  onChange={(e) => saveCourts(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {n === 0 ? `0 (${t("matchmaker.cardUnlimitedCourts")})` : n}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="w-28">
@@ -946,17 +1011,17 @@ export function MatchMakerDetailPage() {
                   <IconPlay className="h-3 w-3 text-pine" />
                   <span>{t("matchmaker.baseLabel")}</span>
                 </label>
-                <input
+                <select
                   id="detail-base"
-                  type="number"
-                  min={0}
-                  max={999}
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
-                  value={baseDraft ?? 0}
-                  onChange={(e) => setBaseDraft(Math.max(0, Number(e.target.value) || 0))}
-                  onBlur={saveBase}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                />
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  value={baseDraft ?? baseCap}
+                  disabled={savingSettings}
+                  onChange={(e) => saveBase(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="w-28">
@@ -964,17 +1029,17 @@ export function MatchMakerDetailPage() {
                   <IconStopwatch className="h-3.5 w-3.5 text-pine" />
                   <span>{t("matchmaker.maxMatchesLabel")}</span>
                 </label>
-                <input
+                <select
                   id="detail-max-matches"
-                  type="number"
-                  min={0}
-                  max={99}
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
-                  value={maxMatchesDraft ?? 0}
-                  onChange={(e) => setMaxMatchesDraft(Math.max(0, Number(e.target.value) || 0))}
-                  onBlur={saveMaxMatches}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                />
+                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  value={maxMatchesDraft ?? maxMatches}
+                  disabled={savingSettings}
+                  onChange={(e) => saveMaxMatches(Number(e.target.value))}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="w-32">
@@ -1033,7 +1098,24 @@ export function MatchMakerDetailPage() {
             {maxMatches > 0 && roundsLeft <= 0 && (
               <p className="mt-3 text-xs font-semibold text-ink-soft">{t("matchmaker.limitReached", { count: maxMatches })}</p>
             )}
+            {saveNote && !genError && (
+              <p className="mt-3 text-xs font-semibold text-pine" aria-live="polite">{saveNote}</p>
+            )}
             {genError && <p role="alert" className="mt-3 text-xs font-semibold text-red-700">{genError}</p>}
+            {lastAi && !genError && (
+              <>
+                <p className="mt-3 text-xs font-semibold text-pine" aria-live="polite">
+                  {lastGeneratedText(lastAi)}
+                  {lastAi.fallback && lastAi.provider !== "local" ? " · fallback" : ""}
+                  {lastAi.local_fallback && lastAi.provider !== "local" ? " · +lokal" : ""}
+                </p>
+                {lastAi.error ? (
+                  <p className="mt-1 text-xs font-semibold text-red-700" aria-live="polite">
+                    {t("matchmaker.aiFailureCause", { msg: lastAi.error })}
+                  </p>
+                ) : null}
+              </>
+            )}
           </section>
 
           <GenerationProgressModal

@@ -419,8 +419,15 @@ export interface MatchMakerTranslations {
   genStage3: string;
   genStage4: string;
   genStageDone: string;
+  genStageDoneAI: string;
+  genStageDoneLocal: string;
+  lastGeneratedBy: string;
+  lastGeneratedLocal: string;
+  aiFailureCause: string;
   errorSaveCourts: string;
   errorSaveMaxMatches: string;
+  settingsSaving: string;
+  settingsSaved: string;
   errorGenerate: string;
   noMatchesYet: string;
   roundTitle: string;
