@@ -43,19 +43,21 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
         : 0;
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
-      <div className="flex items-center justify-between gap-2 border-b border-line bg-court/30 px-3.5 py-2.5">
-        <span className="text-[11px] font-black uppercase text-pine">Round {m.round}{(m.wave ?? 1) > 1 ? ` · Gel. ${m.wave}` : ""}</span>
-        <span className="inline-flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-court/30 px-3.5 py-2">
+        <span className="shrink-0 whitespace-nowrap text-[11px] font-black uppercase text-pine">
+          Round {m.round}{(m.wave ?? 1) > 1 ? ` · Gel. ${m.wave}` : ""}
+        </span>
+        <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-2">
           {m.status !== "UPCOMING" && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
-              <IconStopwatch className="h-3 w-3 text-ink-soft" />
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
+              <IconStopwatch className="h-3 w-3 text-ink-soft shrink-0" />
               {fmtClock(elapsed)}
             </span>
           )}
           {m.court > 0 && (
-            <span className="text-xs font-extrabold text-ink-soft">Court {m.court}</span>
+            <span className="shrink-0 whitespace-nowrap text-xs font-extrabold text-ink-soft">Court {m.court}</span>
           )}
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${livePill(m.status)}`}>
+          <span className={`shrink-0 whitespace-nowrap inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${livePill(m.status)}`}>
             {m.status === "PLAYING" ? "Playing" : m.status === "ENDED" ? "Ended" : "Upcoming"}
           </span>
         </span>

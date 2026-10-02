@@ -1929,32 +1929,36 @@ function MatchCard({
       className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/90 bg-white shadow-card hover:shadow-md transition-all hover:border-pine/30"
     >
       {/* CARD HEADER */}
-      <div className="flex items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="rounded-md bg-pine/10 border border-pine/20 px-2 py-0.5 text-[11px] font-black uppercase text-pine">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-3.5 py-2">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          <span className="shrink-0 whitespace-nowrap rounded-md bg-pine/10 border border-pine/20 px-2 py-0.5 text-[11px] font-black uppercase text-pine">
             R-{m.round}
           </span>
           {(m.wave ?? 1) > 1 && (
-            <span className="rounded-md bg-sky-100 border border-sky-200 px-2 py-0.5 text-[11px] font-black uppercase text-sky-900" title="Plays after wave 1 finishes">
+            <span
+              className="shrink-0 whitespace-nowrap rounded-md bg-sky-100 border border-sky-200 px-2 py-0.5 text-[11px] font-black uppercase text-sky-900"
+              title="Gelombang: giliran bermain antrian berikutnya saat lapangan kosong/siap"
+            >
               Gel. {m.wave}
             </span>
           )}
           {m.status !== "UPCOMING" && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
-              <IconStopwatch className="h-3 w-3 text-ink-soft" />
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
+              <IconStopwatch className="h-3 w-3 text-ink-soft shrink-0" />
               <span>{fmtClock(elapsedSec)}</span>
             </span>
           )}
         </div>
+        <div className="flex items-center gap-2 shrink-0">
           {locked ? (
-            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
-              <IconCourt className="h-3.5 w-3.5 text-pine" />
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
+              <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
               <span>{m.court ? t("matchmaker.courtNumber", { court: m.court }) : t("matchmaker.courtUnlimited")}</span>
             </span>
           ) : (
-            <label className="flex items-center gap-1 text-xs font-extrabold text-ink">
+            <label className="flex items-center gap-1 text-xs font-extrabold text-ink shrink-0 whitespace-nowrap">
               <span className="inline-flex items-center gap-1">
-                <IconCourt className="h-3.5 w-3.5 text-pine" />
+                <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
                 <span>{t("matchmaker.courtLabel")}</span>
               </span>
               <input
@@ -1962,7 +1966,7 @@ function MatchCard({
                 type="number"
                 min={0}
                 max={cap}
-                className="w-12 rounded border border-line px-1.5 py-0.5 text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden"
+                className="w-10 rounded border border-line px-1 py-0.5 text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden"
                 value={court}
                 onChange={(e) => setCourt(Math.min(cap, Math.max(0, Number(e.target.value) || 0)))}
                 onBlur={saveCourt}
@@ -1972,22 +1976,23 @@ function MatchCard({
           )}
           {/* STATUS PILL WITH RADIANT GRADIENTS */}
           {m.status === "PLAYING" ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-2.5 py-0.5 text-[11px] font-black text-white shadow-sm">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-lime" />
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-2.5 py-0.5 text-[11px] font-black text-white shadow-sm">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-lime" />
+              </span>
+              {t("matchmaker.statusPlaying")}
             </span>
-            {t("matchmaker.statusPlaying")}
-          </span>
-        ) : m.status === "ENDED" ? (
-          <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
-            {t("matchmaker.statusEnded")}
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-0.5 text-[11px] font-black text-white shadow-2xs">
-            {t("matchmaker.statusUpcoming")}
-          </span>
-        )}
+          ) : m.status === "ENDED" ? (
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+              {t("matchmaker.statusEnded")}
+            </span>
+          ) : (
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-0.5 text-[11px] font-black text-white shadow-2xs">
+              {t("matchmaker.statusUpcoming")}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* DOUBLES MATCH ARENA */}
