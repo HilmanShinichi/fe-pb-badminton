@@ -13,6 +13,7 @@ import {
   RoundProgress,
 } from "../components";
 import { TeamPanel, fmtClock } from "./MatchMaker";
+import { useI18n } from "../i18n";
 import type { GenMatch } from "../types";
 
 function livePill(status: string) {
@@ -32,6 +33,7 @@ function useTicker(active: boolean) {
 }
 
 function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
+  const { t } = useI18n();
   const startMs = Date.parse(m.started_at ?? m.updated_at ?? m.created_at);
   const elapsed =
     m.status === "PLAYING"
@@ -74,6 +76,7 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
           <span className="inline-flex items-center gap-1.5 min-w-0" title={m.referee.name}>
             <span>·</span>
             <IconWhistle className="h-3.5 w-3.5 shrink-0 text-amber-700" />
+            <span className="font-bold text-ink-soft">{t("matchmaker.refereeLabel")}:</span>
             <span className="truncate max-w-[140px] sm:max-w-[180px]">{m.referee.name}</span>
           </span>
         )}
