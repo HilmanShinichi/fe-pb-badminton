@@ -1884,12 +1884,13 @@ function MatchCard({
     }
   }
 
-  async function saveCourt() {
-    const n = Math.min(cap, Math.max(0, Math.trunc(Number(court) || 0)));
+  async function saveCourt(next: number) {
+    const n = Math.min(cap, Math.max(0, Math.trunc(next || 0)));
     if (n === (m.court ?? 0)) {
       setCourt(m.court ?? 0);
       return;
     }
+    setCourt(n);
     try {
       await update({ id: m.id, body: { court: n } }).unwrap();
       setError("");
@@ -1898,6 +1899,16 @@ function MatchCard({
       setCourt(m.court ?? 0);
     }
   }
+
+  // Court picker options: 1–5 scale (plus 0 = unlimited, plus the current
+  // value when legacy data sits outside the scale so it never blanks out).
+  const courtOptions = useMemo(() => {
+    const opts: number[] = [];
+    for (let n = 0; n <= Math.min(Math.max(cap, 0), 5); n++) opts.push(n);
+    const cur = m.court ?? 0;
+    if (!opts.includes(cur)) opts.push(cur);
+    return opts.sort((a, b) => a - b);
+  }, [cap, m.court]);
 
   async function stepCocks(delta: number) {
     if (locked || updateState.isLoading) return;
@@ -1961,17 +1972,19 @@ function MatchCard({
                 <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
                 <span>{t("matchmaker.courtLabel")}</span>
               </span>
-              <input
+              <select
                 aria-label="Court number"
-                type="number"
-                min={0}
-                max={cap}
-                className="w-10 rounded border border-line px-1 py-0.5 text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden"
+                className="rounded border border-line px-1 py-0.5 text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden disabled:opacity-60"
                 value={court}
-                onChange={(e) => setCourt(Math.min(cap, Math.max(0, Number(e.target.value) || 0)))}
-                onBlur={saveCourt}
-                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-              />
+                disabled={updateState.isLoading}
+                onChange={(e) => saveCourt(Number(e.target.value))}
+              >
+                {courtOptions.map((n) => (
+                  <option key={n} value={n}>
+                    {n === 0 ? `0 (${t("matchmaker.courtUnlimited")})` : n}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
           {/* STATUS PILL WITH RADIANT GRADIENTS */}
