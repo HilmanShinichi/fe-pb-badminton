@@ -102,6 +102,7 @@ export function MatchMakerListPage() {
   const [poolSessionId, setPoolSessionId] = useState("");
   const [customIds, setCustomIds] = useState<string[]>([]);
   const [customSearch, setCustomSearch] = useState("");
+  const [sessionSearch, setSessionSearch] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   const events = useMatchEventsQuery();
@@ -141,6 +142,15 @@ export function MatchMakerListPage() {
     if (!q) return customList;
     return customList.filter((p) => p.name.toLowerCase().includes(q));
   }, [customList, customSearch]);
+
+  const sessionFiltered = useMemo(() => {
+    const q = sessionSearch.trim().toLowerCase();
+    if (!q) return sessionRows;
+    return sessionRows.filter((a) => {
+      const nm = playersById.get(a.player_id)?.name ?? a.player_name ?? "";
+      return nm.toLowerCase().includes(q);
+    });
+  }, [sessionRows, playersById, sessionSearch]);
 
   const poolCount = poolSource === "active" ? null : customIds.length;
 
@@ -316,11 +326,18 @@ export function MatchMakerListPage() {
                 </Field>
                 {poolSessionId && (
                   <Field label={t("matchmaker.sessionPickLabel")}>
+                    <input
+                      id="session-search"
+                      className="mb-2 w-full rounded-lg border border-line px-3 py-1.5 text-xs focus:border-pine focus:outline-hidden"
+                      placeholder={t("matchmaker.customSearchPlaceholder")}
+                      value={sessionSearch}
+                      onChange={(e) => setSessionSearch(e.target.value)}
+                    />
                     <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-line bg-court/20 p-2">
-                      {sessionRows.length === 0 ? (
+                      {sessionFiltered.length === 0 ? (
                         <p className="p-2 text-center text-xs text-ink-faint">{t("matchmaker.noMatchingPlayers")}</p>
                       ) : (
-                        sessionRows.map((a) => {
+                        sessionFiltered.map((a) => {
                           const info = playersById.get(a.player_id);
                           const arrival = customIds.indexOf(a.player_id);
                           const isPicked = arrival >= 0;
@@ -712,6 +729,7 @@ export function MatchMakerDetailPage() {
   const [genDone, setGenDone] = useState(false);
   const [lastAi, setLastAi] = useState<GenerateAIMeta | null>(null);
   const [saveNote, setSaveNote] = useState("");
+  const [countSearch, setCountSearch] = useState("");
   const savingSettings = updateEventState.isLoading;
   const courtCap = detail.data?.event.court_count ?? 0;
   const baseCap = detail.data?.event.base_played ?? 0;
@@ -1429,10 +1447,23 @@ export function MatchMakerDetailPage() {
               </span>
             </div>
 
+            <div className="border-b border-line/60 px-4 py-2.5">
+              <input
+                id="play-counts-search"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                placeholder={t("matchmaker.customSearchPlaceholder")}
+                value={countSearch}
+                onChange={(e) => setCountSearch(e.target.value)}
+              />
+            </div>
+
             {(() => {
-              const sorted = [...(detail.data.counts ?? [])].sort(
-                (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
-              );
+              const q = countSearch.trim().toLowerCase();
+              const sorted = [...(detail.data.counts ?? [])]
+                .filter((c) => !q || c.name.toLowerCase().includes(q))
+                .sort(
+                  (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
+                );
 
               if (sorted.length === 0) {
                 return (
