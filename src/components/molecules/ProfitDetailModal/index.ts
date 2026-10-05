@@ -1,0 +1,1 @@
+export { ProfitDetailModal } from "./ProfitDetailModal";

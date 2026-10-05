@@ -4,13 +4,14 @@ import { useDashboardQuery, useDeleteMabarMutation, type DashboardSession } from
 import { ApiError } from "../store/baseApi";
 import { rupiah } from "../format";
 import { useI18n } from "../i18n";
-import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Loading, OpenLink, PageHead } from "../ui";
+import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Loading, OpenLink, PageHead, ProfitDetailModal } from "../ui";
 
 const RECENT_PAGE_SIZE = 5;
 
 export function DashboardPage() {
   const { t, dateFormatted } = useI18n();
   const [pending, setPending] = useState<DashboardSession | null>(null);
+  const [activeProfitSession, setActiveProfitSession] = useState<DashboardSession | null>(null);
   const [error, setError] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | "PERIOD" | "DAILY_EVENT">("ALL");
   const [recentPage, setRecentPage] = useState(0);
@@ -61,6 +62,22 @@ export function DashboardPage() {
   }
   const periodStats = typeStats("PERIOD");
   const dailyStats = typeStats("DAILY_EVENT");
+
+  // Per-type profit recipe: hover tooltip on desktop with exact court fund step, click to open full details.
+  const profitTip = (session: DashboardSession) => {
+    if (session.type === "PERIOD") {
+      const step = d.court_fund?.sessions?.find((cs) => cs.date === session.date);
+      if (step) {
+        return `${t("dashboard.courtFundStep", {
+          date: dateFormatted(step.date),
+          profit: `${step.profit >= 0 ? "+" : ""}${rupiah(step.profit)}`,
+          remainder: rupiah(step.remainder),
+        })} · ${t("dashboard.clickForDetails")}`;
+      }
+      return `${t("dashboard.profitTipPeriod")} · ${t("dashboard.clickForDetails")}`;
+    }
+    return `${t("dashboard.profitTipDaily")} · ${t("dashboard.clickForDetails")}`;
+  };
 
   async function confirmDelete() {
     if (!pending) return;
@@ -349,14 +366,29 @@ export function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-lg bg-paper border border-line/70 px-3 py-2">
-                      <span className="text-xs font-semibold text-ink-soft">{t("dashboard.colProfit")}</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveProfitSession(s)}
+                      className="w-full flex items-center justify-between rounded-lg bg-paper border border-line/70 px-3 py-2 text-left hover:border-pine/50 active:scale-[0.99] transition-all"
+                    >
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+                        <span>{t("dashboard.colProfit")}</span>
+                        <span className="text-[11px] text-pine font-bold">ⓘ</span>
+                      </span>
                       <span className={`text-sm font-bold tabular-nums ${
                         s.profit > 0 ? "text-emerald-700" : s.profit < 0 ? "text-rose-700" : "text-ink"
                       }`}>
-                        {rupiah(s.profit)}
+                        {s.profit >= 0 ? "+" : ""}{rupiah(s.profit)}
                       </span>
-                    </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveProfitSession(s)}
+                      className="w-full flex items-center justify-between rounded-lg border border-line/60 px-3 py-1.5 text-left text-xs font-semibold text-pine hover:bg-pine/5 transition-colors sm:hidden"
+                    >
+                      <span>{t("dashboard.profitWhy")}</span>
+                      <span className="text-[11px] text-ink-faint">→</span>
+                    </button>
 
                     <div className="flex items-center gap-2 pt-0.5">
                       <Link
@@ -413,7 +445,22 @@ export function DashboardPage() {
                             <span className="text-ink-faint">—</span>
                           )}
                         </td>
-                        <td className="text-right font-medium tabular-nums">{rupiah(s.profit)}</td>
+                        <td className="text-right font-medium tabular-nums">
+                          <button
+                            type="button"
+                            onClick={() => setActiveProfitSession(s)}
+                            className="group/tip relative inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 hover:bg-pine/10 active:scale-95 transition-all text-right"
+                            title={t("dashboard.clickForDetails")}
+                          >
+                            <span className={s.profit > 0 ? "text-emerald-700" : s.profit < 0 ? "text-rose-700" : "text-ink"}>
+                              {s.profit >= 0 ? "+" : ""}{rupiah(s.profit)}
+                            </span>
+                            <span aria-hidden className="text-[11px] text-pine font-bold">ⓘ</span>
+                            <span role="tooltip" className="pointer-events-none absolute right-0 top-full z-20 mt-1 hidden w-64 rounded-lg bg-ink px-2.5 py-2 text-left text-[11px] font-normal leading-relaxed text-white shadow-lg group-hover/tip:block">
+                              {profitTip(s)}
+                            </span>
+                          </button>
+                        </td>
                         <td className="whitespace-nowrap text-right">
                           <span className="inline-flex gap-1.5">
                             <OpenLink to={`/mabar/${s.id}`} label={t("dashboard.btnOpenSession")} />
@@ -467,6 +514,73 @@ export function DashboardPage() {
       <p className="mt-4 text-xs text-ink-faint leading-relaxed">
         {t("dashboard.profitDisclaimer")}
       </p>
+      {(d.court_fund?.planned ?? 0) > 0 && (
+        <div className="mt-1.5 rounded-xl border border-line bg-white px-3.5 py-2.5 shadow-card" aria-live="polite">
+          <p className="text-xs font-semibold text-pine">
+            {t("dashboard.courtFundLine", {
+              name: d.court_fund?.period_name ?? "",
+              collected: rupiah(d.court_fund?.collected ?? 0),
+              planned: rupiah(d.court_fund?.planned ?? 0),
+              gap: rupiah(d.court_fund?.gap ?? 0),
+            })}
+          </p>
+          {(d.court_fund?.sessions ?? []).length > 0 && (
+            <ul className="mt-1.5 space-y-0.5 border-t border-line/60 pt-1.5">
+              {(d.court_fund?.sessions ?? []).map((cs) => {
+                const matchSession = d.recent_sessions.find((s) => s.date === cs.date);
+                return (
+                  <li key={cs.date}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (matchSession) {
+                          setActiveProfitSession(matchSession);
+                        } else {
+                          setActiveProfitSession({
+                            id: `fund-${cs.date}`,
+                            date: cs.date,
+                            type: "PERIOD",
+                            period_name: d.court_fund?.period_name ?? null,
+                            venue_name: null,
+                            court_cost: 0,
+                            revenue: cs.profit,
+                            shuttlecock_used: 0,
+                            shuttlecock_cost: 0,
+                            profit: cs.profit,
+                            status: "PROFIT",
+                            bills_total: 0,
+                            bills_paid: 0,
+                            payment_status: "SETTLED",
+                          });
+                        }
+                      }}
+                      className="text-xs text-ink-soft tabular-nums hover:text-pine hover:underline cursor-pointer flex items-center gap-1.5 py-0.5 group text-left"
+                      title={t("dashboard.clickForDetails")}
+                    >
+                      <span>
+                        {t("dashboard.courtFundStep", {
+                          date: dateFormatted(cs.date),
+                          profit: `${cs.profit >= 0 ? "+" : ""}${rupiah(cs.profit)}`,
+                          remainder: rupiah(cs.remainder),
+                        })}
+                      </span>
+                      <span className="text-[10px] text-pine opacity-60 group-hover:opacity-100 transition-opacity">ⓘ</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {activeProfitSession && (
+        <ProfitDetailModal
+          session={activeProfitSession}
+          courtFund={d.court_fund}
+          onClose={() => setActiveProfitSession(null)}
+        />
+      )}
 
       {pending && (
         <ConfirmModal

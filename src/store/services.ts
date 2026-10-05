@@ -62,6 +62,7 @@ export interface DashboardData {
   month_daily?: DashboardScopeCash;
   month_period?: DashboardScopeCash;
   month_general?: DashboardScopeCash;
+  court_fund?: { period_id: string | null; period_name: string | null; planned: number; collected: number; gap: number; remainder?: number; sessions?: { date: string; profit: number; remainder: number }[] };
 }
 
 export interface MabarSummary {
