@@ -310,6 +310,8 @@ export interface DashboardTranslations {
   courtFundPrevDeficitLabel: string;
   courtFundRemainingLabel: string;
   profitDetailRevenue: string;
+  profitDetailOtherExpense: string;
+  profitDetailNetRevenue: string;
   profitDetailShuttle: string;
   profitDetailCourt: string;
   profitDetailCourtPrepaid: string;

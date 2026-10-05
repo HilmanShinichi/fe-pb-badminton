@@ -339,6 +339,8 @@ export const en: TranslationSchema = {
     courtFundPrevDeficitLabel: "Court deficit before this session",
     courtFundRemainingLabel: "Remaining court deficit after this session",
     profitDetailRevenue: "Revenue / paid dues",
+    profitDetailOtherExpense: "Additional session expenses",
+    profitDetailNetRevenue: "Net revenue (after deductions)",
     profitDetailShuttle: "Shuttlecock usage ({count} pcs)",
     profitDetailCourt: "Court rental",
     profitDetailCourtPrepaid: "Rp 0 (Prepaid upfront from commitment fees)",

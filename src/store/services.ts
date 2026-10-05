@@ -27,6 +27,7 @@ export interface DashboardSession {
   revenue: number;
   shuttlecock_used: number;
   shuttlecock_cost: number;
+  other_expense?: number;
   profit: number;
   operational_profit?: number;
   status: string;

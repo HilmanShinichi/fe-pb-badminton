@@ -87,6 +87,20 @@ export function ProfitDetailModal({
                 <span>{t("dashboard.profitDetailRevenue")}</span>
                 <span className="font-semibold tabular-nums text-emerald-700">+{rupiah(session.revenue)}</span>
               </div>
+              {(session.other_expense ?? 0) > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-ink">
+                    <span>{t("dashboard.profitDetailOtherExpense")}</span>
+                    <span className="font-semibold tabular-nums text-rose-700">−{rupiah(session.other_expense)}</span>
+                  </div>
+                  <div className="flex justify-between items-center rounded bg-court/40 px-2 py-0.5 text-[11px] text-ink font-medium">
+                    <span>{t("dashboard.profitDetailNetRevenue")}</span>
+                    <span className="font-semibold tabular-nums text-emerald-800">
+                      +{rupiah(session.revenue - (session.other_expense ?? 0))}
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between items-center text-ink">
                 <span>{t("dashboard.profitDetailShuttle", { count: session.shuttlecock_used })}</span>
                 <span className="font-semibold tabular-nums text-rose-700">−{rupiah(session.shuttlecock_cost)}</span>

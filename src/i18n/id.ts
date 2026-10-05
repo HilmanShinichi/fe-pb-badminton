@@ -339,6 +339,8 @@ export const id: TranslationSchema = {
     courtFundPrevDeficitLabel: "Defisit lapangan sebelum sesi ini",
     courtFundRemainingLabel: "Sisa defisit lapangan setelah sesi ini",
     profitDetailRevenue: "Iuran masuk / tagihan lunas",
+    profitDetailOtherExpense: "Pengeluaran tambahan sesi",
+    profitDetailNetRevenue: "Penerimaan bersih (setelah dipotong)",
     profitDetailShuttle: "Pemakaian kok ({count} butir)",
     profitDetailCourt: "Biaya sewa lapangan",
     profitDetailCourtPrepaid: "Rp 0 (Sudah lunas di depan dari commitment fee)",
