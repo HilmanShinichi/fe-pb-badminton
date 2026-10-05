@@ -35,7 +35,7 @@ export function DashboardPage() {
     recent_offset: recentPage * RECENT_PAGE_SIZE,
     recent_type: typeFilter,
     recent_q: recentQ,
-  });
+  }, { pollingInterval: 30000 });
 
   if (q.isFetching && !q.data) return <Loading />;
   if (q.isError || !q.data) return <ErrorBox message={t("dashboard.errorLoad")} onRetry={() => q.refetch()} />;
