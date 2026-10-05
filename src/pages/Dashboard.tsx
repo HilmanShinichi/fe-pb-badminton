@@ -79,6 +79,24 @@ export function DashboardPage() {
     return `${t("dashboard.profitTipDaily")} · ${t("dashboard.clickForDetails")}`;
   };
 
+  function sessionDisplay(s: DashboardSession) {
+    if (s.type === "PERIOD" && d.court_fund && (d.court_fund.gap ?? 0) < 0) {
+      const step = d.court_fund.sessions?.find((cs) => cs.date === s.date);
+      if (step) {
+        return {
+          profit: step.remainder,
+          status: step.remainder < 0 ? "LOSS" : step.remainder > 0 ? "PROFIT" : "BREAK_EVEN",
+          opProfit: step.profit,
+        };
+      }
+    }
+    return {
+      profit: s.profit,
+      status: s.status || (s.profit < 0 ? "LOSS" : s.profit > 0 ? "PROFIT" : "BREAK_EVEN"),
+      opProfit: s.operational_profit ?? s.profit,
+    };
+  }
+
   async function confirmDelete() {
     if (!pending) return;
     try {
@@ -322,7 +340,9 @@ export function DashboardPage() {
             <>
               {/* Mobile Card List (sm:hidden) - 100% width, zero horizontal scroll */}
               <div className="divide-y divide-line/70 sm:hidden">
-                {recent.map((s) => (
+                {recent.map((s) => {
+                  const disp = sessionDisplay(s);
+                  return (
                   <div key={s.id} className="p-3.5 space-y-2.5 transition-colors hover:bg-court/25">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -346,7 +366,7 @@ export function DashboardPage() {
                         <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
                           {t("dashboard.colResult")}
                         </span>
-                        <Badge status={s.status || "BREAK_EVEN"} />
+                        <Badge status={disp.status} />
                       </div>
                       <div className="rounded-lg bg-court/40 border border-line/60 p-2 space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
@@ -368,7 +388,7 @@ export function DashboardPage() {
 
                     <button
                       type="button"
-                      onClick={() => setActiveProfitSession(s)}
+                      onClick={() => setActiveProfitSession({ ...s, profit: disp.profit, operational_profit: disp.opProfit, status: disp.status })}
                       className="w-full flex items-center justify-between rounded-lg bg-paper border border-line/70 px-3 py-2 text-left hover:border-pine/50 active:scale-[0.99] transition-all"
                     >
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
@@ -376,14 +396,14 @@ export function DashboardPage() {
                         <span className="text-[11px] text-pine font-bold">ⓘ</span>
                       </span>
                       <span className={`text-sm font-bold tabular-nums ${
-                        s.profit > 0 ? "text-emerald-700" : s.profit < 0 ? "text-rose-700" : "text-ink"
+                        disp.profit > 0 ? "text-emerald-700" : disp.profit < 0 ? "text-rose-700" : "text-ink"
                       }`}>
-                        {s.profit >= 0 ? "+" : ""}{rupiah(s.profit)}
+                        {disp.profit > 0 ? "+" : ""}{rupiah(disp.profit)}
                       </span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveProfitSession(s)}
+                      onClick={() => setActiveProfitSession({ ...s, profit: disp.profit, operational_profit: disp.opProfit, status: disp.status })}
                       className="w-full flex items-center justify-between rounded-lg border border-line/60 px-3 py-1.5 text-left text-xs font-semibold text-pine hover:bg-pine/5 transition-colors sm:hidden"
                     >
                       <span>{t("dashboard.profitWhy")}</span>
@@ -410,7 +430,8 @@ export function DashboardPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Desktop & Tablet Table (hidden sm:block) */}
@@ -427,11 +448,13 @@ export function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recent.map((s) => (
+                    {recent.map((s) => {
+                      const disp = sessionDisplay(s);
+                      return (
                       <tr key={s.id}>
                         <td className="whitespace-nowrap font-medium text-ink">{dateFormatted(s.date)}</td>
                         <td><Badge status={s.type} /></td>
-                        <td><Badge status={s.status || "BREAK_EVEN"} /></td>
+                        <td><Badge status={disp.status} /></td>
                         <td>
                           {s.type === "DAILY_EVENT" ? (
                             s.payment_status === "SETTLED" ? (
@@ -448,12 +471,12 @@ export function DashboardPage() {
                         <td className="text-right font-medium tabular-nums">
                           <button
                             type="button"
-                            onClick={() => setActiveProfitSession(s)}
+                            onClick={() => setActiveProfitSession({ ...s, profit: disp.profit, operational_profit: disp.opProfit, status: disp.status })}
                             className="group/tip relative inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 hover:bg-pine/10 active:scale-95 transition-all text-right"
                             title={t("dashboard.clickForDetails")}
                           >
-                            <span className={s.profit > 0 ? "text-emerald-700" : s.profit < 0 ? "text-rose-700" : "text-ink"}>
-                              {s.profit >= 0 ? "+" : ""}{rupiah(s.profit)}
+                            <span className={disp.profit > 0 ? "text-emerald-700" : disp.profit < 0 ? "text-rose-700" : "text-ink"}>
+                              {disp.profit > 0 ? "+" : ""}{rupiah(disp.profit)}
                             </span>
                             <span aria-hidden className="text-[11px] text-pine font-bold">ⓘ</span>
                             <span role="tooltip" className="pointer-events-none absolute right-0 top-full z-20 mt-1 hidden w-64 rounded-lg bg-ink px-2.5 py-2 text-left text-[11px] font-normal leading-relaxed text-white shadow-lg group-hover/tip:block">
@@ -468,7 +491,8 @@ export function DashboardPage() {
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
@@ -534,7 +558,13 @@ export function DashboardPage() {
                       type="button"
                       onClick={() => {
                         if (matchSession) {
-                          setActiveProfitSession(matchSession);
+                          const disp = sessionDisplay(matchSession);
+                          setActiveProfitSession({
+                            ...matchSession,
+                            profit: disp.profit,
+                            operational_profit: disp.opProfit,
+                            status: disp.status,
+                          });
                         } else {
                           setActiveProfitSession({
                             id: `fund-${cs.date}`,
@@ -546,8 +576,9 @@ export function DashboardPage() {
                             revenue: cs.profit,
                             shuttlecock_used: 0,
                             shuttlecock_cost: 0,
-                            profit: cs.profit,
-                            status: "PROFIT",
+                            profit: cs.remainder,
+                            operational_profit: cs.profit,
+                            status: cs.remainder < 0 ? "LOSS" : cs.remainder > 0 ? "PROFIT" : "BREAK_EVEN",
                             bills_total: 0,
                             bills_paid: 0,
                             payment_status: "SETTLED",
