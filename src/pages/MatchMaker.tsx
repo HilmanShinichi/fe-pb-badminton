@@ -5,6 +5,7 @@ import {
   useAddEventPlayersMutation,
   useAdjustEventCountMutation,
   useAttendanceQuery,
+  useCreateGenMatchMutation,
   useCreateMatchEventMutation,
   useDeleteEventRoundMutation,
   useDeleteGenMatchMutation,
@@ -48,6 +49,111 @@ import {
 import type { GenMatch, GenTeamPlayer, GenerateAIMeta, GenerateMatchesResponse } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
+
+export interface PickerPlayer {
+  player_id: string;
+  name: string;
+  grade: string | null;
+  gender?: string | null;
+}
+
+// Searchable player picker: replaces native <select> so a 27-player pool
+// stays usable. Button shows the pick; expanding reveals a search box plus
+// a scrollable list. Inline expansion (no floating overlay) so it never
+// gets clipped inside modals.
+function PlayerPicker({
+  id,
+  value,
+  onChange,
+  pool,
+  placeholder,
+  allowClear,
+  clearLabel,
+}: {
+  id?: string;
+  value: string;
+  onChange: (playerId: string) => void;
+  pool: PickerPlayer[];
+  placeholder?: string;
+  allowClear?: boolean;
+  clearLabel?: string;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const selected = pool.find((p) => p.player_id === value);
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const list = [...pool].sort((a, b) => a.name.localeCompare(b.name));
+    if (!query) return list;
+    return list.filter((p) => p.name.toLowerCase().includes(query));
+  }, [pool, q]);
+
+  function pick(pid: string) {
+    onChange(pid);
+    setOpen(false);
+    setQ("");
+  }
+
+  const sub = (p: PickerPlayer) => `${p.grade ? ` (${p.grade})` : ""}${p.gender ? ` [${p.gender}]` : ""}`;
+  return (
+    <div>
+      <button
+        type="button"
+        id={id}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-pine focus:outline-hidden"
+      >
+        <span className={`truncate ${selected ? "font-semibold text-ink" : "text-ink-faint"}`}>
+          {selected ? `${selected.name}${sub(selected)}` : (placeholder ?? t("matchmaker.playerPickPlaceholder"))}
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div className="mt-1 overflow-hidden rounded-lg border border-line bg-white shadow-card">
+          <div className="border-b border-line/60 p-1.5">
+            <input
+              autoFocus
+              className="w-full rounded-md border border-line px-2.5 py-1.5 text-xs focus:border-pine focus:outline-hidden"
+              placeholder={t("matchmaker.customSearchPlaceholder")}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+            />
+          </div>
+          <div className="max-h-44 overflow-y-auto p-1">
+            {allowClear && value && (
+              <button
+                type="button"
+                onClick={() => pick("")}
+                className="block w-full rounded-md px-2.5 py-1.5 text-left text-xs font-bold text-red-700 hover:bg-red-50"
+              >
+                ✕ {clearLabel ?? t("matchmaker.manualCardNoReferee")}
+              </button>
+            )}
+            {filtered.length === 0 ? (
+              <p className="p-2 text-center text-xs text-ink-faint">{t("matchmaker.noMatchingPlayers")}</p>
+            ) : (
+              filtered.map((p) => (
+                <button
+                  key={p.player_id}
+                  type="button"
+                  onClick={() => pick(p.player_id)}
+                  className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-court/60 ${p.player_id === value ? "bg-court/60 font-extrabold text-pine" : "text-ink"}`}
+                >
+                  <span className="truncate">{p.name}{sub(p)}</span>
+                  {p.player_id === value && <span aria-hidden>✓</span>}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Minus and plus around a count. Every press asks for confirmation before the
 // number moves, so a mis-tap never changes a record.
@@ -730,8 +836,18 @@ export function MatchMakerDetailPage() {
   const [lastAi, setLastAi] = useState<GenerateAIMeta | null>(null);
   const [saveNote, setSaveNote] = useState("");
   const [countSearch, setCountSearch] = useState("");
+  const [createCard, createCardState] = useCreateGenMatchMutation();
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualRound, setManualRound] = useState(1);
+  const [mT1, setMT1] = useState<[string, string]>(["", ""]);
+  const [mT2, setMT2] = useState<[string, string]>(["", ""]);
+  const [mCourt, setMCourt] = useState(0);
+  const [mRef, setMRef] = useState("");
+  const [mStatus, setMStatus] = useState("UPCOMING");
+  const [manualError, setManualError] = useState("");
   const savingSettings = updateEventState.isLoading;
   const courtCap = detail.data?.event.court_count ?? 0;
+  const manualCourtMax = courtCap > 0 ? Math.min(courtCap, 5) : 5;
   const baseCap = detail.data?.event.base_played ?? 0;
   const maxMatches = detail.data?.event.max_rounds ?? 0;
   const highestRound = detail.data?.matches.length ? Math.max(...detail.data.matches.map((m) => m.round)) : 0;
@@ -958,6 +1074,43 @@ export function MatchMakerDetailPage() {
       setGenError("");
     } catch (e) {
       setWebError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
+    }
+  }
+
+  function openManualCard(round: number) {
+    setManualRound(Math.max(1, round));
+    setMT1(["", ""]);
+    setMT2(["", ""]);
+    setMCourt(0);
+    setMRef("");
+    setMStatus("UPCOMING");
+    setManualError("");
+    setManualOpen(true);
+  }
+
+  async function submitManualCard() {
+    if (!id || createCardState.isLoading) return;
+    const team1 = mT1.filter(Boolean);
+    const team2 = mT2.filter(Boolean);
+    if (team1.length !== 2 || team2.length !== 2) {
+      setManualError(t("matchmaker.errorPickAllFour"));
+      return;
+    }
+    try {
+      await createCard({
+        event_id: id,
+        round: Math.max(1, manualRound || 1),
+        team1,
+        team2,
+        court: mCourt,
+        referee_id: mRef || null,
+        status: mStatus,
+      }).unwrap();
+      setManualOpen(false);
+      setManualError("");
+      setGenError("");
+    } catch (e) {
+      setManualError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
     }
   }
 
@@ -1356,6 +1509,9 @@ export function MatchMakerDetailPage() {
           {grouped.length === 0 ? (
             <div className="rounded-2xl border border-line bg-white p-8 shadow-card text-center">
               <p className="text-sm font-semibold text-ink-soft">{t("matchmaker.noMatchesYet")}</p>
+              <div className="mt-3">
+                <Btn onClick={() => openManualCard(1)}>{t("matchmaker.manualCardBtn")}</Btn>
+              </div>
             </div>
           ) : (
             filteredGrouped.map(([round, matches]) => (
@@ -1370,6 +1526,9 @@ export function MatchMakerDetailPage() {
                     </h2>
                   </div>
                   <span className="inline-flex gap-1">
+                    <Btn disabled={genState.isLoading} onClick={() => openManualCard(round)}>
+                      {t("matchmaker.manualCardBtn")}
+                    </Btn>
                     <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(round, true)}>
                       {t("matchmaker.btnTopUpRound")}
                     </Btn>
@@ -1395,9 +1554,14 @@ export function MatchMakerDetailPage() {
                   <h2 className="text-sm font-extrabold text-ink-faint">
                     {t("matchmaker.roundTitle", { round: r })} · {t("matchmaker.roundDeleted")}
                   </h2>
-                  <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
-                    {t("matchmaker.btnRegenerateRound", { round: r })}
-                  </Btn>
+                  <span className="inline-flex gap-1">
+                    <Btn disabled={genState.isLoading} onClick={() => openManualCard(r)}>
+                      {t("matchmaker.manualCardBtn")}
+                    </Btn>
+                    <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
+                      {t("matchmaker.btnRegenerateRound", { round: r })}
+                    </Btn>
+                  </span>
                 </div>
               </section>
             ))}
@@ -1410,6 +1574,77 @@ export function MatchMakerDetailPage() {
               busy={deleteRoundState.isLoading}
               onConfirm={confirmRoundDelete}
               onCancel={() => setPendingRoundDelete(null)}
+            />
+          )}
+
+          {manualOpen && (
+            <ConfirmModal
+              title={t("matchmaker.manualCardTitle")}
+              body={
+                <div className="space-y-3">
+                  <Field label={t("matchmaker.manualCardRound")}>
+                    <input
+                      id="manual-round"
+                      type="number"
+                      min={1}
+                      max={99}
+                      className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
+                      value={manualRound}
+                      onChange={(e) => setManualRound(Math.max(1, Number(e.target.value) || 1))}
+                    />
+                  </Field>
+                  {([
+                    { key: "t1a", label: `${t("matchmaker.team1")} 1`, value: mT1[0], set: (v: string) => setMT1([v, mT1[1]]) },
+                    { key: "t1b", label: `${t("matchmaker.team1")} 2`, value: mT1[1], set: (v: string) => setMT1([mT1[0], v]) },
+                    { key: "t2a", label: `${t("matchmaker.team2")} 1`, value: mT2[0], set: (v: string) => setMT2([v, mT2[1]]) },
+                    { key: "t2b", label: `${t("matchmaker.team2")} 2`, value: mT2[1], set: (v: string) => setMT2([mT2[0], v]) },
+                  ] as const).map((f) => (
+                    <Field key={f.key} label={f.label}>
+                      <PlayerPicker pool={detail.data?.counts ?? []} value={f.value} onChange={f.set} />
+                    </Field>
+                  ))}
+                  <div className="grid grid-cols-3 gap-2">
+                    <Field label={t("matchmaker.courtLabel")}>
+                      <select
+                        id="manual-court"
+                        className="w-full rounded-lg border border-line px-2 py-2 text-sm bg-white focus:border-pine focus:outline-hidden"
+                        value={mCourt}
+                        onChange={(e) => setMCourt(Number(e.target.value))}
+                      >
+                        {Array.from({ length: manualCourtMax + 1 }, (_, n) => n).map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label={t("matchmaker.refereeLabel")}>
+                      <PlayerPicker
+                        pool={detail.data?.counts ?? []}
+                        value={mRef}
+                        onChange={setMRef}
+                        allowClear
+                        clearLabel={t("matchmaker.manualCardNoReferee")}
+                      />
+                    </Field>
+                    <Field label={t("matchmaker.manualCardStatus")}>
+                      <select
+                        id="manual-status"
+                        className="w-full rounded-lg border border-line px-2 py-2 text-sm bg-white focus:border-pine focus:outline-hidden"
+                        value={mStatus}
+                        onChange={(e) => setMStatus(e.target.value)}
+                      >
+                        <option value="UPCOMING">{t("matchmaker.statusUpcoming")}</option>
+                        <option value="PLAYING">{t("matchmaker.statusPlaying")}</option>
+                        <option value="ENDED">{t("matchmaker.statusEnded")}</option>
+                      </select>
+                    </Field>
+                  </div>
+                  {manualError && <p role="alert" className="text-xs font-semibold text-red-700">{manualError}</p>}
+                </div>
+              }
+              confirmLabel={t("matchmaker.btnSaveTeams")}
+              busy={createCardState.isLoading}
+              onConfirm={submitManualCard}
+              onCancel={() => setManualOpen(false)}
             />
           )}
 
@@ -2195,35 +2430,10 @@ function EditTeamsModal({
   const [t2, setT2] = useState<string[]>(m.team2.map((p) => p.player_id));
   const [error, setError] = useState("");
 
-  const options = useMemo(
-    () => [...pool].sort((a, b) => a.name.localeCompare(b.name)),
-    [pool],
-  );
-
   function setSide(setter: (v: string[]) => void, current: string[], i: number, v: string) {
     const next = [...current];
     next[i] = v;
     setter(next);
-  }
-
-  function picker(value: string, onChange: (v: string) => void, label: string) {
-    return (
-      <label className="block text-sm">
-        <span className="sr-only">{label}</span>
-        <select
-          className="w-full rounded-lg border border-line px-3 py-1.5 text-xs font-semibold focus:border-pine bg-white"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">—</option>
-          {options.map((p) => (
-            <option key={p.player_id} value={p.player_id}>
-              {p.name}{p.grade ? ` (${p.grade})` : ""}{p.gender ? ` [${p.gender}]` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
   }
 
   async function save() {
@@ -2249,13 +2459,13 @@ function EditTeamsModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 p-2.5 space-y-2">
               <p className="text-xs font-extrabold text-emerald-950">{t("matchmaker.team1")}</p>
-              {picker(t1[0] ?? "", (v) => setSide(setT1, t1, 0, v), "Team 1 player 1")}
-              {picker(t1[1] ?? "", (v) => setSide(setT1, t1, 1, v), "Team 1 player 2")}
+              <PlayerPicker pool={pool} value={t1[0] ?? ""} onChange={(v) => setSide(setT1, t1, 0, v)} />
+              <PlayerPicker pool={pool} value={t1[1] ?? ""} onChange={(v) => setSide(setT1, t1, 1, v)} />
             </div>
             <div className="rounded-xl border border-sky-200/80 bg-sky-50/30 p-2.5 space-y-2">
               <p className="text-xs font-extrabold text-sky-950">{t("matchmaker.team2")}</p>
-              {picker(t2[0] ?? "", (v) => setSide(setT2, t2, 0, v), "Team 2 player 1")}
-              {picker(t2[1] ?? "", (v) => setSide(setT2, t2, 1, v), "Team 2 player 2")}
+              <PlayerPicker pool={pool} value={t2[0] ?? ""} onChange={(v) => setSide(setT2, t2, 0, v)} />
+              <PlayerPicker pool={pool} value={t2[1] ?? ""} onChange={(v) => setSide(setT2, t2, 1, v)} />
             </div>
           </div>
           {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}

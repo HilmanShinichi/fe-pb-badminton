@@ -434,7 +434,12 @@ export interface MatchMakerTranslations {
   webAiPastePh: string;
   webAiSubmit: string;
   webAiCancel: string;
-  errorSaveCourts: string;
+  manualCardBtn: string;
+  manualCardTitle: string;
+  manualCardRound: string;
+  manualCardNoReferee: string;
+  manualCardStatus: string;
+  playerPickPlaceholder: string;  errorSaveCourts: string;
   errorSaveMaxMatches: string;
   settingsSaving: string;
   settingsSaved: string;
