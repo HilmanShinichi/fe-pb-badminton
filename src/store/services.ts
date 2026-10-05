@@ -28,6 +28,7 @@ export interface DashboardSession {
   shuttlecock_used: number;
   shuttlecock_cost: number;
   profit: number;
+  operational_profit?: number;
   status: string;
   bills_total: number;
   bills_paid: number;
@@ -80,6 +81,15 @@ export interface MabarSummary {
   players_present: number;
   players_listed: number;
   no_show: number;
+}
+
+export interface SessionExpenseItem {
+  id: string;
+  session_id: string;
+  category: string;
+  amount: number;
+  note: string;
+  occurred_at: string;
 }
 
 export interface PeriodSummary {
@@ -539,6 +549,39 @@ export const api = baseApi.injectEndpoints({
       ],
     }),
 
+    sessionExpenses: build.query<SessionExpenseItem[], string>({
+      query: (sessionId) => `/api/v1/mabar/${sessionId}/expenses`,
+      providesTags: (_r, _e, id) => [{ type: "Mabar", id }, "Finance"],
+    }),
+    addSessionExpense: build.mutation<
+      SessionExpenseItem,
+      { sessionId: string; description: string; amount: number; category?: string }
+    >({
+      query: ({ sessionId, description, amount, category }) => ({
+        url: `/api/v1/mabar/${sessionId}/expenses`,
+        method: "POST",
+        body: { description, amount, category },
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "Mabar", id: sessionId },
+        "Finance",
+        "Dashboard",
+        "Reports",
+      ],
+    }),
+    deleteSessionExpense: build.mutation<void, { sessionId: string; expenseId: string }>({
+      query: ({ sessionId, expenseId }) => ({
+        url: `/api/v1/mabar/${sessionId}/expenses/${expenseId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "Mabar", id: sessionId },
+        "Finance",
+        "Dashboard",
+        "Reports",
+      ],
+    }),
+
     products: build.query<Product[], void>({
       query: () => "/api/v1/inventory/shuttlecock",
       providesTags: ["Inventory"],
@@ -699,6 +742,9 @@ export const {
   useBillingQuery,
   useGenerateBillingMutation,
   useUpdateBillingStatusMutation,
+  useSessionExpensesQuery,
+  useAddSessionExpenseMutation,
+  useDeleteSessionExpenseMutation,
   useProductsQuery,
   useCreateProductMutation,
   useUpdateProductMutation,

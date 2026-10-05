@@ -30,6 +30,7 @@ export function ProfitDetailModal({
   const fundSessions = courtFund?.sessions ?? [];
   const stepIndex = fundSessions.findIndex((cs) => cs.date === session.date);
   const step = stepIndex >= 0 ? fundSessions[stepIndex] : undefined;
+  const opProfit = session.operational_profit ?? (isPeriod && step ? step.profit : session.profit);
   const prevRemainder =
     stepIndex === 0
       ? (courtFund?.gap ?? 0)
@@ -101,11 +102,15 @@ export function ProfitDetailModal({
                 )}
               </div>
               <div className="border-t border-line/70 pt-2 flex justify-between items-center">
-                <span className="font-bold text-ink">{t("dashboard.colProfit")}</span>
+                <span className="font-bold text-ink">
+                  {isPeriod && courtFund && (courtFund.gap ?? 0) < 0
+                    ? t("dashboard.courtFundSessionProfitLabel")
+                    : t("dashboard.colProfit")}
+                </span>
                 <span className={`text-base font-extrabold tabular-nums ${
-                  session.profit > 0 ? "text-emerald-700" : session.profit < 0 ? "text-rose-700" : "text-ink"
+                  opProfit > 0 ? "text-emerald-700" : opProfit < 0 ? "text-rose-700" : "text-ink"
                 }`}>
-                  {session.profit >= 0 ? "+" : ""}{rupiah(session.profit)}
+                  {opProfit >= 0 ? "+" : ""}{rupiah(opProfit)}
                 </span>
               </div>
             </div>
@@ -131,7 +136,7 @@ export function ProfitDetailModal({
                   <p className="text-xs font-mono font-bold text-pine-deep text-center">
                     {t("dashboard.courtFundStepDetail", {
                       date: dateFormatted(step.date),
-                      profit: `${step.profit >= 0 ? "+" : ""}${rupiah(step.profit)}`,
+                      profit: `${opProfit >= 0 ? "+" : ""}${rupiah(opProfit)}`,
                       remainder: rupiah(step.remainder),
                     })}
                   </p>
@@ -146,7 +151,7 @@ export function ProfitDetailModal({
                 </div>
                 <div className="flex justify-between items-center">
                   <span>{t("dashboard.courtFundSessionProfitLabel")}</span>
-                  <span className="font-semibold tabular-nums text-emerald-700">+{rupiah(session.profit)}</span>
+                  <span className="font-semibold tabular-nums text-emerald-700">+{rupiah(opProfit)}</span>
                 </div>
                 <div className="border-t border-pine/20 pt-1.5 flex justify-between items-center font-bold text-ink">
                   <span>{t("dashboard.courtFundRemainingLabel")}</span>

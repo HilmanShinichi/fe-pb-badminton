@@ -23,9 +23,13 @@ import {
   useSimpleStatsQuery,
   useUpdateBillingStatusMutation,
   useUpdateMabarMutation,
+  useSessionExpensesQuery,
+  useAddSessionExpenseMutation,
+  useDeleteSessionExpenseMutation,
   type MabarSummary,
 } from "../store/services";
 import { dateId, rupiah, statusClass, statusLabel } from "../format";
+import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead } from "../ui";
 
 const STATUSES = ["PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW"];
@@ -88,7 +92,7 @@ function MabarDetailInner({
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-5">
           <Cell label="Profit / loss" value={rupiah(s.profit)} strong />
           <Cell label="Revenue" value={rupiah(s.revenue)} sub={`Paid bills ${rupiah(s.billed_paid ?? 0)}`} />
-          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)}${(s.prepaid_courts ?? 0) > 0 ? ` · Prepaid −${rupiah(s.prepaid_courts)}` : ""} · Shuttles ${rupiah(s.shuttlecock_cost)}`} />
+          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)}${(s.prepaid_courts ?? 0) > 0 ? ` · Prepaid −${rupiah(s.prepaid_courts)}` : ""} · Shuttles ${rupiah(s.shuttlecock_cost)}${(s.other_expense ?? 0) > 0 ? ` · Other −${rupiah(s.other_expense)}` : ""}`} />
           <Cell label="Players present" value={String(s.players_present)} sub={`${s.players_listed} listed · ${s.no_show} no-shows`} />
           <Cell label="Shuttlecocks" value={`${s.shuttlecock_used} pcs`} sub="Matches + simple recap" />
         </dl>
@@ -96,6 +100,7 @@ function MabarDetailInner({
       {s.session.type === "DAILY_EVENT" && (
         <SessionCostPanel sessionId={sessionId} summary={s} onSaved={onRetry} />
       )}
+      <OtherExpensesPanel sessionId={sessionId} onExpensesChanged={onRetry} />
       <div className="grid gap-5 xl:grid-cols-2 min-w-0 w-full">
         <AttendancePanel sessionId={sessionId} sessionType={s.session.type} periodId={s.session.period_id ?? null} />
         <div className="min-w-0 w-full">
@@ -225,6 +230,204 @@ function SessionCostPanel({ sessionId, summary: s, onSaved }: { sessionId: strin
           <Btn disabled={!dirty || updateState.isLoading} onClick={submit}>
             {updateState.isLoading ? "Saving…" : "Save pricing"}
           </Btn>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OtherExpensesPanel({ sessionId, onExpensesChanged }: { sessionId: string; onExpensesChanged: () => void }) {
+  const { t } = useI18n();
+  const [error, setError] = useState("");
+  const [desc, setDesc] = useState("");
+  const [amount, setAmount] = useState(0);
+  const [category, setCategory] = useState("VENUE");
+
+  const expenses = useSessionExpensesQuery(sessionId);
+  const [addExpense, addState] = useAddSessionExpenseMutation();
+  const [deleteExpense, deleteState] = useDeleteSessionExpenseMutation();
+
+  const list = expenses.data ?? [];
+  const total = list.reduce((acc, item) => acc + item.amount, 0);
+
+  async function handleAdd() {
+    if (!desc.trim()) {
+      setError(t("mabar.placeholderExpenseDesc"));
+      return;
+    }
+    if (amount <= 0) {
+      setError("Nominal biaya harus lebih dari 0.");
+      return;
+    }
+    try {
+      await addExpense({
+        sessionId,
+        description: desc.trim(),
+        amount,
+        category,
+      }).unwrap();
+      setDesc("");
+      setAmount(0);
+      setError("");
+      onExpensesChanged();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Gagal menambahkan pengeluaran.");
+    }
+  }
+
+  async function handleDelete(expenseId: string) {
+    try {
+      await deleteExpense({ sessionId, expenseId }).unwrap();
+      setError("");
+      onExpensesChanged();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Gagal menghapus pengeluaran.");
+    }
+  }
+
+  return (
+    <section aria-label="Other session expenses" className="mb-5 rounded-xl border border-line bg-white shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3.5 py-2.5">
+        <div>
+          <h2 className="text-sm font-semibold text-ink">{t("mabar.otherExpensesTitle")}</h2>
+          <p className="mt-0.5 text-xs text-ink-faint">{t("mabar.otherExpensesDesc")}</p>
+        </div>
+        {total > 0 && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 tabular-nums">
+            <span>{t("mabar.totalOtherExpenses")}:</span>
+            <span>−{rupiah(total)}</span>
+          </div>
+        )}
+      </div>
+
+      {error && <p role="alert" className="px-3.5 pt-2 text-xs text-red-700 font-medium">{error}</p>}
+
+      {/* List of existing expenses */}
+      {list.length > 0 ? (
+        <div className="overflow-x-auto border-b border-line/70">
+          <table className="data">
+            <thead>
+              <tr>
+                <th className="w-10">No</th>
+                <th>{t("mabar.fieldExpenseDesc")}</th>
+                <th>{t("mabar.fieldExpenseCategory")}</th>
+                <th className="text-right">{t("mabar.fieldExpenseAmount")}</th>
+                <th className="w-16"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((item, idx) => (
+                <tr key={item.id}>
+                  <td className="tabular-nums text-ink-faint">{idx + 1}</td>
+                  <td className="font-medium text-ink">{item.note}</td>
+                  <td className="text-xs text-ink-soft">
+                    <span className="rounded-md bg-paper border border-line/70 px-2 py-0.5">
+                      {item.category === "VENUE"
+                        ? t("mabar.categoryVenue")
+                        : item.category === "EQUIPMENT"
+                        ? t("mabar.categoryEquipment")
+                        : t("mabar.categoryOther")}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap text-right font-semibold tabular-nums text-rose-700">
+                    −{rupiah(item.amount)}
+                  </td>
+                  <td className="text-right">
+                    <button
+                      type="button"
+                      disabled={deleteState.isLoading}
+                      onClick={() => handleDelete(item.id)}
+                      className="rounded p-1 text-red-700 hover:bg-red-50 text-xs font-semibold disabled:opacity-40 transition-colors"
+                      title="Hapus pengeluaran ini"
+                    >
+                      🗑
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-court/30">
+                <td colSpan={3} className="px-3 py-2 text-xs font-bold text-ink">
+                  {t("mabar.totalOtherExpenses")} ({list.length} item)
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right font-extrabold tabular-nums text-rose-700">
+                  −{rupiah(total)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      ) : (
+        <div className="px-3.5 py-3 text-xs text-ink-faint">
+          {t("mabar.noOtherExpenses")}
+        </div>
+      )}
+
+      {/* Add expense form */}
+      <div className="p-3.5 bg-paper/30 space-y-3">
+        <h3 className="text-xs font-bold text-ink-soft uppercase tracking-wider">
+          {t("mabar.btnAddExpense")}
+        </h3>
+        <div className="grid gap-2.5 sm:grid-cols-12 items-end">
+          <div className="sm:col-span-5">
+            <label htmlFor="expense-desc" className="block text-xs font-medium text-ink mb-1">
+              {t("mabar.fieldExpenseDesc")}
+            </label>
+            <input
+              id="expense-desc"
+              type="text"
+              placeholder={t("mabar.placeholderExpenseDesc")}
+              className="w-full text-xs"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAdd();
+                }
+              }}
+            />
+          </div>
+
+          <div className="sm:col-span-3">
+            <label htmlFor="expense-cat" className="block text-xs font-medium text-ink mb-1">
+              {t("mabar.fieldExpenseCategory")}
+            </label>
+            <select
+              id="expense-cat"
+              className="w-full text-xs"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="VENUE">{t("mabar.categoryVenue")}</option>
+              <option value="OTHER">{t("mabar.categoryOther")}</option>
+              <option value="EQUIPMENT">{t("mabar.categoryEquipment")}</option>
+            </select>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="expense-amount" className="block text-xs font-medium text-ink mb-1">
+              {t("mabar.fieldExpenseAmount")}
+            </label>
+            <MoneyInput
+              id="expense-amount"
+              value={amount}
+              onChange={(n) => setAmount(n)}
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <Btn
+              variant="primary"
+              disabled={addState.isLoading || !desc.trim() || amount <= 0}
+              onClick={handleAdd}
+              className="w-full justify-center text-xs py-2"
+            >
+              {addState.isLoading ? "Menyimpan…" : `+ ${t("mabar.btnAddExpense")}`}
+            </Btn>
+          </div>
         </div>
       </div>
     </section>

@@ -550,6 +550,18 @@ export interface MabarTranslations {
   colType: string;
   colVenuePeriod: string;
   btnOpenSession: string;
+  otherExpensesTitle: string;
+  otherExpensesDesc: string;
+  btnAddExpense: string;
+  fieldExpenseDesc: string;
+  placeholderExpenseDesc: string;
+  fieldExpenseAmount: string;
+  fieldExpenseCategory: string;
+  categoryVenue: string;
+  categoryOther: string;
+  categoryEquipment: string;
+  noOtherExpenses: string;
+  totalOtherExpenses: string;
 }
 
 export interface PeriodsTranslations {
