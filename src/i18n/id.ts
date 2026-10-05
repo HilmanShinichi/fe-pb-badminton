@@ -588,6 +588,9 @@ export const id: TranslationSchema = {
     categoryEquipment: "Peralatan",
     noOtherExpenses: "Belum ada pengeluaran lain pada sesi ini.",
     totalOtherExpenses: "Total Pengeluaran Lain",
+    subtotalBills: "Total Penerimaan Pemain",
+    otherExpensesDeduction: "Pengeluaran Lain",
+    finalNetTotal: "Total Akhir (Penerimaan − Pengeluaran)",
   },
   periods: {
     pageTitle: "Periode Member",

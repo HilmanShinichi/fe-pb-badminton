@@ -589,6 +589,9 @@ export const en: TranslationSchema = {
     categoryEquipment: "Equipment",
     noOtherExpenses: "No other expenses recorded for this session yet.",
     totalOtherExpenses: "Total Other Expenses",
+    subtotalBills: "Player Bills Subtotal",
+    otherExpensesDeduction: "Other Expenses",
+    finalNetTotal: "Final Total (Revenue − Expenses)",
   },
   periods: {
     pageTitle: "Periods",

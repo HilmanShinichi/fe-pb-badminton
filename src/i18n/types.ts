@@ -562,6 +562,9 @@ export interface MabarTranslations {
   categoryEquipment: string;
   noOtherExpenses: string;
   totalOtherExpenses: string;
+  subtotalBills: string;
+  otherExpensesDeduction: string;
+  finalNetTotal: string;
 }
 
 export interface PeriodsTranslations {

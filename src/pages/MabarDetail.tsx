@@ -92,7 +92,7 @@ function MabarDetailInner({
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-5">
           <Cell label="Profit / loss" value={rupiah(s.profit)} strong />
           <Cell label="Revenue" value={rupiah(s.revenue)} sub={`Paid bills ${rupiah(s.billed_paid ?? 0)}`} />
-          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)}${(s.prepaid_courts ?? 0) > 0 ? ` · Prepaid −${rupiah(s.prepaid_courts)}` : ""} · Shuttles ${rupiah(s.shuttlecock_cost)}${(s.other_expense ?? 0) > 0 ? ` · Other −${rupiah(s.other_expense)}` : ""}`} />
+          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.court_cost)}${(s.prepaid_courts ?? 0) > 0 ? ` · Prepaid −${rupiah(s.prepaid_courts)}` : ""} · Shuttles ${rupiah(s.shuttlecock_cost)}${(s.other_expense ?? 0) > 0 ? ` · Other +${rupiah(s.other_expense)}` : ""}`} />
           <Cell label="Players present" value={String(s.players_present)} sub={`${s.players_listed} listed · ${s.no_show} no-shows`} />
           <Cell label="Shuttlecocks" value={`${s.shuttlecock_used} pcs`} sub="Matches + simple recap" />
         </dl>
@@ -1224,14 +1224,21 @@ function ShuttleSources({ sessionId, usageTotal, purpose }: { sessionId: string;
 }
 
 function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string; sessionType: string; periodId: string | null }) {
+  const { t } = useI18n();
   const [error, setError] = useState("");
   const bills = useBillingQuery(sessionId);
+  const expenses = useSessionExpensesQuery(sessionId);
   const attendance = useAttendanceQuery(sessionId);
   const simple = useSimpleStatsQuery(sessionId);
   const matchList = useMatchesQuery(sessionId);
   const products = useProductsQuery();
   const [generate, generateState] = useGenerateBillingMutation();
   const [setStatus, statusState] = useUpdateBillingStatusMutation();
+
+  const expenseList = expenses.data ?? [];
+  const totalExpenses = expenseList.reduce((acc, item) => acc + item.amount, 0);
+  const totalBills = (bills.data ?? []).reduce((a, b) => a + b.total, 0);
+  const netTotal = totalBills - totalExpenses;
 
   const isDaily = sessionType === "DAILY_EVENT";
   const memberOf = useMemo(
@@ -1385,11 +1392,38 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                   {rupiah((bills.data ?? []).reduce((a, b) => a + b.shuttlecock_contribution, 0))}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {rupiah((bills.data ?? []).reduce((a, b) => a + b.total, 0))}
+                  {rupiah(totalBills)}
                 </td>
                 <td />
                 <td />
               </tr>
+              {expenseList.length > 0 && (
+                <>
+                  {expenseList.map((exp) => (
+                    <tr key={exp.id} className="bg-rose-50/50 text-rose-800">
+                      <td className="px-3 py-1.5 text-xs font-medium" colSpan={5}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-rose-600 font-bold">−</span>
+                          <span>{t("mabar.otherExpensesDeduction")}: {exp.note || exp.category}</span>
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-1.5 text-right text-xs font-semibold tabular-nums text-rose-700">
+                        −{rupiah(exp.amount)}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  ))}
+                  <tr className="bg-court/60 border-t border-line">
+                    <td className="px-3 py-2 text-xs font-bold text-ink uppercase tracking-wide" colSpan={5}>
+                      {t("mabar.finalNetTotal")}
+                    </td>
+                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      {rupiah(netTotal)}
+                    </td>
+                    <td colSpan={2} />
+                  </tr>
+                </>
+              )}
             </tfoot>
           </table>
         </div>
@@ -1430,7 +1464,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                   {(bills.data ?? []).length} players · {(bills.data ?? []).filter((b) => b.payment_status === "PAID").length} paid
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {rupiah((bills.data ?? []).reduce((a, b) => a + b.total, 0))}
+                  {rupiah(totalBills)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${(bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)} (÷4)`}>
                   {((bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)) / 4}
@@ -1438,6 +1472,33 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                 <td />
                 <td />
               </tr>
+              {expenseList.length > 0 && (
+                <>
+                  {expenseList.map((exp) => (
+                    <tr key={exp.id} className="bg-rose-50/50 text-rose-800">
+                      <td className="px-3 py-1.5 text-xs font-medium" colSpan={3}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-rose-600 font-bold">−</span>
+                          <span>{t("mabar.otherExpensesDeduction")}: {exp.note || exp.category}</span>
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-1.5 text-right text-xs font-semibold tabular-nums text-rose-700">
+                        −{rupiah(exp.amount)}
+                      </td>
+                      <td colSpan={3} />
+                    </tr>
+                  ))}
+                  <tr className="bg-court/60 border-t border-line">
+                    <td className="px-3 py-2 text-xs font-bold text-ink uppercase tracking-wide" colSpan={3}>
+                      {t("mabar.finalNetTotal")}
+                    </td>
+                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      {rupiah(netTotal)}
+                    </td>
+                    <td colSpan={3} />
+                  </tr>
+                </>
+              )}
             </tfoot>
           </table>
         </div>
