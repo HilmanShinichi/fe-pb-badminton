@@ -354,6 +354,10 @@ export const api = baseApi.injectEndpoints({
       query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
+    createGenMatch: build.mutation<GenMatch, { event_id: string; round: number; team1: string[]; team2: string[]; court?: number; referee_id?: string | null; status?: string; shuttlecock_used?: number }>({
+      query: (body) => ({ url: "/api/v1/generated-matches", method: "POST", body }),
+      invalidatesTags: ["MatchMaker"],
+    }),
     deleteGenMatch: build.mutation<unknown, string>({
       query: (id) => ({ url: `/api/v1/generated-matches/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
@@ -667,8 +671,9 @@ export const {
   useDeleteEventRoundMutation,
   useAdjustEventCountMutation,
   useAddEventPlayersMutation,
-  useUpdateGenMatchMutation,
+  useCreateGenMatchMutation,
   useDeleteGenMatchMutation,
+  useUpdateGenMatchMutation,
   usePublicMatchEventsQuery,
   usePublicMatchEventQuery,
   usePeriodSessionsQuery,
