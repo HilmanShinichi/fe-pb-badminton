@@ -16,7 +16,7 @@ import { ReportsPage } from "./pages/Reports";
 import { NoShowTrackerPage } from "./pages/NoShowTracker";
 import { SimulatorPage } from "./pages/Simulator";
 import { MatchMakerListPage, MatchMakerDetailPage } from "./pages/MatchMaker";
-import { LiveEventPage, LiveIndexPage, LivePlayedPage, LiveRefereedPage } from "./pages/Live";
+import { LiveEventPage, LiveIndexPage, LivePlayedPage, LiveRefereedPage, LiveArrivalPage } from "./pages/Live";
 import { I18nProvider } from "./i18n";
 import "./index.css";
 
@@ -37,6 +37,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/live/:id" element={<LiveEventPage />} />
             <Route path="/live/:id/played" element={<LivePlayedPage />} />
             <Route path="/live/:id/refereed" element={<LiveRefereedPage />} />
+            <Route path="/live/:id/arrival" element={<LiveArrivalPage />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<Guard><DashboardPage /></Guard>} />
             <Route path="/mabar" element={<Guard><MabarListPage /></Guard>} />
