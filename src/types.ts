@@ -210,6 +210,7 @@ export interface PeriodAttendanceMatrixRow {
   commitment_amount_paid: number;
   attendances: Record<string, string>;
   present_count: number;
+  fastest_count?: number;
 }
 
 export interface PeriodAttendanceMatrixNonMember {

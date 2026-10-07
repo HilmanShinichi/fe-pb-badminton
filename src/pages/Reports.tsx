@@ -486,6 +486,7 @@ function AttendanceReport({
 }) {
   const { t, isId } = useI18n();
   const [qStr, setQStr] = useState("");
+  const [podiumCategory, setPodiumCategory] = useState<"MOST_PRESENT" | "FASTEST_ARRIVAL">("MOST_PRESENT");
 
   const queryFilter = useMemo<ReportFilterParams>(() => {
     return {
@@ -507,11 +508,25 @@ function AttendanceReport({
     return data.filter((r) => String(r.player ?? "").toLowerCase().includes(term));
   }, [data, qStr]);
 
-  // Top 3 players by highest attendance (present count)
+  // Top 3 players based on selected podium category
   const top3 = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return [...data]
-      .filter((r) => Number(r.present || 0) > 0)
+    const valid = [...data].filter((r) => Number(r.present || 0) > 0);
+
+    if (podiumCategory === "FASTEST_ARRIVAL") {
+      return valid
+        .sort((a, b) => {
+          const fDiff = Number(b.fastest || 0) - Number(a.fastest || 0);
+          if (fDiff !== 0) return fDiff;
+          const tDiff = Number(b.top3_arrival || 0) - Number(a.top3_arrival || 0);
+          if (tDiff !== 0) return tDiff;
+          return Number(b.present || 0) - Number(a.present || 0);
+        })
+        .slice(0, 3);
+    }
+
+    // Default: MOST_PRESENT
+    return valid
       .sort((a, b) => {
         const pDiff = Number(b.present || 0) - Number(a.present || 0);
         if (pDiff !== 0) return pDiff;
@@ -519,10 +534,11 @@ function AttendanceReport({
         const bListed = Number(b.listed || 0);
         const aRate = aListed > 0 ? Number(a.present || 0) / aListed : 0;
         const bRate = bListed > 0 ? Number(b.present || 0) / bListed : 0;
-        return bRate - aRate;
+        if (bRate !== aRate) return bRate - aRate;
+        return Number(b.fastest || 0) - Number(a.fastest || 0);
       })
       .slice(0, 3);
-  }, [data]);
+  }, [data, podiumCategory]);
 
   const rankMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -544,55 +560,92 @@ function AttendanceReport({
   const totalPresent = data.reduce((acc, r) => acc + Number(r.present || 0), 0);
   const totalCancelled = data.reduce((acc, r) => acc + Number(r.cancelled || 0), 0);
   const totalNoShow = data.reduce((acc, r) => acc + Number(r.no_show || 0), 0);
+  const totalFastest = data.reduce((acc, r) => acc + Number(r.fastest || 0), 0);
   const overallRate = totalListed > 0 ? ((totalPresent / totalListed) * 100).toFixed(1) + "%" : "0%";
   const noShowRate = totalListed > 0 ? ((totalNoShow / totalListed) * 100).toFixed(1) + "%" : "0%";
 
   return (
     <div className="space-y-5">
-      {/* Top 3 Attendance 3D Podium */}
+      {/* Top 3 Attendance & Fastest Arrival 3D Podium */}
       <div className="overflow-hidden rounded-3xl border border-line/70 bg-gradient-to-b from-slate-50/70 via-white to-amber-50/20 p-4 sm:p-6 shadow-card">
-        {/* Header with Title & Range Filter Buttons */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-line/60 pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-court/80 p-1.5 shadow-2xs border border-line">
-              <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
-            </span>
-            <div>
-              <h2 className="text-xs font-black uppercase tracking-wider text-ink-soft">
-                {isId ? "Podium Kehadiran Terbanyak" : "Top Attendance Podium"}
-              </h2>
-              <p className="text-xs text-ink-faint">
-                {isId
-                  ? "3 pemain dengan jumlah kehadiran tertinggi dalam rentang waktu"
-                  : "Top 3 players with highest attendance count in the range"}
-              </p>
+        {/* Header with Title, Category Switcher & Range Filter Buttons */}
+        <div className="mb-5 flex flex-col gap-3.5 border-b border-line/60 pb-3.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-court/80 p-1.5 shadow-2xs border border-line">
+                <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
+              </span>
+              <div>
+                <h2 className="text-xs font-black uppercase tracking-wider text-ink-soft">
+                  {podiumCategory === "MOST_PRESENT"
+                    ? (isId ? "Podium Kehadiran Terbanyak" : "Top Attendance Podium")
+                    : (isId ? "Podium Absen Tercepat" : "Fastest Check-in Podium")}
+                </h2>
+                <p className="text-xs text-ink-faint">
+                  {podiumCategory === "MOST_PRESENT"
+                    ? (isId
+                        ? "3 pemain dengan jumlah kehadiran (presensi) tertinggi dalam rentang waktu"
+                        : "Top 3 players with the highest attendance count in the range")
+                    : (isId
+                        ? "3 pemain yang paling sering tiba & absen paling awal di lapangan"
+                        : "Top 3 players who most frequently checked in earliest at the venue")}
+                </p>
+              </div>
+            </div>
+
+            {/* Category Toggle: Kehadiran Terbanyak vs Absen Tercepat */}
+            <div className="flex items-center gap-1 self-start sm:self-auto rounded-xl bg-court/60 p-0.5 border border-line">
+              <button
+                type="button"
+                onClick={() => setPodiumCategory("MOST_PRESENT")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  podiumCategory === "MOST_PRESENT"
+                    ? "bg-pine text-white shadow-2xs"
+                    : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {isId ? "Kehadiran Terbanyak" : "Most Present"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPodiumCategory("FASTEST_ARRIVAL")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  podiumCategory === "FASTEST_ARRIVAL"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {isId ? "⚡ Absen Tercepat" : "⚡ Fastest Arrival"}
+              </button>
             </div>
           </div>
 
           {/* Range Buttons: 3 Bulan, 6 Bulan, 9 Bulan, Semua Waktu */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-ink-faint mr-1 hidden sm:inline">
-              {isId ? "Rentang:" : "Range:"}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-line/40">
+            <span className="text-[11px] font-semibold text-ink-faint">
+              {isId ? "Rentang Waktu Laporan:" : "Report Date Range:"}
             </span>
-            {[
-              { val: 3, label: isId ? "3 Bulan Terakhir" : "Last 3 Months" },
-              { val: 6, label: isId ? "6 Bulan Terakhir" : "Last 6 Months" },
-              { val: 9, label: isId ? "9 Bulan Terakhir" : "Last 9 Months" },
-              { val: 0, label: isId ? "Semua Waktu" : "All Time" },
-            ].map((opt) => (
-              <button
-                key={opt.val}
-                type="button"
-                onClick={() => onMonths(opt.val)}
-                className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                  months === opt.val
-                    ? "bg-pine text-white shadow-2xs"
-                    : "border border-line bg-white text-ink-soft hover:border-pine/40 hover:bg-court/50"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { val: 3, label: isId ? "3 Bulan Terakhir" : "Last 3 Months" },
+                { val: 6, label: isId ? "6 Bulan Terakhir" : "Last 6 Months" },
+                { val: 9, label: isId ? "9 Bulan Terakhir" : "Last 9 Months" },
+                { val: 0, label: isId ? "Semua Waktu" : "All Time" },
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  type="button"
+                  onClick={() => onMonths(opt.val)}
+                  className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                    months === opt.val
+                      ? "bg-pine text-white shadow-2xs"
+                      : "border border-line bg-white text-ink-soft hover:border-pine/40 hover:bg-court/50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -617,11 +670,19 @@ function AttendanceReport({
               </p>
               {second && (
                 <div className="mt-1 flex flex-col items-center gap-0.5">
-                  <span className="inline-block rounded-full bg-slate-100 border border-slate-300 px-2 py-0.5 text-[11px] font-bold text-slate-800">
-                    {num(Number(second.present || 0))}x {isId ? "Hadir" : "Present"}
+                  <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                    podiumCategory === "FASTEST_ARRIVAL"
+                      ? "bg-amber-100 border-amber-300 text-amber-900"
+                      : "bg-slate-100 border-slate-300 text-slate-800"
+                  }`}>
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `⚡ ${num(Number(second.fastest || 0))}x ${isId ? "Tercepat" : "Fastest"}`
+                      : `${num(Number(second.present || 0))}x ${isId ? "Hadir" : "Present"}`}
                   </span>
                   <span className="text-[10px] text-ink-faint">
-                    {Number(second.listed || 0) > 0 ? `${Math.round((Number(second.present || 0) / Number(second.listed || 1)) * 100)}% presensi` : ""}
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `${num(Number(second.present || 0))}x hadir · ${Number(second.top3_arrival || 0)}x 3 terawal`
+                      : (Number(second.fastest || 0) > 0 ? `⚡ ${second.fastest}x tercepat` : `${Math.round((Number(second.present || 0) / Number(second.listed || 1)) * 100)}% presensi`)}
                   </span>
                 </div>
               )}
@@ -656,10 +717,14 @@ function AttendanceReport({
               {first && (
                 <div className="mt-1 flex flex-col items-center gap-0.5">
                   <span className="inline-block rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-0.5 text-xs font-bold text-amber-900 shadow-2xs">
-                    {num(Number(first.present || 0))}x {isId ? "Hadir" : "Present"}
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `⚡ ${num(Number(first.fastest || 0))}x ${isId ? "Tercepat" : "Fastest"}`
+                      : `${num(Number(first.present || 0))}x ${isId ? "Hadir" : "Present"}`}
                   </span>
                   <span className="text-[10px] text-amber-800/80 font-medium">
-                    {Number(first.listed || 0) > 0 ? `${Math.round((Number(first.present || 0) / Number(first.listed || 1)) * 100)}% presensi` : ""}
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `${num(Number(first.present || 0))}x hadir · ${Number(first.top3_arrival || 0)}x 3 terawal`
+                      : (Number(first.fastest || 0) > 0 ? `⚡ ${first.fastest}x tercepat` : `${Math.round((Number(first.present || 0) / Number(first.listed || 1)) * 100)}% presensi`)}
                   </span>
                 </div>
               )}
@@ -669,7 +734,7 @@ function AttendanceReport({
             <div className="flex h-28 sm:h-34 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-amber-400 bg-gradient-to-b from-amber-200 via-amber-100 to-amber-50/50 pt-3 shadow-md">
               <span className="text-3xl sm:text-4xl font-black text-amber-800 tracking-tight">1</span>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">
-                {isId ? "Terbanyak" : "1st Place"}
+                {isId ? "Terawal" : "1st Place"}
               </span>
             </div>
           </div>
@@ -693,11 +758,19 @@ function AttendanceReport({
               </p>
               {third && (
                 <div className="mt-1 flex flex-col items-center gap-0.5">
-                  <span className="inline-block rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11px] font-bold text-amber-800">
-                    {num(Number(third.present || 0))}x {isId ? "Hadir" : "Present"}
+                  <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                    podiumCategory === "FASTEST_ARRIVAL"
+                      ? "bg-amber-100 border-amber-300 text-amber-900"
+                      : "bg-orange-50 border-orange-200 text-amber-800"
+                  }`}>
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `⚡ ${num(Number(third.fastest || 0))}x ${isId ? "Tercepat" : "Fastest"}`
+                      : `${num(Number(third.present || 0))}x ${isId ? "Hadir" : "Present"}`}
                   </span>
                   <span className="text-[10px] text-ink-faint">
-                    {Number(third.listed || 0) > 0 ? `${Math.round((Number(third.present || 0) / Number(third.listed || 1)) * 100)}% presensi` : ""}
+                    {podiumCategory === "FASTEST_ARRIVAL"
+                      ? `${num(Number(third.present || 0))}x hadir · ${Number(third.top3_arrival || 0)}x 3 terawal`
+                      : (Number(third.fastest || 0) > 0 ? `⚡ ${third.fastest}x tercepat` : `${Math.round((Number(third.present || 0) / Number(third.listed || 1)) * 100)}% presensi`)}
                   </span>
                 </div>
               )}
@@ -735,10 +808,15 @@ function AttendanceReport({
               }
             />
             <MetricCard
-              title={t("reports.kpiTotalListed")}
-              value={num(totalListed)}
-              sub={isId ? `${data.length} pemain aktif` : `${data.length} active players`}
+              title={isId ? "Total Absen Tercepat" : "Fastest Check-ins"}
+              value={num(totalFastest)}
+              sub={isId ? `${data.length} pemain aktif tercatat` : `${data.length} active players tracked`}
               highlight="pine"
+              badge={
+                <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                  ⚡ Rank #1
+                </span>
+              }
             />
             <MetricCard
               title={t("reports.kpiCancellations")}
@@ -760,12 +838,12 @@ function AttendanceReport({
             />
           </div>
 
-          {/* Data Table with Search and Visual Bars */}
+          {/* Data Table with Search, Fastest Arrival & Visual Bars */}
           <div className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-court/60 via-court/30 to-white px-4 py-3">
               <div>
-                <h3 className="text-sm font-bold text-ink">{isId ? "Rincian Presensi Pemain" : "Player Attendance Breakdown"}</h3>
-                <p className="text-xs text-ink-soft">{isId ? "Riwayat presensi detail dengan rasio pemenuhan kehadiran" : "Detailed attendance history with visual fulfillment ratio"}</p>
+                <h3 className="text-sm font-bold text-ink">{isId ? "Rincian Presensi & Kecepatan Hadir" : "Player Attendance & Arrival Breakdown"}</h3>
+                <p className="text-xs text-ink-soft">{isId ? "Riwayat presensi detail dengan frekuensi absen tercepat" : "Detailed attendance history with fastest check-in frequency"}</p>
               </div>
               <SearchFilter value={qStr} onChange={setQStr} placeholder={t("reports.searchPlayerPlaceholder")} />
             </div>
@@ -777,6 +855,7 @@ function AttendanceReport({
                     <th>{t("common.player")}</th>
                     <th className="text-right">{t("status.LISTED")}</th>
                     <th className="text-right">{t("status.PRESENT")}</th>
+                    <th className="text-right">{isId ? "Absen Tercepat" : "Fastest #1"}</th>
                     <th className="text-right">{t("status.CANCELLED")}</th>
                     <th className="text-right">{t("status.NO_SHOW")}</th>
                     <th className="w-48 text-left">{isId ? "Rasio Pemenuhan" : "Fulfillment Bar"}</th>
@@ -787,6 +866,7 @@ function AttendanceReport({
                   {filtered.map((r) => {
                     const listed = Number(r.listed || 0);
                     const present = Number(r.present || 0);
+                    const fastest = Number(r.fastest || 0);
                     const cancelled = Number(r.cancelled || 0);
                     const noShow = Number(r.no_show || 0);
                     const pPct = listed > 0 ? (present / listed) * 100 : 0;
@@ -821,6 +901,15 @@ function AttendanceReport({
                         </td>
                         <td className="text-right tabular-nums">{num(listed)}</td>
                         <td className="text-right font-medium text-emerald-700 tabular-nums">{num(present)}</td>
+                        <td className="text-right tabular-nums">
+                          {fastest > 0 ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-50 border border-amber-300/80 px-1.5 py-0.5 text-xs font-bold text-amber-900">
+                              ⚡ {num(fastest)}×
+                            </span>
+                          ) : (
+                            <span className="text-xs text-ink-faint">0×</span>
+                          )}
+                        </td>
                         <td className="text-right tabular-nums text-ink-soft">{num(cancelled)}</td>
                         <td className={`text-right tabular-nums ${noShow > 0 ? "font-bold text-rose-700" : "text-ink-soft"}`}>
                           {num(noShow)}

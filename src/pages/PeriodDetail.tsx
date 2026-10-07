@@ -1294,7 +1294,8 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
 
     rows.forEach((r, idx) => {
       const lap = r.commitment_paid ? "LUNAS" : "BELUM";
-      let rowText = `${idx + 1}. *${r.player_name}* [Lap: ${lap}]`;
+      const fastBadge = (r.fastest_count ?? 0) > 0 ? ` (⚡${r.fastest_count}x tercepat)` : "";
+      let rowText = `${idx + 1}. *${r.player_name}*${fastBadge} [Lap: ${lap}]`;
       sessions.forEach((s) => {
         const hadir = r.attendances[s.id] === "PRESENT";
         rowText += ` | ${dateDmy(s.date).slice(0, 5)}: ${hadir ? "✓" : "TH"}`;
@@ -1594,7 +1595,19 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 {rows.map((r, idx) => (
                   <tr key={r.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
                     <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600">{idx + 1}</td>
-                    <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{r.player_name}</td>
+                    <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span>{r.player_name}</span>
+                        {(r.fastest_count ?? 0) > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.2 text-[10px] font-bold text-amber-900 shadow-2xs"
+                            title={`Absen tercepat: ${r.fastest_count}x`}
+                          >
+                            ⚡ {r.fastest_count}x tercepat
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-2 px-3 border border-neutral-400">
                       {r.commitment_paid ? (
                         <span className="inline-block w-full py-1 font-bold text-xs bg-emerald-600 text-white rounded shadow-sm">
