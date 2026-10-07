@@ -526,16 +526,23 @@ function AttendanceReport({
     }
 
     // Default: MOST_PRESENT
+    // Tiebreaker: kalau kehadiran sama → fastest #1 terbanyak menang → lalu top3_arrival → lalu attendance rate
     return valid
       .sort((a, b) => {
         const pDiff = Number(b.present || 0) - Number(a.present || 0);
         if (pDiff !== 0) return pDiff;
+        // Tiebreaker 1: paling sering jadi orang pertama absen (arrival #1)
+        const fDiff = Number(b.fastest || 0) - Number(a.fastest || 0);
+        if (fDiff !== 0) return fDiff;
+        // Tiebreaker 2: paling sering masuk top 3 kedatangan
+        const t3Diff = Number(b.top3_arrival || 0) - Number(a.top3_arrival || 0);
+        if (t3Diff !== 0) return t3Diff;
+        // Tiebreaker 3: attendance rate (lebih konsisten hadir)
         const aListed = Number(a.listed || 0);
         const bListed = Number(b.listed || 0);
         const aRate = aListed > 0 ? Number(a.present || 0) / aListed : 0;
         const bRate = bListed > 0 ? Number(b.present || 0) / bListed : 0;
-        if (bRate !== aRate) return bRate - aRate;
-        return Number(b.fastest || 0) - Number(a.fastest || 0);
+        return bRate - aRate;
       })
       .slice(0, 3);
   }, [data, podiumCategory]);
