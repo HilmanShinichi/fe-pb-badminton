@@ -315,6 +315,169 @@ export function LiveRefereedPage() {
   return <LiveCountsPage kind="refereed" />;
 }
 
+function getPlayerInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
+ * 3D-styled vector Crown with realistic gold bevels, metallic depth, pearls, and embedded gemstones.
+ */
+function IconCrown3D({ className = "h-8 w-8" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <defs>
+        <linearGradient id="crownGoldMain" x1="8" y1="12" x2="56" y2="52" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fffbeb" />
+          <stop offset="18%" stopColor="#fde047" />
+          <stop offset="55%" stopColor="#eab308" />
+          <stop offset="100%" stopColor="#a16207" />
+        </linearGradient>
+        <linearGradient id="crownInnerGold" x1="16" y1="20" x2="48" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#b45309" />
+          <stop offset="100%" stopColor="#78350f" />
+        </linearGradient>
+        <linearGradient id="crownPeakGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="50%" stopColor="#fef08a" />
+          <stop offset="100%" stopColor="#eab308" />
+        </linearGradient>
+        <linearGradient id="crownBaseGrad" x1="10" y1="46" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="30%" stopColor="#eab308" />
+          <stop offset="70%" stopColor="#ca8a04" />
+          <stop offset="100%" stopColor="#854d0e" />
+        </linearGradient>
+        <radialGradient id="crownJewelRuby" cx="50%" cy="40%" r="50%">
+          <stop offset="0%" stopColor="#fca5a5" />
+          <stop offset="60%" stopColor="#dc2626" />
+          <stop offset="100%" stopColor="#7f1d1d" />
+        </radialGradient>
+        <radialGradient id="crownJewelEmerald" cx="50%" cy="40%" r="50%">
+          <stop offset="0%" stopColor="#6ee7b7" />
+          <stop offset="60%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#064e3b" />
+        </radialGradient>
+        <filter id="crownDropShadow" x="-10%" y="-10%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="2.5" stdDeviation="1.8" floodColor="#451a03" floodOpacity="0.32" />
+        </filter>
+      </defs>
+
+      <g filter="url(#crownDropShadow)">
+        {/* Crown 3D Inner Cavity */}
+        <ellipse cx="32" cy="46" rx="20" ry="3.5" fill="url(#crownInnerGold)" opacity="0.9" />
+        <path d="M17 44 L22 28 L32 36 L42 28 L47 44 Z" fill="url(#crownInnerGold)" opacity="0.75" />
+
+        {/* Front Peaks */}
+        <path d="M32 14 L39 46 H25 Z" fill="url(#crownGoldMain)" />
+        <path d="M20 20 L27 46 H13 Z" fill="url(#crownGoldMain)" />
+        <path d="M44 20 L51 46 H37 Z" fill="url(#crownGoldMain)" />
+        <path d="M10 26 L16 47 H9 L8 28 Z" fill="url(#crownGoldMain)" />
+        <path d="M54 26 L56 28 L55 47 H48 Z" fill="url(#crownGoldMain)" />
+
+        {/* Facet Highlights */}
+        <path d="M32 14 L33 46 H31 Z" fill="#fffbeb" opacity="0.85" />
+        <path d="M32 14 L39 46 L32 46 Z" fill="#b45309" opacity="0.25" />
+        <path d="M20 20 L24 46 H20 Z" fill="#fffbeb" opacity="0.6" />
+        <path d="M44 20 L44 46 H41 Z" fill="#fffbeb" opacity="0.6" />
+
+        {/* 3D Curved Base Band */}
+        <path
+          d="M10 46 C10 46 20 49 32 49 C44 49 54 46 54 46 L54 51 C54 51 44 54 32 54 C20 54 10 51 10 51 Z"
+          fill="url(#crownBaseGrad)"
+          stroke="#78350f"
+          strokeWidth="0.8"
+        />
+        <path
+          d="M10 46 C18 48.5 32 49.5 54 46"
+          stroke="#ffffff"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+
+        {/* Pearl Sphere Tips */}
+        <circle cx="32" cy="14" r="3.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
+        <circle cx="31.2" cy="13" r="1" fill="#ffffff" />
+        <circle cx="20" cy="20" r="2.7" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
+        <circle cx="19.4" cy="19.2" r="0.8" fill="#ffffff" />
+        <circle cx="44" cy="20" r="2.7" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
+        <circle cx="43.4" cy="19.2" r="0.8" fill="#ffffff" />
+        <circle cx="9" cy="27" r="2.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.6" />
+        <circle cx="55" cy="27" r="2.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.6" />
+
+        {/* Gemstones on Base Band */}
+        <circle cx="32" cy="50.2" r="2.5" fill="url(#crownJewelRuby)" stroke="#450a0a" strokeWidth="0.5" />
+        <circle cx="31.3" cy="49.5" r="0.8" fill="#ffffff" opacity="0.8" />
+        <circle cx="21" cy="48.8" r="2" fill="url(#crownJewelEmerald)" stroke="#064e3b" strokeWidth="0.5" />
+        <circle cx="20.4" cy="48.3" r="0.6" fill="#ffffff" opacity="0.8" />
+        <circle cx="43" cy="48.8" r="2" fill="url(#crownJewelEmerald)" stroke="#064e3b" strokeWidth="0.5" />
+        <circle cx="42.4" cy="48.3" r="0.6" fill="#ffffff" opacity="0.8" />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * 3D-styled Silver Medal vector badge with beveled metallic sheen.
+ */
+function IconMedalSilver3D({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <defs>
+        <linearGradient id="silverRimGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="30%" stopColor="#cbd5e1" />
+          <stop offset="70%" stopColor="#94a3b8" />
+          <stop offset="100%" stopColor="#64748b" />
+        </linearGradient>
+        <radialGradient id="silverFaceGrad" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stopColor="#f8fafc" />
+          <stop offset="50%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#94a3b8" />
+        </radialGradient>
+      </defs>
+      <circle cx="24" cy="24" r="21" fill="url(#silverRimGrad)" stroke="#64748b" strokeWidth="1" />
+      <circle cx="24" cy="24" r="17" fill="url(#silverFaceGrad)" stroke="#ffffff" strokeWidth="0.8" />
+      <path d="M12 18 C15 11 25 10 33 13" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+      <text x="24" y="30" textAnchor="middle" fontSize="17" fontWeight="900" fontFamily="sans-serif" fill="#334155">
+        2
+      </text>
+    </svg>
+  );
+}
+
+/**
+ * 3D-styled Bronze Medal vector badge with rich warm copper-gold metallic sheen.
+ */
+function IconMedalBronze3D({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <defs>
+        <linearGradient id="bronzeRimGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fed7aa" />
+          <stop offset="35%" stopColor="#ea580c" />
+          <stop offset="70%" stopColor="#9a3412" />
+          <stop offset="100%" stopColor="#7c2d12" />
+        </linearGradient>
+        <radialGradient id="bronzeFaceGrad" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stopColor="#ffedd5" />
+          <stop offset="50%" stopColor="#fdba74" />
+          <stop offset="100%" stopColor="#c2410c" />
+        </radialGradient>
+      </defs>
+      <circle cx="24" cy="24" r="21" fill="url(#bronzeRimGrad)" stroke="#7c2d12" strokeWidth="1" />
+      <circle cx="24" cy="24" r="17" fill="url(#bronzeFaceGrad)" stroke="#fed7aa" strokeWidth="0.8" />
+      <path d="M12 18 C15 11 25 10 33 13" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+      <text x="24" y="30" textAnchor="middle" fontSize="17" fontWeight="900" fontFamily="sans-serif" fill="#431407">
+        3
+      </text>
+    </svg>
+  );
+}
+
 export function LiveArrivalPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -447,86 +610,135 @@ export function LiveArrivalPage() {
             </div>
           </div>
 
-          {/* 3 Terawal Section */}
+          {/* 3 Terawal Section - Modern Clean 3D Podium */}
           {checkedIn.length > 0 && (
-            <div className="mb-6 rounded-2xl border border-line bg-white p-4 shadow-card">
-              <div className="mb-3 flex items-center justify-between">
+            <div className="mb-6 overflow-hidden rounded-3xl border border-line/70 bg-gradient-to-b from-slate-50/70 via-white to-amber-50/20 p-4 sm:p-6 shadow-card">
+              <div className="mb-5 flex items-center justify-between border-b border-line/60 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-court/70 p-0.5">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-court/80 p-1 shadow-2xs">
                     <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
                   </span>
                   <div>
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-                      {isId ? "3 Kedatangan Terawal" : "First 3 Arrivals"}
+                    <h2 className="text-xs font-black uppercase tracking-wider text-ink-soft">
+                      {isId ? "Podium 3 Kedatangan Terawal" : "Top 3 Earliest Arrivals Podium"}
                     </h2>
                     <p className="text-xs text-ink-faint">
-                      {isId ? "Pemain yang tiba paling awal di lapangan" : "Players who arrived earliest at the venue"}
+                      {isId ? "Pemain yang hadir paling awal di lapangan" : "Players who arrived earliest at the venue"}
                     </p>
                   </div>
                 </div>
-                <span className="rounded-md border border-line bg-court/40 px-2 py-0.5 text-xs font-semibold text-ink-soft">
-                  {top3.length} / 3
+                <span className="rounded-full border border-line bg-white px-2.5 py-0.5 text-xs font-bold text-ink-soft shadow-2xs">
+                  {top3.length} / 3 {isId ? "hadir" : "arrived"}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                {/* Posisi 1 */}
-                <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50/40 p-3">
-                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-200 text-amber-900 font-black text-sm">
-                    1
-                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white p-0.5 shadow-2xs border border-amber-300">
-                      <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
+              {/* Podium Stage */}
+              <div className="mx-auto flex max-w-xl items-end justify-center gap-2 sm:gap-4 pt-4">
+                {/* 2nd Place (Silver) */}
+                <div className="flex flex-1 flex-col items-center">
+                  {/* Medal & Avatar */}
+                  <div className="relative mb-2 flex flex-col items-center">
+                    <div className="mb-1 transition-transform hover:scale-105">
+                      <IconMedalSilver3D className="h-8 w-8 sm:h-9 sm:w-9 drop-shadow-sm" />
+                    </div>
+                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-white via-slate-100 to-slate-200 font-black text-slate-700 shadow-sm text-sm sm:text-base">
+                      {second ? getPlayerInitials(second.name) : "—"}
+                    </div>
+                  </div>
+
+                  {/* Player Name & Grade */}
+                  <div className="mb-2 text-center w-full px-1">
+                    <p className="truncate text-xs sm:text-sm font-bold text-ink" title={second?.name}>
+                      {second ? second.name : (isId ? "Menunggu" : "Waiting")}
+                    </p>
+                    <div className="mt-0.5 flex items-center justify-center gap-1">
+                      {second?.grade && <GradeChip grade={second.grade} />}
+                    </div>
+                    <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                      {isId ? "Urutan 2" : "Order 2"}
                     </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink" title={first?.name}>
-                      {first ? first.name : (isId ? "Menunggu pemain" : "Waiting for player")}
+
+                  {/* Pedestal Block */}
+                  <div className="flex h-20 sm:h-24 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-slate-300 bg-gradient-to-b from-slate-200/90 via-slate-100 to-slate-50/40 pt-2 shadow-sm">
+                    <span className="text-2xl sm:text-3xl font-black text-slate-600/90 tracking-tight">2</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                      {isId ? "Kedua" : "2nd"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 1st Place (Gold) - Elevated Center */}
+                <div className="flex flex-1 flex-col items-center -mt-6">
+                  {/* 3D Crown & Avatar */}
+                  <div className="relative mb-2 flex flex-col items-center">
+                    <div className="mb-1 transition-transform hover:scale-105">
+                      <IconCrown3D className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-md" />
+                    </div>
+                    <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-amber-200 to-amber-300 font-black text-amber-950 shadow-md text-base sm:text-lg">
+                      {first ? getPlayerInitials(first.name) : "—"}
+                    </div>
+                  </div>
+
+                  {/* Player Name & Grade */}
+                  <div className="mb-2 text-center w-full px-1">
+                    <p className="truncate text-sm sm:text-base font-extrabold text-ink" title={first?.name}>
+                      {first ? first.name : (isId ? "Menunggu" : "Waiting")}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
+                    <div className="mt-0.5 flex items-center justify-center gap-1">
                       {first?.grade && <GradeChip grade={first.grade} />}
-                      <span className="text-[11px] font-semibold text-amber-800">
-                        {isId ? "Urutan 1 (Terawal)" : "Order 1 (Earliest)"}
-                      </span>
                     </div>
+                    <span className="mt-1 inline-block rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-900 shadow-2xs">
+                      {isId ? "Urutan 1 · Terawal" : "Order 1 · Earliest"}
+                    </span>
+                  </div>
+
+                  {/* Pedestal Block */}
+                  <div className="flex h-28 sm:h-32 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-amber-400 bg-gradient-to-b from-amber-200 via-amber-100 to-amber-50/50 pt-3 shadow-md">
+                    <span className="text-3xl sm:text-4xl font-black text-amber-800 tracking-tight">1</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">
+                      {isId ? "Terawal" : "Earliest"}
+                    </span>
                   </div>
                 </div>
 
-                {/* Posisi 2 */}
-                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-800 font-black text-sm">
-                    2
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink" title={second?.name}>
-                      {second ? second.name : (isId ? "Menunggu pemain" : "Waiting for player")}
-                    </p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      {second?.grade && <GradeChip grade={second.grade} />}
-                      <span className="text-[11px] font-medium text-slate-600">
-                        {isId ? "Urutan 2" : "Order 2"}
-                      </span>
+                {/* 3rd Place (Bronze) */}
+                <div className="flex flex-1 flex-col items-center">
+                  {/* Medal & Avatar */}
+                  <div className="relative mb-2 flex flex-col items-center">
+                    <div className="mb-1 transition-transform hover:scale-105">
+                      <IconMedalBronze3D className="h-8 w-8 sm:h-9 sm:w-9 drop-shadow-sm" />
+                    </div>
+                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-amber-700/40 bg-gradient-to-br from-white via-orange-100 to-amber-200/80 font-black text-amber-950 shadow-sm text-sm sm:text-base">
+                      {third ? getPlayerInitials(third.name) : "—"}
                     </div>
                   </div>
-                </div>
 
-                {/* Posisi 3 */}
-                <div className="flex items-center gap-3 rounded-xl border border-line bg-white p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-ink-soft font-black text-sm">
-                    3
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink" title={third?.name}>
-                      {third ? third.name : (isId ? "Menunggu pemain" : "Waiting for player")}
+                  {/* Player Name & Grade */}
+                  <div className="mb-2 text-center w-full px-1">
+                    <p className="truncate text-xs sm:text-sm font-bold text-ink" title={third?.name}>
+                      {third ? third.name : (isId ? "Menunggu" : "Waiting")}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
+                    <div className="mt-0.5 flex items-center justify-center gap-1">
                       {third?.grade && <GradeChip grade={third.grade} />}
-                      <span className="text-[11px] font-medium text-ink-soft">
-                        {isId ? "Urutan 3" : "Order 3"}
-                      </span>
                     </div>
+                    <span className="mt-1 inline-block rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                      {isId ? "Urutan 3" : "Order 3"}
+                    </span>
+                  </div>
+
+                  {/* Pedestal Block */}
+                  <div className="flex h-16 sm:h-20 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-amber-300 bg-gradient-to-b from-orange-200/80 via-amber-100/70 to-amber-50/30 pt-2 shadow-sm">
+                    <span className="text-xl sm:text-2xl font-black text-amber-900/80 tracking-tight">3</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-800/80">
+                      {isId ? "Ketiga" : "3rd"}
+                    </span>
                   </div>
                 </div>
               </div>
+
+              {/* Stage Base Baseline */}
+              <div className="mx-auto h-1.5 w-full max-w-xl rounded-full bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
             </div>
           )}
 
@@ -677,7 +889,8 @@ export function LiveArrivalPage() {
                     const isArrived = (p.arrival ?? 0) > 0;
                     const arrivalNum = p.arrival ?? 0;
                     const isTop1 = arrivalNum === 1;
-                    const isTopEarly = arrivalNum >= 1 && arrivalNum <= 3;
+                    const isTop2 = arrivalNum === 2;
+                    const isTop3 = arrivalNum === 3;
                     const isOnTime = arrivalNum >= 4 && arrivalNum <= 9;
                     const isLatePlayer = arrivalNum >= 10;
 
@@ -702,13 +915,19 @@ export function LiveArrivalPage() {
                         </td>
                         <td>
                           {isTop1 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
-                              <img src="/favicon.svg" alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900 shadow-2xs">
+                              <IconCrown3D className="h-4 w-4 shrink-0" />
                               <span>{isId ? "Terawal (Urutan 1)" : "Earliest (Order 1)"}</span>
                             </span>
-                          ) : isTopEarly ? (
-                            <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                              {isId ? `3 Terawal (Urutan ${arrivalNum})` : `First 3 (Order ${arrivalNum})`}
+                          ) : isTop2 ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-800 shadow-2xs">
+                              <IconMedalSilver3D className="h-3.5 w-3.5 shrink-0" />
+                              <span>{isId ? "3 Terawal (Urutan 2)" : "First 3 (Order 2)"}</span>
+                            </span>
+                          ) : isTop3 ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300/80 bg-orange-50 px-2 py-0.5 text-xs font-bold text-amber-900 shadow-2xs">
+                              <IconMedalBronze3D className="h-3.5 w-3.5 shrink-0" />
+                              <span>{isId ? "3 Terawal (Urutan 3)" : "First 3 (Order 3)"}</span>
                             </span>
                           ) : isOnTime ? (
                             <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
@@ -730,7 +949,11 @@ export function LiveArrivalPage() {
                               className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-2 text-xs font-bold tabular-nums ${
                                 isTop1
                                   ? "bg-amber-100 text-amber-950 border border-amber-300"
-                                  : isLatePlayer
+                                  : isTop2
+                                    ? "bg-slate-100 text-slate-800 border border-slate-300"
+                                    : isTop3
+                                      ? "bg-orange-100/70 text-amber-900 border border-amber-300"
+                                      : isLatePlayer
                                     ? "bg-rose-100 text-rose-800 border border-rose-200"
                                     : "bg-slate-100 text-ink"
                               }`}
