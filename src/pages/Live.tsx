@@ -323,158 +323,35 @@ function getPlayerInitials(name: string) {
 }
 
 /**
- * 3D-styled vector Crown with realistic gold bevels, metallic depth, pearls, and embedded gemstones.
+ * 3D Crown and Medal assets (modern 3D claymorphic & metallic render).
  */
 function IconCrown3D({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="crownGoldMain" x1="8" y1="12" x2="56" y2="52" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fffbeb" />
-          <stop offset="18%" stopColor="#fde047" />
-          <stop offset="55%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#a16207" />
-        </linearGradient>
-        <linearGradient id="crownInnerGold" x1="16" y1="20" x2="48" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#b45309" />
-          <stop offset="100%" stopColor="#78350f" />
-        </linearGradient>
-        <linearGradient id="crownPeakGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="50%" stopColor="#fef08a" />
-          <stop offset="100%" stopColor="#eab308" />
-        </linearGradient>
-        <linearGradient id="crownBaseGrad" x1="10" y1="46" x2="54" y2="54" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fef08a" />
-          <stop offset="30%" stopColor="#eab308" />
-          <stop offset="70%" stopColor="#ca8a04" />
-          <stop offset="100%" stopColor="#854d0e" />
-        </linearGradient>
-        <radialGradient id="crownJewelRuby" cx="50%" cy="40%" r="50%">
-          <stop offset="0%" stopColor="#fca5a5" />
-          <stop offset="60%" stopColor="#dc2626" />
-          <stop offset="100%" stopColor="#7f1d1d" />
-        </radialGradient>
-        <radialGradient id="crownJewelEmerald" cx="50%" cy="40%" r="50%">
-          <stop offset="0%" stopColor="#6ee7b7" />
-          <stop offset="60%" stopColor="#059669" />
-          <stop offset="100%" stopColor="#064e3b" />
-        </radialGradient>
-        <filter id="crownDropShadow" x="-10%" y="-10%" width="130%" height="130%">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="1.8" floodColor="#451a03" floodOpacity="0.32" />
-        </filter>
-      </defs>
-
-      <g filter="url(#crownDropShadow)">
-        {/* Crown 3D Inner Cavity */}
-        <ellipse cx="32" cy="46" rx="20" ry="3.5" fill="url(#crownInnerGold)" opacity="0.9" />
-        <path d="M17 44 L22 28 L32 36 L42 28 L47 44 Z" fill="url(#crownInnerGold)" opacity="0.75" />
-
-        {/* Front Peaks */}
-        <path d="M32 14 L39 46 H25 Z" fill="url(#crownGoldMain)" />
-        <path d="M20 20 L27 46 H13 Z" fill="url(#crownGoldMain)" />
-        <path d="M44 20 L51 46 H37 Z" fill="url(#crownGoldMain)" />
-        <path d="M10 26 L16 47 H9 L8 28 Z" fill="url(#crownGoldMain)" />
-        <path d="M54 26 L56 28 L55 47 H48 Z" fill="url(#crownGoldMain)" />
-
-        {/* Facet Highlights */}
-        <path d="M32 14 L33 46 H31 Z" fill="#fffbeb" opacity="0.85" />
-        <path d="M32 14 L39 46 L32 46 Z" fill="#b45309" opacity="0.25" />
-        <path d="M20 20 L24 46 H20 Z" fill="#fffbeb" opacity="0.6" />
-        <path d="M44 20 L44 46 H41 Z" fill="#fffbeb" opacity="0.6" />
-
-        {/* 3D Curved Base Band */}
-        <path
-          d="M10 46 C10 46 20 49 32 49 C44 49 54 46 54 46 L54 51 C54 51 44 54 32 54 C20 54 10 51 10 51 Z"
-          fill="url(#crownBaseGrad)"
-          stroke="#78350f"
-          strokeWidth="0.8"
-        />
-        <path
-          d="M10 46 C18 48.5 32 49.5 54 46"
-          stroke="#ffffff"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          opacity="0.8"
-        />
-
-        {/* Pearl Sphere Tips */}
-        <circle cx="32" cy="14" r="3.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
-        <circle cx="31.2" cy="13" r="1" fill="#ffffff" />
-        <circle cx="20" cy="20" r="2.7" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
-        <circle cx="19.4" cy="19.2" r="0.8" fill="#ffffff" />
-        <circle cx="44" cy="20" r="2.7" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.8" />
-        <circle cx="43.4" cy="19.2" r="0.8" fill="#ffffff" />
-        <circle cx="9" cy="27" r="2.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.6" />
-        <circle cx="55" cy="27" r="2.2" fill="url(#crownPeakGrad)" stroke="#78350f" strokeWidth="0.6" />
-
-        {/* Gemstones on Base Band */}
-        <circle cx="32" cy="50.2" r="2.5" fill="url(#crownJewelRuby)" stroke="#450a0a" strokeWidth="0.5" />
-        <circle cx="31.3" cy="49.5" r="0.8" fill="#ffffff" opacity="0.8" />
-        <circle cx="21" cy="48.8" r="2" fill="url(#crownJewelEmerald)" stroke="#064e3b" strokeWidth="0.5" />
-        <circle cx="20.4" cy="48.3" r="0.6" fill="#ffffff" opacity="0.8" />
-        <circle cx="43" cy="48.8" r="2" fill="url(#crownJewelEmerald)" stroke="#064e3b" strokeWidth="0.5" />
-        <circle cx="42.4" cy="48.3" r="0.6" fill="#ffffff" opacity="0.8" />
-      </g>
-    </svg>
+    <img
+      src="/assets/crown-3d.png"
+      alt="Mahkota 3D"
+      className={`${className} object-contain select-none pointer-events-none drop-shadow-md`}
+    />
   );
 }
 
-/**
- * 3D-styled Silver Medal vector badge with beveled metallic sheen.
- */
 function IconMedalSilver3D({ className = "h-7 w-7" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="silverRimGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="30%" stopColor="#cbd5e1" />
-          <stop offset="70%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#64748b" />
-        </linearGradient>
-        <radialGradient id="silverFaceGrad" cx="35%" cy="30%" r="65%">
-          <stop offset="0%" stopColor="#f8fafc" />
-          <stop offset="50%" stopColor="#e2e8f0" />
-          <stop offset="100%" stopColor="#94a3b8" />
-        </radialGradient>
-      </defs>
-      <circle cx="24" cy="24" r="21" fill="url(#silverRimGrad)" stroke="#64748b" strokeWidth="1" />
-      <circle cx="24" cy="24" r="17" fill="url(#silverFaceGrad)" stroke="#ffffff" strokeWidth="0.8" />
-      <path d="M12 18 C15 11 25 10 33 13" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-      <text x="24" y="30" textAnchor="middle" fontSize="17" fontWeight="900" fontFamily="sans-serif" fill="#334155">
-        2
-      </text>
-    </svg>
+    <img
+      src="/assets/medal-silver-3d.png"
+      alt="Medali Perak 3D"
+      className={`${className} object-contain select-none pointer-events-none drop-shadow-sm`}
+    />
   );
 }
 
-/**
- * 3D-styled Bronze Medal vector badge with rich warm copper-gold metallic sheen.
- */
 function IconMedalBronze3D({ className = "h-7 w-7" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="bronzeRimGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fed7aa" />
-          <stop offset="35%" stopColor="#ea580c" />
-          <stop offset="70%" stopColor="#9a3412" />
-          <stop offset="100%" stopColor="#7c2d12" />
-        </linearGradient>
-        <radialGradient id="bronzeFaceGrad" cx="35%" cy="30%" r="65%">
-          <stop offset="0%" stopColor="#ffedd5" />
-          <stop offset="50%" stopColor="#fdba74" />
-          <stop offset="100%" stopColor="#c2410c" />
-        </radialGradient>
-      </defs>
-      <circle cx="24" cy="24" r="21" fill="url(#bronzeRimGrad)" stroke="#7c2d12" strokeWidth="1" />
-      <circle cx="24" cy="24" r="17" fill="url(#bronzeFaceGrad)" stroke="#fed7aa" strokeWidth="0.8" />
-      <path d="M12 18 C15 11 25 10 33 13" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-      <text x="24" y="30" textAnchor="middle" fontSize="17" fontWeight="900" fontFamily="sans-serif" fill="#431407">
-        3
-      </text>
-    </svg>
+    <img
+      src="/assets/medal-bronze-3d.png"
+      alt="Medali Perunggu 3D"
+      className={`${className} object-contain select-none pointer-events-none drop-shadow-sm`}
+    />
   );
 }
 
@@ -639,7 +516,7 @@ export function LiveArrivalPage() {
                   {/* Medal & Avatar */}
                   <div className="relative mb-2 flex flex-col items-center">
                     <div className="mb-1 transition-transform hover:scale-105">
-                      <IconMedalSilver3D className="h-8 w-8 sm:h-9 sm:w-9 drop-shadow-sm" />
+                      <IconMedalSilver3D className="h-12 w-12 sm:h-14 sm:w-14 -mb-1 transition-transform hover:scale-110" />
                     </div>
                     <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-white via-slate-100 to-slate-200 font-black text-slate-700 shadow-sm text-sm sm:text-base">
                       {second ? getPlayerInitials(second.name) : "—"}
@@ -673,7 +550,7 @@ export function LiveArrivalPage() {
                   {/* 3D Crown & Avatar */}
                   <div className="relative mb-2 flex flex-col items-center">
                     <div className="mb-1 transition-transform hover:scale-105">
-                      <IconCrown3D className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-md" />
+                      <IconCrown3D className="h-16 w-16 sm:h-20 sm:w-20 -mb-2 transition-transform hover:scale-110" />
                     </div>
                     <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-amber-200 to-amber-300 font-black text-amber-950 shadow-md text-base sm:text-lg">
                       {first ? getPlayerInitials(first.name) : "—"}
@@ -707,7 +584,7 @@ export function LiveArrivalPage() {
                   {/* Medal & Avatar */}
                   <div className="relative mb-2 flex flex-col items-center">
                     <div className="mb-1 transition-transform hover:scale-105">
-                      <IconMedalBronze3D className="h-8 w-8 sm:h-9 sm:w-9 drop-shadow-sm" />
+                      <IconMedalBronze3D className="h-12 w-12 sm:h-14 sm:w-14 -mb-1 transition-transform hover:scale-110" />
                     </div>
                     <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-amber-700/40 bg-gradient-to-br from-white via-orange-100 to-amber-200/80 font-black text-amber-950 shadow-sm text-sm sm:text-base">
                       {third ? getPlayerInitials(third.name) : "—"}
