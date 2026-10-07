@@ -23,3 +23,9 @@ export {
   IconCheck,
   IconSparkles,
 } from "./Icons/SportsIcons";
+export {
+  IconCrown3D,
+  IconMedalSilver3D,
+  IconMedalBronze3D,
+  getPlayerInitials,
+} from "./Icons/Icons3D";

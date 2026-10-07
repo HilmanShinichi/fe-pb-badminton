@@ -12,7 +12,7 @@ import {
 } from "../store/services";
 import { num, rateBp, rupiah } from "../format";
 import { useI18n } from "../i18n";
-import { Empty, ErrorBox, Loading, PageHead } from "../ui";
+import { Empty, ErrorBox, Loading, PageHead, IconCrown3D, IconMedalSilver3D, IconMedalBronze3D, getPlayerInitials } from "../ui";
 import { downloadAuthedCsv } from "../utils/download";
 
 type Tab = "attendance" | "noshow" | "shuttlecock" | "usage" | "financial" | "inactive";
@@ -65,7 +65,7 @@ const TAB_ICONS: Record<Tab, ReactNode> = {
 export function ReportsPage() {
   const { t, dateFormatted, isId } = useI18n();
   const [tab, setTab] = useState<Tab>("attendance");
-  const [months, setMonths] = useState(6);
+  const [months, setMonths] = useState(3);
   const [downloading, setDownloading] = useState(false);
   const [dlError, setDlError] = useState("");
 
@@ -357,7 +357,7 @@ export function ReportsPage() {
       </div>
 
       {/* Active Tab View */}
-      {tab === "attendance" && <AttendanceReport filter={reportFilter} />}
+      {tab === "attendance" && <AttendanceReport filter={reportFilter} months={months} onMonths={setMonths} />}
       {tab === "noshow" && <NoShowReport filter={reportFilter} />}
       {tab === "shuttlecock" && <ShuttlecockReport filter={reportFilter} />}
       {tab === "usage" && <UsageReport filter={reportFilter} />}
@@ -376,6 +376,7 @@ function csvPath(tab: Tab, months: number, filter: ReportFilterParams): string {
   switch (tab) {
     case "attendance": {
       qs.set("format", "csv");
+      if (months > 0) qs.set("months", String(months));
       return `/api/v1/reports/attendance?${qs.toString()}`;
     }
     case "noshow": {
@@ -474,10 +475,26 @@ function SearchFilter({ value, onChange, placeholder }: { value: string; onChang
  * 1. ATTENDANCE REPORT
  * ========================================================================= */
 
-function AttendanceReport({ filter }: { filter: ReportFilterParams }) {
+function AttendanceReport({
+  filter,
+  months,
+  onMonths,
+}: {
+  filter: ReportFilterParams;
+  months: number;
+  onMonths: (m: number) => void;
+}) {
   const { t, isId } = useI18n();
   const [qStr, setQStr] = useState("");
-  const q = useReportAttendanceQuery(filter);
+
+  const queryFilter = useMemo<ReportFilterParams>(() => {
+    return {
+      ...filter,
+      months: months > 0 ? months : undefined,
+    };
+  }, [filter, months]);
+
+  const q = useReportAttendanceQuery(queryFilter);
 
   const data = useMemo(() => {
     if (!q.data) return [];
@@ -490,9 +507,37 @@ function AttendanceReport({ filter }: { filter: ReportFilterParams }) {
     return data.filter((r) => String(r.player ?? "").toLowerCase().includes(term));
   }, [data, qStr]);
 
+  // Top 3 players by highest attendance (present count)
+  const top3 = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    return [...data]
+      .filter((r) => Number(r.present || 0) > 0)
+      .sort((a, b) => {
+        const pDiff = Number(b.present || 0) - Number(a.present || 0);
+        if (pDiff !== 0) return pDiff;
+        const aListed = Number(a.listed || 0);
+        const bListed = Number(b.listed || 0);
+        const aRate = aListed > 0 ? Number(a.present || 0) / aListed : 0;
+        const bRate = bListed > 0 ? Number(b.present || 0) / bListed : 0;
+        return bRate - aRate;
+      })
+      .slice(0, 3);
+  }, [data]);
+
+  const rankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    top3.forEach((r, idx) => {
+      map.set(String(r.player), idx + 1);
+    });
+    return map;
+  }, [top3]);
+
+  const first = top3[0] ?? null;
+  const second = top3[1] ?? null;
+  const third = top3[2] ?? null;
+
   if (q.isFetching && !q.data) return <Loading />;
   if (q.isError || !q.data) return <ErrorBox message={isId ? "Gagal memuat laporan presensi." : "Could not load attendance report."} onRetry={() => q.refetch()} />;
-  if (data.length === 0) return <Empty text={t("reports.emptyData")} />;
 
   // Aggregated Stats
   const totalListed = data.reduce((acc, r) => acc + Number(r.listed || 0), 0);
@@ -503,117 +548,314 @@ function AttendanceReport({ filter }: { filter: ReportFilterParams }) {
   const noShowRate = totalListed > 0 ? ((totalNoShow / totalListed) * 100).toFixed(1) + "%" : "0%";
 
   return (
-    <div className="space-y-4">
-      {/* Executive KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard
-          title={t("reports.kpiOverallAttendance")}
-          value={overallRate}
-          sub={isId ? `${num(totalPresent)} dari ${num(totalListed)} hadir` : `${num(totalPresent)} of ${num(totalListed)} attended`}
-          highlight="emerald"
-          badge={
-            <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-              {t("status.PRESENT")}
+    <div className="space-y-5">
+      {/* Top 3 Attendance 3D Podium */}
+      <div className="overflow-hidden rounded-3xl border border-line/70 bg-gradient-to-b from-slate-50/70 via-white to-amber-50/20 p-4 sm:p-6 shadow-card">
+        {/* Header with Title & Range Filter Buttons */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-line/60 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-court/80 p-1.5 shadow-2xs border border-line">
+              <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
             </span>
-          }
-        />
-        <MetricCard
-          title={t("reports.kpiTotalListed")}
-          value={num(totalListed)}
-          sub={isId ? `${data.length} pemain aktif` : `${data.length} active players`}
-          highlight="pine"
-        />
-        <MetricCard
-          title={t("reports.kpiCancellations")}
-          value={num(totalCancelled)}
-          sub={totalListed > 0 ? (isId ? `${((totalCancelled / totalListed) * 100).toFixed(1)}% dari terdaftar` : `${((totalCancelled / totalListed) * 100).toFixed(1)}% of registered`) : "0%"}
-        />
-        <MetricCard
-          title={t("reports.kpiNoShowRate")}
-          value={noShowRate}
-          sub={isId ? `${num(totalNoShow)} ketidakhadiran tanpa kabar` : `${num(totalNoShow)} unexcused absences`}
-          highlight={totalNoShow > 0 ? "rose" : undefined}
-          badge={
-            totalNoShow > 0 ? (
-              <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
-                {t("status.NO_SHOW")}
-              </span>
-            ) : undefined
-          }
-        />
-      </div>
-
-      {/* Data Table with Search and Visual Bars */}
-      <div className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-court/60 via-court/30 to-white px-4 py-3">
-          <div>
-            <h3 className="text-sm font-bold text-ink">{isId ? "Rincian Presensi Pemain" : "Player Attendance Breakdown"}</h3>
-            <p className="text-xs text-ink-soft">{isId ? "Riwayat presensi detail dengan rasio pemenuhan kehadiran" : "Detailed attendance history with visual fulfillment ratio"}</p>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-ink-soft">
+                {isId ? "Podium Kehadiran Terbanyak" : "Top Attendance Podium"}
+              </h2>
+              <p className="text-xs text-ink-faint">
+                {isId
+                  ? "3 pemain dengan jumlah kehadiran tertinggi dalam rentang waktu"
+                  : "Top 3 players with highest attendance count in the range"}
+              </p>
+            </div>
           </div>
-          <SearchFilter value={qStr} onChange={setQStr} placeholder={t("reports.searchPlayerPlaceholder")} />
+
+          {/* Range Buttons: 3 Bulan, 6 Bulan, 9 Bulan, Semua Waktu */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-ink-faint mr-1 hidden sm:inline">
+              {isId ? "Rentang:" : "Range:"}
+            </span>
+            {[
+              { val: 3, label: isId ? "3 Bulan Terakhir" : "Last 3 Months" },
+              { val: 6, label: isId ? "6 Bulan Terakhir" : "Last 6 Months" },
+              { val: 9, label: isId ? "9 Bulan Terakhir" : "Last 9 Months" },
+              { val: 0, label: isId ? "Semua Waktu" : "All Time" },
+            ].map((opt) => (
+              <button
+                key={opt.val}
+                type="button"
+                onClick={() => onMonths(opt.val)}
+                className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  months === opt.val
+                    ? "bg-pine text-white shadow-2xs"
+                    : "border border-line bg-white text-ink-soft hover:border-pine/40 hover:bg-court/50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>{t("common.player")}</th>
-                <th className="text-right">{t("status.LISTED")}</th>
-                <th className="text-right">{t("status.PRESENT")}</th>
-                <th className="text-right">{t("status.CANCELLED")}</th>
-                <th className="text-right">{t("status.NO_SHOW")}</th>
-                <th className="w-48 text-left">{isId ? "Rasio Pemenuhan" : "Fulfillment Bar"}</th>
-                <th className="text-right">{t("reports.kpiNoShowRate")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                const listed = Number(r.listed || 0);
-                const present = Number(r.present || 0);
-                const cancelled = Number(r.cancelled || 0);
-                const noShow = Number(r.no_show || 0);
-                const pPct = listed > 0 ? (present / listed) * 100 : 0;
-                const cPct = listed > 0 ? (cancelled / listed) * 100 : 0;
-                const nPct = listed > 0 ? (noShow / listed) * 100 : 0;
+        {/* Podium Stage */}
+        <div className="mx-auto flex max-w-xl items-end justify-center gap-2 sm:gap-4 pt-4">
+          {/* 2nd Place (Silver) */}
+          <div className="flex flex-1 flex-col items-center">
+            {/* Medal & Avatar */}
+            <div className="relative mb-2 flex flex-col items-center">
+              <div className="mb-1 transition-transform hover:scale-105">
+                <IconMedalSilver3D className="h-11 w-11 sm:h-13 sm:w-13 drop-shadow-sm" />
+              </div>
+              <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-slate-300 bg-gradient-to-br from-white via-slate-100 to-slate-200 font-black text-slate-700 shadow-sm text-sm sm:text-base">
+                {second ? getPlayerInitials(String(second.player)) : "—"}
+              </div>
+            </div>
 
-                return (
-                  <tr key={String(r.player)} className="hover:bg-court/30">
-                    <td className="font-semibold text-ink">{String(r.player)}</td>
-                    <td className="text-right tabular-nums">{num(listed)}</td>
-                    <td className="text-right font-medium text-emerald-700 tabular-nums">{num(present)}</td>
-                    <td className="text-right tabular-nums text-ink-soft">{num(cancelled)}</td>
-                    <td className={`text-right tabular-nums ${noShow > 0 ? "font-bold text-rose-700" : "text-ink-soft"}`}>
-                      {num(noShow)}
-                    </td>
-                    <td>
-                      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-line/60">
-                        <div
-                          style={{ width: `${pPct}%` }}
-                          title={`Present: ${present} (${pPct.toFixed(0)}%)`}
-                          className="bg-emerald-500 transition-all"
-                        />
-                        <div
-                          style={{ width: `${cPct}%` }}
-                          title={`Cancelled: ${cancelled} (${cPct.toFixed(0)}%)`}
-                          className="bg-amber-400 transition-all"
-                        />
-                        <div
-                          style={{ width: `${nPct}%` }}
-                          title={`No-show: ${noShow} (${nPct.toFixed(0)}%)`}
-                          className="bg-rose-500 transition-all"
-                        />
-                      </div>
-                    </td>
-                    <td className="text-right font-mono text-xs tabular-nums text-ink">
-                      {rateBp(Number(r.no_show_rate_bp))}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            {/* Player Info */}
+            <div className="mb-2 text-center w-full px-1">
+              <p className="truncate text-xs sm:text-sm font-bold text-ink" title={second ? String(second.player) : undefined}>
+                {second ? String(second.player) : (isId ? "Menunggu data" : "Waiting for data")}
+              </p>
+              {second && (
+                <div className="mt-1 flex flex-col items-center gap-0.5">
+                  <span className="inline-block rounded-full bg-slate-100 border border-slate-300 px-2 py-0.5 text-[11px] font-bold text-slate-800">
+                    {num(Number(second.present || 0))}x {isId ? "Hadir" : "Present"}
+                  </span>
+                  <span className="text-[10px] text-ink-faint">
+                    {Number(second.listed || 0) > 0 ? `${Math.round((Number(second.present || 0) / Number(second.listed || 1)) * 100)}% presensi` : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Pedestal Block */}
+            <div className="flex h-20 sm:h-24 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-slate-300 bg-gradient-to-b from-slate-200/90 via-slate-100 to-slate-50/40 pt-2 shadow-sm">
+              <span className="text-2xl sm:text-3xl font-black text-slate-600/90 tracking-tight">2</span>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                {isId ? "Kedua" : "2nd Place"}
+              </span>
+            </div>
+          </div>
+
+          {/* 1st Place (Gold) - Elevated Center */}
+          <div className="flex flex-1 flex-col items-center -mt-6">
+            {/* 3D Crown & Avatar */}
+            <div className="relative mb-2 flex flex-col items-center">
+              <div className="mb-1 transition-transform hover:scale-105">
+                <IconCrown3D className="h-14 w-14 sm:h-18 sm:w-18 drop-shadow-md" />
+              </div>
+              <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-amber-200 to-amber-300 font-black text-amber-950 shadow-md text-base sm:text-lg">
+                {first ? getPlayerInitials(String(first.player)) : "—"}
+              </div>
+            </div>
+
+            {/* Player Info */}
+            <div className="mb-2 text-center w-full px-1">
+              <p className="truncate text-sm sm:text-base font-extrabold text-ink" title={first ? String(first.player) : undefined}>
+                {first ? String(first.player) : (isId ? "Menunggu data" : "Waiting for data")}
+              </p>
+              {first && (
+                <div className="mt-1 flex flex-col items-center gap-0.5">
+                  <span className="inline-block rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-0.5 text-xs font-bold text-amber-900 shadow-2xs">
+                    {num(Number(first.present || 0))}x {isId ? "Hadir" : "Present"}
+                  </span>
+                  <span className="text-[10px] text-amber-800/80 font-medium">
+                    {Number(first.listed || 0) > 0 ? `${Math.round((Number(first.present || 0) / Number(first.listed || 1)) * 100)}% presensi` : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Pedestal Block */}
+            <div className="flex h-28 sm:h-34 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-amber-400 bg-gradient-to-b from-amber-200 via-amber-100 to-amber-50/50 pt-3 shadow-md">
+              <span className="text-3xl sm:text-4xl font-black text-amber-800 tracking-tight">1</span>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">
+                {isId ? "Terbanyak" : "1st Place"}
+              </span>
+            </div>
+          </div>
+
+          {/* 3rd Place (Bronze) */}
+          <div className="flex flex-1 flex-col items-center">
+            {/* Medal & Avatar */}
+            <div className="relative mb-2 flex flex-col items-center">
+              <div className="mb-1 transition-transform hover:scale-105">
+                <IconMedalBronze3D className="h-11 w-11 sm:h-13 sm:w-13 drop-shadow-sm" />
+              </div>
+              <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 border-amber-700/40 bg-gradient-to-br from-white via-orange-100 to-amber-200/80 font-black text-amber-950 shadow-sm text-sm sm:text-base">
+                {third ? getPlayerInitials(String(third.player)) : "—"}
+              </div>
+            </div>
+
+            {/* Player Info */}
+            <div className="mb-2 text-center w-full px-1">
+              <p className="truncate text-xs sm:text-sm font-bold text-ink" title={third ? String(third.player) : undefined}>
+                {third ? String(third.player) : (isId ? "Menunggu data" : "Waiting for data")}
+              </p>
+              {third && (
+                <div className="mt-1 flex flex-col items-center gap-0.5">
+                  <span className="inline-block rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                    {num(Number(third.present || 0))}x {isId ? "Hadir" : "Present"}
+                  </span>
+                  <span className="text-[10px] text-ink-faint">
+                    {Number(third.listed || 0) > 0 ? `${Math.round((Number(third.present || 0) / Number(third.listed || 1)) * 100)}% presensi` : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Pedestal Block */}
+            <div className="flex h-16 sm:h-20 w-full flex-col items-center justify-start rounded-t-2xl border-t-2 border-x border-amber-300 bg-gradient-to-b from-orange-200/80 via-amber-100/70 to-amber-50/30 pt-2 shadow-sm">
+              <span className="text-xl sm:text-2xl font-black text-amber-900/80 tracking-tight">3</span>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-800/80">
+                {isId ? "Ketiga" : "3rd Place"}
+              </span>
+            </div>
+          </div>
         </div>
+
+        {/* Stage Base Baseline */}
+        <div className="mx-auto h-1.5 w-full max-w-xl rounded-full bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
       </div>
+
+      {data.length === 0 ? (
+        <Empty text={isId ? `Tidak ada data presensi pada rentang ${months > 0 ? `${months} bulan terakhir` : "ini"}.` : t("reports.emptyData")} />
+      ) : (
+        <>
+          {/* Executive KPI Cards */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard
+              title={t("reports.kpiOverallAttendance")}
+              value={overallRate}
+              sub={isId ? `${num(totalPresent)} dari ${num(totalListed)} hadir` : `${num(totalPresent)} of ${num(totalListed)} attended`}
+              highlight="emerald"
+              badge={
+                <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                  {t("status.PRESENT")}
+                </span>
+              }
+            />
+            <MetricCard
+              title={t("reports.kpiTotalListed")}
+              value={num(totalListed)}
+              sub={isId ? `${data.length} pemain aktif` : `${data.length} active players`}
+              highlight="pine"
+            />
+            <MetricCard
+              title={t("reports.kpiCancellations")}
+              value={num(totalCancelled)}
+              sub={totalListed > 0 ? (isId ? `${((totalCancelled / totalListed) * 100).toFixed(1)}% dari terdaftar` : `${((totalCancelled / totalListed) * 100).toFixed(1)}% of registered`) : "0%"}
+            />
+            <MetricCard
+              title={t("reports.kpiNoShowRate")}
+              value={noShowRate}
+              sub={isId ? `${num(totalNoShow)} ketidakhadiran tanpa kabar` : `${num(totalNoShow)} unexcused absences`}
+              highlight={totalNoShow > 0 ? "rose" : undefined}
+              badge={
+                totalNoShow > 0 ? (
+                  <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                    {t("status.NO_SHOW")}
+                  </span>
+                ) : undefined
+              }
+            />
+          </div>
+
+          {/* Data Table with Search and Visual Bars */}
+          <div className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-court/60 via-court/30 to-white px-4 py-3">
+              <div>
+                <h3 className="text-sm font-bold text-ink">{isId ? "Rincian Presensi Pemain" : "Player Attendance Breakdown"}</h3>
+                <p className="text-xs text-ink-soft">{isId ? "Riwayat presensi detail dengan rasio pemenuhan kehadiran" : "Detailed attendance history with visual fulfillment ratio"}</p>
+              </div>
+              <SearchFilter value={qStr} onChange={setQStr} placeholder={t("reports.searchPlayerPlaceholder")} />
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>{t("common.player")}</th>
+                    <th className="text-right">{t("status.LISTED")}</th>
+                    <th className="text-right">{t("status.PRESENT")}</th>
+                    <th className="text-right">{t("status.CANCELLED")}</th>
+                    <th className="text-right">{t("status.NO_SHOW")}</th>
+                    <th className="w-48 text-left">{isId ? "Rasio Pemenuhan" : "Fulfillment Bar"}</th>
+                    <th className="text-right">{t("reports.kpiNoShowRate")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => {
+                    const listed = Number(r.listed || 0);
+                    const present = Number(r.present || 0);
+                    const cancelled = Number(r.cancelled || 0);
+                    const noShow = Number(r.no_show || 0);
+                    const pPct = listed > 0 ? (present / listed) * 100 : 0;
+                    const cPct = listed > 0 ? (cancelled / listed) * 100 : 0;
+                    const nPct = listed > 0 ? (noShow / listed) * 100 : 0;
+                    const rank = rankMap.get(String(r.player));
+
+                    return (
+                      <tr key={String(r.player)} className="hover:bg-court/30">
+                        <td className="font-semibold text-ink">
+                          {rank === 1 ? (
+                            <span className="inline-flex items-center gap-1.5 font-bold text-amber-950">
+                              <IconCrown3D className="h-4 w-4 shrink-0" />
+                              <span>{String(r.player)}</span>
+                              <span className="rounded-full bg-amber-100 border border-amber-300/80 px-1.5 py-0.2 text-[10px] font-bold text-amber-900 shadow-2xs">#1</span>
+                            </span>
+                          ) : rank === 2 ? (
+                            <span className="inline-flex items-center gap-1.5 font-bold text-slate-800">
+                              <IconMedalSilver3D className="h-3.5 w-3.5 shrink-0" />
+                              <span>{String(r.player)}</span>
+                              <span className="rounded-full bg-slate-100 border border-slate-300 px-1.5 py-0.2 text-[10px] font-bold text-slate-700 shadow-2xs">#2</span>
+                            </span>
+                          ) : rank === 3 ? (
+                            <span className="inline-flex items-center gap-1.5 font-bold text-amber-950">
+                              <IconMedalBronze3D className="h-3.5 w-3.5 shrink-0" />
+                              <span>{String(r.player)}</span>
+                              <span className="rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.2 text-[10px] font-bold text-amber-800 shadow-2xs">#3</span>
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-ink">{String(r.player)}</span>
+                          )}
+                        </td>
+                        <td className="text-right tabular-nums">{num(listed)}</td>
+                        <td className="text-right font-medium text-emerald-700 tabular-nums">{num(present)}</td>
+                        <td className="text-right tabular-nums text-ink-soft">{num(cancelled)}</td>
+                        <td className={`text-right tabular-nums ${noShow > 0 ? "font-bold text-rose-700" : "text-ink-soft"}`}>
+                          {num(noShow)}
+                        </td>
+                        <td>
+                          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-line/60">
+                            <div
+                              style={{ width: `${pPct}%` }}
+                              title={`Present: ${present} (${pPct.toFixed(0)}%)`}
+                              className="bg-emerald-500 transition-all"
+                            />
+                            <div
+                              style={{ width: `${cPct}%` }}
+                              title={`Cancelled: ${cancelled} (${cPct.toFixed(0)}%)`}
+                              className="bg-amber-400 transition-all"
+                            />
+                            <div
+                              style={{ width: `${nPct}%` }}
+                              title={`No-show: ${noShow} (${nPct.toFixed(0)}%)`}
+                              className="bg-rose-500 transition-all"
+                            />
+                          </div>
+                        </td>
+                        <td className="text-right font-mono text-xs tabular-nums text-ink">
+                          {rateBp(Number(r.no_show_rate_bp))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

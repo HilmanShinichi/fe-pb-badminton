@@ -15,6 +15,10 @@ export {
   MoneyInput,
   OpenLink,
   ClubLogo,
+  IconCrown3D,
+  IconMedalSilver3D,
+  IconMedalBronze3D,
+  getPlayerInitials,
 } from "./components/atoms";
 export { ConfirmModal, Field, Panel, LogoUploadModal, ProfitDetailModal } from "./components/molecules";
 export { PageHead } from "./components/organisms/PageHead";

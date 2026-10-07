@@ -211,6 +211,7 @@ export interface ReportFilterParams {
   scope?: string;
   period_id?: string;
   session_id?: string;
+  months?: number;
 }
 
 export interface NoShowTrackerIncident {
@@ -261,6 +262,7 @@ function buildReportQuery(p?: ReportFilterParams | void): string {
   if (p.scope && p.scope !== "ALL") qs.set("scope", p.scope);
   if (p.period_id) qs.set("period_id", p.period_id);
   if (p.session_id) qs.set("session_id", p.session_id);
+  if (p.months) qs.set("months", String(p.months));
   const s = qs.toString();
   return s ? `?${s}` : "";
 }
