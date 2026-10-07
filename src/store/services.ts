@@ -17,6 +17,14 @@ import type {
   SimpleStatRow,
 } from "../types";
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  is_superadmin: boolean;
+  permissions: string[];
+  created_at: string;
+}
+
 export interface DashboardSession {
   id: string;
   type: string;
@@ -376,6 +384,22 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/generated-matches/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
+    adminUsers: build.query<AdminUser[], void>({
+      query: () => "/api/v1/users",
+      providesTags: ["AdminUsers"],
+    }),
+    createAdminUser: build.mutation<AdminUser, { username: string; password: string; permissions?: string[]; is_superadmin?: boolean }>({
+      query: (body) => ({ url: "/api/v1/users", method: "POST", body }),
+      invalidatesTags: ["AdminUsers"],
+    }),
+    updateAdminUser: build.mutation<AdminUser, { id: string; body: { permissions?: string[]; is_superadmin?: boolean; password?: string } }>({
+      query: ({ id, body }) => ({ url: `/api/v1/users/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["AdminUsers"],
+    }),
+    deleteAdminUser: build.mutation<unknown, string>({
+      query: (id) => ({ url: `/api/v1/users/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminUsers"],
+    }),
 
     periods: build.query<Period[], void>({
       query: () => "/api/v1/periods",
@@ -720,6 +744,10 @@ export const {
   useAddEventPlayersMutation,
   useCreateGenMatchMutation,
   useDeleteGenMatchMutation,
+  useAdminUsersQuery,
+  useCreateAdminUserMutation,
+  useUpdateAdminUserMutation,
+  useDeleteAdminUserMutation,
   useUpdateGenMatchMutation,
   usePublicMatchEventsQuery,
   usePublicMatchEventQuery,

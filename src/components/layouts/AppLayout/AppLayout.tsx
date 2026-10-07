@@ -2,13 +2,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../auth";
 import { useI18n } from "../../../i18n";
+import { API_BASE_URL } from "../../../store/baseApi";
 import { LanguageSwitcher } from "../../atoms/LanguageSwitcher";
 import { ClubLogo } from "../../atoms/ClubLogo";
 import { LogoUploadModal } from "../../molecules/LogoUploadModal";
 
-const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string }> = [
+const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string; perm: string }> = [
   {
     itemKey: "dashboard",
+    perm: "dashboard",
     to: "/dashboard",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
@@ -21,6 +23,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "mabar",
+    perm: "mabar",
     to: "/mabar",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -32,6 +35,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "matchmaker",
+    perm: "matchmaker",
     to: "/match-maker",
     badge: "AI",
     icon: (
@@ -44,6 +48,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "periods",
+    perm: "periods",
     to: "/periods",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
@@ -54,6 +59,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "players",
+    perm: "players",
     to: "/players",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -66,6 +72,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "noShows",
+    perm: "reports",
     to: "/no-shows",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -78,6 +85,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "inventory",
+    perm: "inventory",
     to: "/inventory",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="h-4 w-4">
@@ -89,6 +97,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "finance",
+    perm: "finance",
     to: "/finance",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
@@ -100,6 +109,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "reports",
+    perm: "reports",
     to: "/reports",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4">
@@ -109,6 +119,7 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
   },
   {
     itemKey: "simulator",
+    perm: "simulator",
     to: "/simulator",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -117,10 +128,22 @@ const NAV: Array<{ itemKey: string; to: string; icon: ReactNode; badge?: string 
       </svg>
     ),
   },
+  {
+    itemKey: "users",
+    perm: "users",
+    to: "/users",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <circle cx="9" cy="8" r="3.2" />
+        <path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" />
+        <path d="M18.5 8v6M15.5 11h6" />
+      </svg>
+    ),
+  },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { auth, logout } = useAuth();
+  const { auth, logout, can, refresh } = useAuth();
   const { t, isId } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,6 +151,27 @@ export function Layout({ children }: { children: ReactNode }) {
     typeof window === "undefined" ? false : window.matchMedia("(min-width: 1024px)").matches,
   );
   const [logoModalOpen, setLogoModalOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwCur, setPwCur] = useState("");
+  const [pwNext, setPwNext] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwDone, setPwDone] = useState(false);
+  // Sync access rights from the server once per mount (permission edits by
+  // another superadmin apply without forcing a re-login).
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+  // Limited admins only see granted features; users management is
+  // superadmin-only.
+  const visibleNav = NAV.filter((n) => can(n.perm));
+  const navSession = visibleNav.filter((n) =>
+    ["dashboard", "mabar", "matchmaker", "periods", "players", "noShows"].includes(n.itemKey),
+  );
+  const navFinance = visibleNav.filter((n) =>
+    ["inventory", "finance", "reports", "simulator"].includes(n.itemKey),
+  );
+  const navAdmin = visibleNav.filter((n) => n.itemKey === "users");
   const active = NAV.find((n) => location.pathname === n.to || (n.to !== "/dashboard" && location.pathname.startsWith(n.to)));
   const activeLabel = active ? t(`nav.${active.itemKey}.label`) : "PB Kecebong";
   const activeDesc = active ? t(`nav.${active.itemKey}.desc`) : "";
@@ -135,6 +179,32 @@ export function Layout({ children }: { children: ReactNode }) {
   function quit() {
     logout();
     navigate("/login");
+  }
+
+  async function changePassword() {
+    if (!auth?.token || !pwCur || pwNext.length < 8 || pwBusy) return;
+    setPwBusy(true);
+    setPwError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ current_password: pwCur, new_password: pwNext }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!res.ok) throw new Error(body.error?.message ?? "Failed.");
+      setPwCur("");
+      setPwNext("");
+      setPwDone(true);
+      setTimeout(() => {
+        setPwOpen(false);
+        setPwDone(false);
+      }, 1200);
+    } catch (e) {
+      setPwError(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setPwBusy(false);
+    }
   }
 
   function closeOnMobile() {
@@ -220,28 +290,52 @@ export function Layout({ children }: { children: ReactNode }) {
           )}
         </div>
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3">
-          {open && (
-            <p className="max-h-6 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
-              {isId ? "Sesi & Pemain" : "Sessions & Roster"}
-            </p>
+          {navSession.length > 0 && (
+            <>
+              {open && (
+                <p className="max-h-6 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
+                  {isId ? "Sesi & Pemain" : "Sessions & Roster"}
+                </p>
+              )}
+              <ul className="space-y-1">
+                {navSession.map((n) => (
+                  <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
+                ))}
+              </ul>
+            </>
           )}
-          <ul className="space-y-1">
-            {NAV.slice(0, 6).map((n) => (
-              <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
-            ))}
-          </ul>
-          {open ? (
-            <p className="max-h-10 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
-              {isId ? "Kas & Laporan" : "Finance & Reports"}
-            </p>
-          ) : (
-            <div className="my-2.5 mx-auto h-px w-6 bg-paper/15" />
+          {navFinance.length > 0 && (
+            <>
+              {open ? (
+                <p className="max-h-10 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
+                  {isId ? "Kas & Laporan" : "Finance & Reports"}
+                </p>
+              ) : (
+                <div className="my-2.5 mx-auto h-px w-6 bg-paper/15" />
+              )}
+              <ul className="space-y-1">
+                {navFinance.map((n) => (
+                  <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
+                ))}
+              </ul>
+            </>
           )}
-          <ul className="space-y-1">
-            {NAV.slice(6).map((n) => (
-              <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
-            ))}
-          </ul>
+          {navAdmin.length > 0 && (
+            <>
+              {open ? (
+                <p className="max-h-10 overflow-hidden whitespace-nowrap px-2.5 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-paper/45 transition-all duration-300">
+                  {isId ? "Admin" : "Admin"}
+                </p>
+              ) : (
+                <div className="my-2.5 mx-auto h-px w-6 bg-paper/15" />
+              )}
+              <ul className="space-y-1">
+                {navAdmin.map((n) => (
+                  <NavItem key={n.to} itemKey={n.itemKey} to={n.to} icon={n.icon} open={open} onGo={closeOnMobile} badge={n.badge} />
+                ))}
+              </ul>
+            </>
+          )}
         </nav>
         {open ? (
           <div className="border-t border-paper/15 px-3 py-3 transition-opacity duration-300">
@@ -259,9 +353,14 @@ export function Layout({ children }: { children: ReactNode }) {
                 Ubah Logo
               </button>
             </div>
-            <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
-              {t("nav.logout")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => { setPwOpen(true); setPwError(""); setPwDone(false); }} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
+                {isId ? "Ganti sandi" : "Change password"}
+              </button>
+              <button type="button" onClick={quit} className="mt-0.5 text-xs text-paper/60 underline hover:text-paper">
+                {t("nav.logout")}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="border-t border-paper/15 py-3 flex flex-col items-center justify-center gap-2">
@@ -326,6 +425,50 @@ export function Layout({ children }: { children: ReactNode }) {
       </div>
 
       <LogoUploadModal open={logoModalOpen} onClose={() => setLogoModalOpen(false)} />
+      {pwOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-black text-ink">{isId ? "Ganti sandi" : "Change password"}</h3>
+            <div className="mt-3 space-y-2.5">
+              <input
+                type="password"
+                autoComplete="current-password"
+                placeholder={isId ? "Sandi lama" : "Current password"}
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden"
+                value={pwCur}
+                onChange={(e) => setPwCur(e.target.value)}
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder={isId ? "Sandi baru (min 8)" : "New password (min 8)"}
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden"
+                value={pwNext}
+                onChange={(e) => setPwNext(e.target.value)}
+              />
+            </div>
+            {pwError && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{pwError}</p>}
+            {pwDone && <p className="mt-2 text-xs font-semibold text-emerald-700">✓</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPwOpen(false)}
+                className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-court/60"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={pwBusy || !pwCur || pwNext.length < 8}
+                onClick={changePassword}
+                className="rounded-xl bg-pine px-4 py-2 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50"
+              >
+                {t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

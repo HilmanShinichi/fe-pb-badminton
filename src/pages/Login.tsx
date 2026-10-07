@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { homeFor } from "../permissions";
 import type { RootState } from "../store/store";
 import { API_BASE_URL } from "../store/baseApi";
 import { Btn, Field, ClubLogo } from "../ui";
@@ -10,12 +11,14 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const token = useSelector((s: RootState) => s.auth.token);
+  const permissions = useSelector((s: RootState) => s.auth.permissions);
+  const isSuperadmin = useSelector((s: RootState) => s.auth.isSuperadmin);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (token) return <Navigate to="/dashboard" replace />;
+  if (token) return <Navigate to={homeFor(permissions, isSuperadmin)} replace />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,12 +35,12 @@ export function LoginPage() {
         body: JSON.stringify({ username: username.trim(), password }),
       });
       const body = (await res.json().catch(() => ({}))) as {
-        data?: { token: string; username: string };
+        data?: { token: string; username: string; permissions?: string[]; is_superadmin?: boolean };
         error?: { message?: string };
       };
       if (!res.ok || !body.data) throw new Error(body.error?.message ?? "Sign-in failed.");
-      login(body.data.token, body.data.username);
-      navigate("/dashboard", { replace: true });
+      login(body.data.token, body.data.username, body.data.permissions ?? [], !!body.data.is_superadmin);
+      navigate(homeFor(body.data.permissions ?? [], !!body.data.is_superadmin), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
     } finally {

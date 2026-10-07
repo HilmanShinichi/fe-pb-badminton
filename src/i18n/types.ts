@@ -12,6 +12,7 @@ export interface NavTranslations {
   simulator: { label: string; desc: string };
   matchmaker: { label: string; desc: string };
   venues: { label: string; desc: string };
+  users: { label: string; desc: string };
   logout: string;
   admin: string;
 }
@@ -753,6 +754,31 @@ export interface LandingTranslations {
   footerTagline: string;
 }
 
+export interface UsersAdminTranslations {
+  pageTitle: string;
+  pageSubtitle: string;
+  colUser: string;
+  colAccess: string;
+  allAccess: string;
+  newUserTitle: string;
+  fieldUsername: string;
+  fieldPassword: string;
+  fieldPasswordOptional: string;
+  fieldAllAccess: string;
+  fieldFeatures: string;
+  btnCreate: string;
+  btnSave: string;
+  btnDelete: string;
+  btnResetPw: string;
+  deleteTitle: string;
+  deleteBody: string;
+  reloginNote: string;
+  noAccessTitle: string;
+  noAccessBody: string;
+  noAccessHome: string;
+  errorLoad: string;
+}
+
 export interface TranslationSchema {
   nav: NavTranslations;
   common: CommonTranslations;
@@ -767,6 +793,7 @@ export interface TranslationSchema {
   inventory: InventoryTranslations;
   finance: FinanceTranslations;
   landing: LandingTranslations;
+  usersAdmin: UsersAdminTranslations;
 }
 
 
