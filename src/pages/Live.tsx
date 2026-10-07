@@ -7,7 +7,6 @@ import {
   ErrorBox,
   GenderChip,
   GradeChip,
-  IconClock,
   IconPlay,
   IconShuttlecock,
   IconStopwatch,
@@ -184,8 +183,8 @@ export function LiveEventPage() {
             to={`/live/${id}/arrival`}
             className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40 transition-colors"
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-700">
-              <IconClock className="h-3 w-3" />
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-court/70 p-0.5">
+              <img src="/favicon.svg" alt="" className="h-3.5 w-3.5 object-contain" />
             </span>
             <span>
               {isId ? "Kehadiran" : "Arrival"}
@@ -381,14 +380,14 @@ export function LiveArrivalPage() {
       </p>
 
       {/* Header */}
-      <h1 className="flex items-center gap-2 text-xl font-black">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
-          <IconClock className="h-3.5 w-3.5" />
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-1 shadow-card">
+          <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
         </span>
-        <span>
+        <h1 className="text-xl font-black text-ink">
           {isId ? "Urutan Kehadiran" : "Arrival Order"} · {detail.data?.event.name ?? "…"}
-        </span>
-      </h1>
+        </h1>
+      </div>
       <p className="mb-4 text-sm text-ink-soft">
         {isId ? "Berdasarkan urutan check-in kedatangan · Pembaruan otomatis setiap 10 detik" : "Check-in order · Auto-refreshes every 10s"}
       </p>
@@ -452,13 +451,18 @@ export function LiveArrivalPage() {
           {checkedIn.length > 0 && (
             <div className="mb-6 rounded-2xl border border-line bg-white p-4 shadow-card">
               <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-                    {isId ? "3 Kedatangan Terawal" : "First 3 Arrivals"}
-                  </h2>
-                  <p className="text-xs text-ink-faint">
-                    {isId ? "Pemain yang tiba paling awal di lapangan" : "Players who arrived earliest at the venue"}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-court/70 p-0.5">
+                    <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
+                  </span>
+                  <div>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
+                      {isId ? "3 Kedatangan Terawal" : "First 3 Arrivals"}
+                    </h2>
+                    <p className="text-xs text-ink-faint">
+                      {isId ? "Pemain yang tiba paling awal di lapangan" : "Players who arrived earliest at the venue"}
+                    </p>
+                  </div>
                 </div>
                 <span className="rounded-md border border-line bg-court/40 px-2 py-0.5 text-xs font-semibold text-ink-soft">
                   {top3.length} / 3
@@ -468,9 +472,12 @@ export function LiveArrivalPage() {
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 {/* Posisi 1 */}
                 <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50/40 p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-200 text-amber-900 font-black text-sm">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-200 text-amber-900 font-black text-sm">
                     1
-                  </span>
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white p-0.5 shadow-2xs border border-amber-300">
+                      <img src="/favicon.svg" alt="" className="h-full w-full object-contain" />
+                    </span>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-ink" title={first?.name}>
                       {first ? first.name : (isId ? "Menunggu pemain" : "Waiting for player")}
@@ -695,8 +702,9 @@ export function LiveArrivalPage() {
                         </td>
                         <td>
                           {isTop1 ? (
-                            <span className="inline-flex items-center rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
-                              {isId ? "Terawal (Urutan 1)" : "Earliest (Order 1)"}
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
+                              <img src="/favicon.svg" alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
+                              <span>{isId ? "Terawal (Urutan 1)" : "Earliest (Order 1)"}</span>
                             </span>
                           ) : isTopEarly ? (
                             <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">
