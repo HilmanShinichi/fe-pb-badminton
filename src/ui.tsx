@@ -20,6 +20,6 @@ export {
   IconMedalBronze3D,
   getPlayerInitials,
 } from "./components/atoms";
-export { ConfirmModal, Field, Panel, LogoUploadModal, ProfitDetailModal } from "./components/molecules";
+export { ConfirmModal, Field, Panel, LogoUploadModal, ProfitDetailModal, PlayerPicker, type PickerPlayer } from "./components/molecules";
 export { PageHead } from "./components/organisms/PageHead";
 export { Layout } from "./components/layouts/AppLayout";

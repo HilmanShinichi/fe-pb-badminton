@@ -14,6 +14,12 @@ import { dateId, rupiah } from "../format";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead } from "../ui";
 import { useI18n } from "../i18n";
 
+// Stock ledger stores USAGE as positive units (subtracted in totals), so
+// flip the display sign: usage always reads as stock out (-12 pcs).
+function displayUnits(tItem: { type: string; units: number }): number {
+  return tItem.type === "USAGE" ? -Math.abs(tItem.units) : tItem.units;
+}
+
 export function InventoryPage() {
   const { t, lang } = useI18n();
   const products = useProductsQuery();
@@ -39,6 +45,14 @@ export function InventoryPage() {
   const [adjForm, setAdjForm] = useState({ product_id: "", units: -1, note: "" });
   const [adjError, setAdjError] = useState("");
   const [counted, setCounted] = useState("");
+  const [txPage, setTxPage] = useState(0);
+  const [txJump, setTxJump] = useState("");
+
+  const TX_PAGE_SIZE = 10;
+  const txRows = tx.data ?? [];
+  const txPages = Math.max(1, Math.ceil(txRows.length / TX_PAGE_SIZE));
+  const txPageSafe = Math.min(txPage, txPages - 1);
+  const txVisible = txRows.slice(txPageSafe * TX_PAGE_SIZE, txPageSafe * TX_PAGE_SIZE + TX_PAGE_SIZE);
 
   async function submitProduct() {
     try {
@@ -497,7 +511,7 @@ export function InventoryPage() {
           <>
             {/* Mobile Card List (sm:hidden) */}
             <div className="divide-y divide-line/70 sm:hidden">
-              {(tx.data ?? []).map((tItem) => (
+              {txVisible.map((tItem) => (
                 <div key={tItem.id} className="p-3.5 space-y-2 transition-colors hover:bg-court/25">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-ink truncate">
@@ -508,8 +522,8 @@ export function InventoryPage() {
 
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <span className="font-semibold text-ink truncate">{tItem.product}</span>
-                    <span className={`font-bold tabular-nums text-sm ${tItem.units > 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                      {tItem.units > 0 ? `+${tItem.units}` : tItem.units} pcs
+                    <span className={`font-bold tabular-nums text-sm ${displayUnits(tItem) > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      {displayUnits(tItem) > 0 ? `+${displayUnits(tItem)}` : displayUnits(tItem)} pcs
                     </span>
                   </div>
 
@@ -535,13 +549,13 @@ export function InventoryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(tx.data ?? []).map((tItem) => (
+                  {txVisible.map((tItem) => (
                     <tr key={tItem.id}>
                       <td className="whitespace-nowrap font-medium text-ink">{dateId(tItem.occurred_at, lang)}</td>
                       <td>{tItem.product}</td>
                       <td><Badge status={tItem.type} /></td>
-                      <td className={`text-right font-bold tabular-nums ${tItem.units > 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                        {tItem.units > 0 ? `+${tItem.units}` : tItem.units}
+                      <td className={`text-right font-bold tabular-nums ${displayUnits(tItem) > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                        {displayUnits(tItem) > 0 ? `+${displayUnits(tItem)}` : displayUnits(tItem)}
                       </td>
                       <td className="font-normal text-ink-soft">{tItem.note ?? "—"}</td>
                     </tr>
@@ -549,6 +563,37 @@ export function InventoryPage() {
                 </tbody>
               </table>
             </div>
+            {txPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3.5 py-2.5">
+                <span className="text-xs text-ink-faint tabular-nums">
+                  {t("inventory.pageOf", { page: txPageSafe + 1, pages: txPages, total: txRows.length })}
+                </span>
+                <nav aria-label="Transaction pages" className="inline-flex items-center gap-1">
+                  <Btn variant="plain" disabled={txPageSafe === 0} onClick={() => setTxPage((p) => Math.max(0, p - 1))}>
+                    {t("inventory.prev")}
+                  </Btn>
+                  <input
+                    aria-label="Page number"
+                    inputMode="numeric"
+                    className="w-16 rounded-lg border border-line px-2 py-1.5 text-center text-xs font-bold tabular-nums focus:border-pine focus:outline-hidden"
+                    placeholder={`${txPageSafe + 1}/${txPages}`}
+                    value={txJump}
+                    onChange={(e) => setTxJump(e.target.value.replace(/[^0-9]/g, ""))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = Number(txJump);
+                        if (n >= 1 && n <= txPages) setTxPage(n - 1);
+                        setTxJump("");
+                      }
+                    }}
+                    onBlur={() => setTxJump("")}
+                  />
+                  <Btn variant="plain" disabled={txPageSafe >= txPages - 1} onClick={() => setTxPage((p) => Math.min(txPages - 1, p + 1))}>
+                    {t("inventory.next")}
+                  </Btn>
+                </nav>
+              </div>
+            )}
           </>
         )}
       </section>

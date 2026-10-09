@@ -663,6 +663,9 @@ export interface InventoryTranslations {
   errorRecordCorrection: string;
   txHistoryTitle: string;
   emptyTransactions: string;
+  pageOf: string;
+  prev: string;
+  next: string;
   colDate: string;
   colProductTx: string;
   colType: string;

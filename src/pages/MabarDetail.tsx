@@ -30,7 +30,7 @@ import {
 } from "../store/services";
 import { dateId, rupiah, statusClass, statusLabel } from "../format";
 import { useI18n } from "../i18n";
-import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead } from "../ui";
+import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead, PlayerPicker } from "../ui";
 
 const STATUSES = ["PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW"];
 
@@ -708,14 +708,17 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
         </div>
       )}
       <div className="space-y-2 border-t border-line p-3">
-        <div className="flex gap-2">
+        <div className="flex items-start gap-2">
           <label htmlFor="add-present" className="sr-only">Add player to attendance</label>
-          <select id="add-present" className="min-w-0 flex-1" value={pick} onChange={(e) => setPick(e.target.value)}>
-            <option value="">Add a player…</option>
-            {candidates.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <div className="min-w-0 flex-1">
+            <PlayerPicker
+              id="add-present"
+              value={pick}
+              onChange={setPick}
+              pool={candidates.map((p) => ({ player_id: p.id, name: p.name, grade: p.grade ?? null }))}
+              placeholder="Add a player…"
+            />
+          </div>
           <Btn
             disabled={!pick || saveState.isLoading || membersLoading}
             onClick={() => {
