@@ -34,7 +34,7 @@ function useTicker(active: boolean) {
   return now;
 }
 
-function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
+function LiveCard({ m, nowMs, useReferee = true }: { m: GenMatch; nowMs: number; useReferee?: boolean }) {
   const { t } = useI18n();
   const startMs = Date.parse(m.started_at ?? m.updated_at ?? m.created_at);
   const elapsed =
@@ -76,7 +76,7 @@ function LiveCard({ m, nowMs }: { m: GenMatch; nowMs: number }) {
           <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700" />
           <span>{m.shuttlecock_used ?? 0} shuttlecocks</span>
         </span>
-        {m.referee && (
+        {m.referee && useReferee && (
           <span className="inline-flex items-center gap-1.5 min-w-0" title={m.referee.name}>
             <span>·</span>
             <IconWhistle className="h-3.5 w-3.5 shrink-0 text-amber-700" />
@@ -205,7 +205,7 @@ export function LiveEventPage() {
             <h2 className="mb-2 text-sm font-bold">Round {round}</h2>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {matches.map((m) => (
-                <LiveCard key={m.id} m={m} nowMs={nowMs} />
+                <LiveCard key={m.id} m={m} nowMs={nowMs} useReferee={detail.data?.event.use_referee ?? true} />
               ))}
             </div>
           </section>
