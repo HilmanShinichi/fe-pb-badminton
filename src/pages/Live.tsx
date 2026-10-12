@@ -128,15 +128,26 @@ export function LiveEventPage() {
   const detail = usePublicMatchEventQuery(id ?? "", { skip: !id, pollingInterval: 10000 });
   const anyPlaying = (detail.data?.matches ?? []).some((m) => m.status === "PLAYING");
   const nowMs = useTicker(anyPlaying);
+  const [statusTab, setStatusTab] = useState<"ALL" | "UPCOMING" | "PLAYING" | "ENDED">("ALL");
 
   const grouped = useMemo(() => {
     const map = new Map<number, GenMatch[]>();
     for (const m of detail.data?.matches ?? []) {
+      if (statusTab !== "ALL" && m.status !== statusTab) continue;
       const arr = map.get(m.round) ?? [];
       arr.push(m);
       map.set(m.round, arr);
     }
     return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  }, [detail.data, statusTab]);
+
+  const statusCounts = useMemo(() => {
+    const c: Record<string, number> = { ALL: 0, UPCOMING: 0, PLAYING: 0, ENDED: 0 };
+    for (const m of detail.data?.matches ?? []) {
+      c.ALL++;
+      if (m.status === "UPCOMING" || m.status === "PLAYING" || m.status === "ENDED") c[m.status]++;
+    }
+    return c;
   }, [detail.data]);
 
   const checkedInCount = (detail.data?.counts ?? []).filter((c) => (c.arrival ?? 0) > 0).length;
@@ -193,12 +204,32 @@ export function LiveEventPage() {
           </Link>
         </div>
       )}
+      {detail.data && (
+        <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter by status">
+          {(["ALL", "UPCOMING", "PLAYING", "ENDED"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="tab"
+              aria-selected={statusTab === s}
+              onClick={() => setStatusTab(s)}
+              className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                statusTab === s
+                  ? "bg-pine text-white shadow-2xs"
+                  : "border border-line bg-white text-ink-soft hover:bg-court/60"
+              }`}
+            >
+              {s === "ALL" ? (isId ? "Semua" : "All") : s.charAt(0) + s.slice(1).toLowerCase()} ({statusCounts[s]})
+            </button>
+          ))}
+        </div>
+      )}
       {detail.isFetching && !detail.data ? (
         <Loading />
       ) : detail.isError || !detail.data ? (
         <ErrorBox message="Event not found or not public." onRetry={() => detail.refetch()} />
       ) : grouped.length === 0 ? (
-        <Empty text="No matches yet." />
+        <Empty text={statusTab === "ALL" ? "No matches yet." : `No ${statusTab.charAt(0) + statusTab.slice(1).toLowerCase()} matches.`} />
       ) : (
         grouped.map(([round, matches]) => (
           <section key={round} className="mb-5">

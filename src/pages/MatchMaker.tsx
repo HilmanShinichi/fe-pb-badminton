@@ -66,7 +66,7 @@ function CountStepper({
 }) {
   const { t } = useI18n();
   const label = kind === "played" ? t("matchmaker.colPlayed") : t("matchmaker.colRefereed");
-  const button = "flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-white text-base font-black leading-none text-ink transition-colors hover:bg-court focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:text-ink-faint/60 disabled:hover:bg-white";
+  const button = "flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-line bg-white text-sm sm:text-base font-black leading-none text-ink transition-colors hover:bg-court focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:text-ink-faint/60 disabled:hover:bg-white";
   return (
     <span className="inline-flex shrink-0 items-center gap-1">
       <button
@@ -723,6 +723,7 @@ export function MatchMakerDetailPage() {
   const [webAiMode, setWebAiMode] = useState<"all" | "level">("all");
   const [webAiCap, setWebAiCap] = useState(0);
   const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
+  const [matchStatusTab, setMatchStatusTab] = useState<"ALL" | "UPCOMING" | "PLAYING" | "ENDED">("ALL");
   const [genError, setGenError] = useState("");
   const [generate, genState] = useGenerateMatchesMutation();
   const [fetchPrompt, promptState] = useGeneratePromptMutation();
@@ -1116,9 +1117,12 @@ export function MatchMakerDetailPage() {
   }, [grouped]);
 
   const filteredGrouped = useMemo(() => {
-    if (activeRoundTab === "ALL") return grouped;
-    return grouped.filter(([r]) => r === activeRoundTab);
-  }, [grouped, activeRoundTab]);
+    const byRound = activeRoundTab === "ALL" ? grouped : grouped.filter(([r]) => r === activeRoundTab);
+    if (matchStatusTab === "ALL") return byRound;
+    return byRound
+      .map(([r, ms]) => [r, ms.filter((m) => m.status === matchStatusTab)] as [number, GenMatch[]])
+      .filter(([, ms]) => ms.length > 0);
+  }, [grouped, activeRoundTab, matchStatusTab]);
 
   return (
     <div className="space-y-6">
@@ -1167,15 +1171,15 @@ export function MatchMakerDetailPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-end gap-3 sm:gap-4">
-              <div className="w-28">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
-                  <IconCourt className="h-3.5 w-3.5 text-pine" />
-                  <span>{t("matchmaker.courtsLabel")}</span>
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 items-end">
+              <div className="w-full">
+                <label htmlFor="detail-courts" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
+                  <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
+                  <span className="truncate">{t("matchmaker.courtsLabel")}</span>
                 </label>
                 <select
                   id="detail-courts"
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  className="w-full rounded-lg border border-line px-2.5 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
                   value={courtsDraft ?? courtCap}
                   disabled={savingSettings}
                   onChange={(e) => saveCourts(Number(e.target.value))}
@@ -1188,14 +1192,14 @@ export function MatchMakerDetailPage() {
                 </select>
               </div>
 
-              <div className="w-28">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={baseLocked ? t("matchmaker.baseLockedHint") : t("matchmaker.baseHint")}>
-                  <IconPlay className="h-3 w-3 text-pine" />
-                  <span>{t("matchmaker.baseLabel")}</span>
+              <div className="w-full">
+                <label htmlFor="detail-base" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate" title={baseLocked ? t("matchmaker.baseLockedHint") : t("matchmaker.baseHint")}>
+                  <IconPlay className="h-3 w-3 text-pine shrink-0" />
+                  <span className="truncate">{t("matchmaker.baseLabel")}</span>
                 </label>
                 <select
                   id="detail-base"
-                  className="w-full appearance-none rounded-lg border border-line bg-white pl-8 pr-8 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine disabled:opacity-60"
+                  className="w-full appearance-none rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine disabled:opacity-60"
                   value={baseDraft ?? baseCap}
                   disabled={savingSettings || baseLocked}
                   onChange={(e) => saveBase(Number(e.target.value))}
@@ -1206,14 +1210,14 @@ export function MatchMakerDetailPage() {
                 </select>
               </div>
 
-              <div className="w-28">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={t("matchmaker.maxMatchesHint")}>
-                  <IconStopwatch className="h-3.5 w-3.5 text-pine" />
-                  <span>{t("matchmaker.maxMatchesLabel")}</span>
+              <div className="w-full">
+                <label htmlFor="detail-max-matches" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate" title={t("matchmaker.maxMatchesHint")}>
+                  <IconStopwatch className="h-3.5 w-3.5 text-pine shrink-0" />
+                  <span className="truncate">{t("matchmaker.maxMatchesLabel")}</span>
                 </label>
                 <select
                   id="detail-max-matches"
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  className="w-full rounded-lg border border-line px-2.5 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
                   value={maxMatchesDraft ?? maxMatches}
                   disabled={savingSettings}
                   onChange={(e) => saveMaxMatches(Number(e.target.value))}
@@ -1224,21 +1228,10 @@ export function MatchMakerDetailPage() {
                 </select>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-1.5 pb-0.5 text-xs font-bold text-ink" title={t("matchmaker.useRefereeLabel")}>
-                <input
-                  type="checkbox"
-                  className="rounded text-pine focus:ring-pine disabled:opacity-60"
-                  checked={useRefereeOn}
-                  disabled={savingSettings}
-                  onChange={(e) => saveUseReferee(e.target.checked)}
-                />
-                <span>{t("matchmaker.useRefereeLabel")}</span>
-              </label>
-
-              <div className="w-32">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
-                  <IconRotate className="h-3.5 w-3.5 text-pine" />
-                  <span>{t("matchmaker.roundsLabel")}</span>
+              <div className="w-full">
+                <label htmlFor="rounds" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
+                  <IconRotate className="h-3.5 w-3.5 text-pine shrink-0" />
+                  <span className="truncate">{t("matchmaker.roundsLabel")}</span>
                 </label>
                 <input
                   id="rounds"
@@ -1252,10 +1245,10 @@ export function MatchMakerDetailPage() {
                 />
               </div>
 
-              <div className="w-40">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
-                  <IconUsers className="h-3.5 w-3.5 text-pine" />
-                  <span>{genMode === "level" ? t("matchmaker.playedModeLevel", { n: genCap }) : t("matchmaker.playedModeAll")}</span>
+              <div className="w-full col-span-2 sm:col-span-1">
+                <label htmlFor="pool-mode" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
+                  <IconUsers className="h-3.5 w-3.5 text-pine shrink-0" />
+                  <span className="truncate">{genMode === "level" ? t("matchmaker.playedModeLevel", { n: genCap }) : t("matchmaker.playedModeAll")}</span>
                 </label>
                 <div className="flex gap-1.5">
                   <select
@@ -1272,7 +1265,7 @@ export function MatchMakerDetailPage() {
                     <select
                       id="pool-level"
                       aria-label={t("matchmaker.playedModeLevel", { n: genCap })}
-                      className="w-20 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                      className="w-16 rounded-lg border border-line px-1.5 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
                       value={genCap}
                       onChange={(e) => setGenCap(Number(e.target.value))}
                     >
@@ -1284,44 +1277,61 @@ export function MatchMakerDetailPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={genState.isLoading || genModalOpen || roundsLeft <= 0}
-                onClick={runGenerate}
-                title={
-                  maxMatches > 0
-                    ? t("matchmaker.roundsLeftHint", { count: roundsLeft })
-                    : t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
-                }
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
-              >
-                {genModalOpen ? (
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-lime border-t-transparent" />
-                    <span className="tabular-nums font-black">{genProgress}%</span>
-                  </span>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    {t("matchmaker.btnGenerate", { count: genMode === "level" ? 1 : rounds || 1 })}
-                  </>
-                )}
-              </button>
+              <div className="w-full col-span-2 sm:col-span-1 flex items-center justify-start pb-2">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-ink" title={t("matchmaker.useRefereeLabel")}>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded text-pine focus:ring-pine disabled:opacity-60"
+                    checked={useRefereeOn}
+                    disabled={savingSettings}
+                    onChange={(e) => saveUseReferee(e.target.checked)}
+                  />
+                  <span>{t("matchmaker.useRefereeLabel")}</span>
+                </label>
+              </div>
+            </div>
 
-              <button
-                type="button"
-                disabled={genState.isLoading || genModalOpen || webAiOpen || manualState.isLoading || roundsLeft <= 0}
-                onClick={openWebAi}
-                title={t("matchmaker.webAiDesc")}
-                className="flex items-center gap-2 rounded-xl border border-pine/40 bg-white py-2.5 px-4 text-sm font-extrabold text-pine shadow-2xs hover:bg-court/60 active:scale-[0.99] transition-all disabled:opacity-50"
-              >
-                <IconSparkles className="h-4 w-4" />
-                {t("matchmaker.webAiBtn")}
-              </button>
+            <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-line/60 pt-3.5">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <button
+                  type="button"
+                  disabled={genState.isLoading || genModalOpen || roundsLeft <= 0}
+                  onClick={runGenerate}
+                  title={
+                    maxMatches > 0
+                      ? t("matchmaker.roundsLeftHint", { count: roundsLeft })
+                      : t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
+                  }
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
+                >
+                  {genModalOpen ? (
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-lime border-t-transparent" />
+                      <span className="tabular-nums font-black">{genProgress}%</span>
+                    </span>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      {t("matchmaker.btnGenerate", { count: genMode === "level" ? 1 : rounds || 1 })}
+                    </>
+                  )}
+                </button>
 
-              <div className="min-w-[180px] flex-1 sm:max-w-xs">
+                <button
+                  type="button"
+                  disabled={genState.isLoading || genModalOpen || webAiOpen || manualState.isLoading || roundsLeft <= 0}
+                  onClick={openWebAi}
+                  title={t("matchmaker.webAiDesc")}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-pine/40 bg-white py-2.5 px-4 text-sm font-extrabold text-pine shadow-2xs hover:bg-court/60 active:scale-[0.99] transition-all disabled:opacity-50"
+                >
+                  <IconSparkles className="h-4 w-4" />
+                  {t("matchmaker.webAiBtn")}
+                </button>
+              </div>
+
+              <div className="w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
                 <RoundProgress
                   rounds={highestRound}
                   maxRounds={maxMatches}
@@ -1498,7 +1508,7 @@ export function MatchMakerDetailPage() {
 
           {/* ROUND TABS FILTER (FOR EFFORTLESS NAVIGATION ON MOBILE/TABLET) */}
           {allRoundNumbers.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveRoundTab("ALL")}
@@ -1530,6 +1540,41 @@ export function MatchMakerDetailPage() {
             </div>
           )}
 
+          {/* STATUS TABS FILTER */}
+          {grouped.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Filter by status">
+              {(
+                [
+                  { key: "ALL" as const, label: t("matchmaker.allRounds") },
+                  { key: "UPCOMING" as const, label: t("matchmaker.statusUpcoming") },
+                  { key: "PLAYING" as const, label: t("matchmaker.statusPlaying") },
+                  { key: "ENDED" as const, label: t("matchmaker.statusEnded") },
+                ]
+              ).map((s) => {
+                const count =
+                  s.key === "ALL"
+                    ? detail.data.matches.length
+                    : detail.data.matches.filter((m) => m.status === s.key).length;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={matchStatusTab === s.key}
+                    onClick={() => setMatchStatusTab(s.key)}
+                    className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                      matchStatusTab === s.key
+                        ? "bg-pine text-white shadow-2xs"
+                        : "border border-line bg-white text-ink-soft hover:bg-court/60"
+                    }`}
+                  >
+                    {s.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* MATCHES ARENA */}
           {grouped.length === 0 ? (
             <div className="rounded-2xl border border-line bg-white p-8 shadow-card text-center">
@@ -1541,16 +1586,16 @@ export function MatchMakerDetailPage() {
           ) : (
             filteredGrouped.map(([round, matches]) => (
               <section key={round} aria-label={`Round ${round}`} className="space-y-3">
-                <div className="flex items-center justify-between border-b border-line pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-line pb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-pine text-xs font-black text-lime">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-pine text-xs font-black text-lime">
                       {round}
                     </span>
                     <h2 className="text-sm font-extrabold text-ink">
                       {t("matchmaker.roundTitle", { round })} · {t("matchmaker.roundMatchesCount", { count: matches.length })}
                     </h2>
                   </div>
-                  <span className="inline-flex gap-1">
+                  <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
                     <Btn disabled={genState.isLoading} onClick={() => openManualCard(round)}>
                       {t("matchmaker.manualCardBtn")}
                     </Btn>
@@ -1558,11 +1603,11 @@ export function MatchMakerDetailPage() {
                       {t("matchmaker.btnTopUpRound")}
                     </Btn>
                     <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
-                  </span>
+                  </div>
                 </div>
 
                 {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {matches.map((m) => (
                     <MatchCard key={m.id} match={m} maxCourt={courtCap} pool={detail.data.counts ?? []} useReferee={detail.data.event.use_referee ?? true} />
                   ))}
@@ -1575,18 +1620,18 @@ export function MatchMakerDetailPage() {
             .filter((r) => activeRoundTab === "ALL" || activeRoundTab === r)
             .map((r) => (
               <section key={`missing-${r}`} aria-label={`Round ${r} empty`} className="space-y-3">
-                <div className="flex items-center justify-between border-b border-dashed border-line pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dashed border-line pb-2">
                   <h2 className="text-sm font-extrabold text-ink-faint">
                     {t("matchmaker.roundTitle", { round: r })} · {t("matchmaker.roundDeleted")}
                   </h2>
-                  <span className="inline-flex gap-1">
+                  <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
                     <Btn disabled={genState.isLoading} onClick={() => openManualCard(r)}>
                       {t("matchmaker.manualCardBtn")}
                     </Btn>
                     <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
                       {t("matchmaker.btnRegenerateRound", { round: r })}
                     </Btn>
-                  </span>
+                  </div>
                 </div>
               </section>
             ))}
@@ -1628,7 +1673,7 @@ export function MatchMakerDetailPage() {
                       <PlayerPicker pool={detail.data?.counts ?? []} value={f.value} onChange={f.set} />
                     </Field>
                   ))}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Field label={t("matchmaker.courtLabel")}>
                       <select
                         id="manual-court"
@@ -1933,24 +1978,26 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
         </label>
       </div>
       {isPublic && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <code className="min-w-0 flex-1 break-all rounded-lg border border-line bg-court/40 px-2 py-1.5 text-xs">{url}</code>
-          <button
-            type="button"
-            onClick={copy}
-            className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold hover:bg-court/60"
-          >
-            {copied ? (
-              <span className="inline-flex items-center gap-1 text-emerald-700">
-                <IconCheck className="h-3.5 w-3.5" /> Copied
-              </span>
-            ) : (
-              "Copy link"
-            )}
-          </button>
-          <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-pine underline">
-            Open →
-          </a>
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <code className="min-w-0 flex-1 break-all rounded-lg border border-line bg-court/40 px-2.5 py-1.5 text-xs font-mono">{url}</code>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={copy}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-bold hover:bg-court/60 transition-colors"
+            >
+              {copied ? (
+                <span className="inline-flex items-center gap-1 text-emerald-700">
+                  <IconCheck className="h-3.5 w-3.5" /> Copied
+                </span>
+              ) : (
+                "Copy link"
+              )}
+            </button>
+            <a href={url} target="_blank" rel="noreferrer" className="flex-1 sm:flex-initial inline-flex items-center justify-center rounded-lg border border-pine/30 bg-pine/5 px-3 py-1.5 text-xs font-bold text-pine underline hover:bg-pine/10 transition-colors">
+              Open →
+            </a>
+          </div>
         </div>
       )}
       {error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{error}</p>}
@@ -2083,7 +2130,7 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
 export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left" | "right" }) {
   return (
     <div
-      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/90 p-2.5 shadow-2xs flex flex-col justify-center space-y-2 ${
+      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/90 p-2 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1.5 sm:space-y-2 ${
         align === "right" ? "text-right items-end" : "text-left items-start"
       }`}
     >
@@ -2092,9 +2139,9 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
         return (
           <div
             key={p.player_id}
-            className={`flex items-center gap-2 w-full min-w-0 ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
+            className={`flex items-center gap-1.5 sm:gap-2 w-full min-w-0 ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime shadow-2xs">
+            <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[9px] sm:text-[10px] font-black text-lime shadow-2xs">
               {initial}
             </span>
             <div className={`min-w-0 flex-1 overflow-hidden ${align === "right" ? "text-right" : "text-left"}`}>
@@ -2104,7 +2151,7 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
               >
                 {p.name}
               </span>
-              <span className={`mt-0.5 flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+              <span className={`mt-0.5 flex items-center gap-1 flex-wrap ${align === "right" ? "justify-end" : "justify-start"}`}>
                 {p.grade ? <GradeChip grade={p.grade} /> : <span className="text-[10px] text-ink-faint">—</span>}
                 {p.gender && <GenderChip gender={p.gender} />}
               </span>
@@ -2233,7 +2280,7 @@ function MatchCard({
       className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/90 bg-white shadow-card hover:shadow-md transition-all hover:border-pine/30"
     >
       {/* CARD HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-3.5 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-3 py-2 sm:px-3.5">
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
           <span className="shrink-0 whitespace-nowrap rounded-md bg-pine/10 border border-pine/20 px-2 py-0.5 text-[11px] font-black uppercase text-pine">
             R-{m.round}
@@ -2253,7 +2300,7 @@ function MatchCard({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {locked ? (
             <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
               <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
@@ -2263,7 +2310,7 @@ function MatchCard({
             <label className="flex items-center gap-1 text-xs font-extrabold text-ink shrink-0 whitespace-nowrap">
               <span className="inline-flex items-center gap-1">
                 <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
-                <span>{t("matchmaker.courtLabel")}</span>
+                <span className="hidden sm:inline">{t("matchmaker.courtLabel")}</span>
               </span>
               <select
                 aria-label="Court number"
@@ -2302,11 +2349,11 @@ function MatchCard({
       </div>
 
       {/* DOUBLES MATCH ARENA */}
-      <div className="p-3 bg-gradient-to-b from-[#f8faf9] to-[#edf4f0]/80">
-        <div className="flex items-stretch gap-2">
+      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-[#f8faf9] to-[#edf4f0]/80">
+        <div className="flex items-stretch gap-1.5 sm:gap-2">
           <TeamPanel team={m.team1} align="left" />
-          <div className="flex shrink-0 items-center justify-center px-1">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1a4434] text-[11px] font-black text-lime shadow-md border-2 border-lime/30">
+          <div className="flex shrink-0 items-center justify-center px-0.5 sm:px-1">
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1a4434] text-[10px] sm:text-[11px] font-black text-lime shadow-md border-2 border-lime/30">
               {t("matchmaker.vs")}
             </span>
           </div>
@@ -2318,13 +2365,13 @@ function MatchCard({
 
       {/* REFEREE BAR */}
       {useReferee && (
-      <div className="flex items-center gap-2 border-t border-line/60 px-3.5 py-2 bg-court/20">
-        <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
-          <IconWhistle className="h-3.5 w-3.5 text-amber-700" />
+      <div className="flex items-center gap-2 border-t border-line/60 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-court/20">
+        <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft shrink-0">
+          <IconWhistle className="h-3.5 w-3.5 text-amber-700 shrink-0" />
           <span>{t("matchmaker.refereeLabel")}</span>
         </span>
         {locked ? (
-          <span className="text-xs font-bold">{m.referee?.name ?? "—"}</span>
+          <span className="text-xs font-bold truncate">{m.referee?.name ?? "—"}</span>
         ) : (
           <select
             aria-label={t("matchmaker.refereeLabel")}
@@ -2352,14 +2399,14 @@ function MatchCard({
       )}
 
       {/* CARD ACTION FOOTER */}
-      <div className="flex items-center justify-between gap-2 border-t border-line px-3.5 py-2.5 bg-white">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 sm:px-3.5 sm:py-2.5 bg-white">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {next && (
             <button
               type="button"
               disabled={updateState.isLoading}
               onClick={() => advance(next)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
+              className={`rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
                 next === "PLAYING"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white"
                   : "bg-gradient-to-r from-[#143728] to-[#1e4d3a] hover:brightness-110 text-lime"
@@ -2371,7 +2418,7 @@ function MatchCard({
           {m.status === "ENDED" && (
             <button
               type="button"
-              className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-bold text-ink-soft hover:bg-court/60 transition-colors"
+              className="rounded-lg border border-line px-2 py-1.5 sm:px-2.5 text-xs font-bold text-ink-soft hover:bg-court/60 transition-colors"
               disabled={updateState.isLoading}
               onClick={() => advance("UPCOMING")}
             >
@@ -2380,53 +2427,55 @@ function MatchCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1" title="Shuttlecocks used">
-          <span className="inline-flex items-center text-xs font-extrabold text-ink-soft">
-            <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700" />
-          </span>
-          {!locked ? (
-            <>
-              <button
-                type="button"
-                aria-label="One fewer shuttlecock"
-                disabled={updateState.isLoading || (cocks ?? 0) <= 0}
-                onClick={() => stepCocks(-1)}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-sm font-black text-ink hover:bg-court/60 disabled:opacity-40"
-              >
-                −
-              </button>
-              <span className="min-w-6 text-center text-sm font-black tabular-nums">{cocks ?? 0}</span>
-              <button
-                type="button"
-                aria-label="One more shuttlecock"
-                disabled={updateState.isLoading}
-                onClick={() => stepCocks(1)}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-sm font-black text-ink hover:bg-court/60 disabled:opacity-40"
-              >
-                +
-              </button>
-            </>
-          ) : (
-            <span className="text-sm font-black tabular-nums">{cocks ?? 0}</span>
-          )}
-        </div>
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+          <div className="flex items-center gap-1 rounded-lg bg-court/40 border border-line/60 px-1.5 py-0.5" title="Shuttlecocks used">
+            <span className="inline-flex items-center text-xs font-extrabold text-ink-soft">
+              <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+            </span>
+            {!locked ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="One fewer shuttlecock"
+                  disabled={updateState.isLoading || (cocks ?? 0) <= 0}
+                  onClick={() => stepCocks(-1)}
+                  className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span className="min-w-4 sm:min-w-5 text-center text-xs sm:text-sm font-black tabular-nums">{cocks ?? 0}</span>
+                <button
+                  type="button"
+                  aria-label="One more shuttlecock"
+                  disabled={updateState.isLoading}
+                  onClick={() => stepCocks(1)}
+                  className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
+                >
+                  +
+                </button>
+              </>
+            ) : (
+              <span className="text-xs sm:text-sm font-black tabular-nums px-1">{cocks ?? 0}</span>
+            )}
+          </div>
 
-        <button
-          type="button"
-          className="rounded-lg border border-line/80 px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-court/60 transition-colors"
-          onClick={() => setEditing(true)}
-        >
-          {t("matchmaker.btnEditTeams")}
-        </button>
-        <button
-          type="button"
-          aria-label={t("matchmaker.btnDeleteCard")}
-          className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
-          disabled={removeCardState.isLoading}
-          onClick={() => setConfirmingDelete(true)}
-        >
-          {t("matchmaker.btnDeleteCard")}
-        </button>
+          <button
+            type="button"
+            className="rounded-lg border border-line/80 px-2 py-1.5 sm:px-2.5 text-xs font-bold text-ink hover:bg-court/60 transition-colors"
+            onClick={() => setEditing(true)}
+          >
+            {t("matchmaker.btnEditTeams")}
+          </button>
+          <button
+            type="button"
+            aria-label={t("matchmaker.btnDeleteCard")}
+            className="rounded-lg border border-red-200 px-2 py-1.5 sm:px-2.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
+            disabled={removeCardState.isLoading}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            {t("matchmaker.btnDeleteCard")}
+          </button>
+        </div>
       </div>
 
       {editing && <EditTeamsModal match={m} pool={pool} onClose={() => setEditing(false)} />}
@@ -2485,7 +2534,7 @@ function EditTeamsModal({
       body={
         <div className="space-y-3">
           <p className="text-xs text-ink-faint">{t("matchmaker.editTeamsModalHint")}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 p-2.5 space-y-2">
               <p className="text-xs font-extrabold text-emerald-950">{t("matchmaker.team1")}</p>
               <PlayerPicker pool={pool} value={t1[0] ?? ""} onChange={(v) => setSide(setT1, t1, 0, v)} />
