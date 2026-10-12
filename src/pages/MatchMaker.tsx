@@ -98,6 +98,7 @@ export function MatchMakerListPage() {
   const [courts, setCourts] = useState(3);
   const [base, setBase] = useState(1);
   const [maxMatches, setMaxMatches] = useState(4);
+  const [useReferee, setUseReferee] = useState(true);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [poolSource, setPoolSource] = useState<"active" | "session" | "custom">("active");
@@ -178,11 +179,12 @@ export function MatchMakerListPage() {
       player_ids = [...customIds];
     }
     try {
-      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), max_rounds: Math.max(0, maxMatches || 0), source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
+      await create({ name: name.trim(), player_ids, court_count: Math.max(0, courts || 0), base_played: Math.max(0, base || 0), max_rounds: Math.max(0, maxMatches || 0), use_referee: useReferee, source_session_id: poolSource === "session" && poolSessionId ? poolSessionId : undefined }).unwrap();
       setName("");
       setCourts(3);
       setBase(1);
       setMaxMatches(4);
+      setUseReferee(true);
       setCustomIds([]);
       setError("");
     } catch (e) {
@@ -273,7 +275,6 @@ export function MatchMakerListPage() {
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
-                <IconPlay className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
 
@@ -292,6 +293,16 @@ export function MatchMakerListPage() {
                 <IconStopwatch className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-ink-faint" />
               </div>
             </Field>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-ink">
+              <input
+                type="checkbox"
+                className="rounded text-pine focus:ring-pine"
+                checked={useReferee}
+                onChange={(e) => setUseReferee(e.target.checked)}
+              />
+              {t("matchmaker.useRefereeLabel")}
+            </label>
 
             <Field label={t("matchmaker.poolSourceLabel")}>
               <select
@@ -707,6 +718,10 @@ export function MatchMakerDetailPage() {
   const { t } = useI18n();
   const detail = useMatchEventQuery(id ?? "", { skip: !id });
   const [rounds, setRounds] = useState(1);
+  const [genMode, setGenMode] = useState<"all" | "level">("all");
+  const [genCap, setGenCap] = useState(0);
+  const [webAiMode, setWebAiMode] = useState<"all" | "level">("all");
+  const [webAiCap, setWebAiCap] = useState(0);
   const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
   const [genError, setGenError] = useState("");
   const [generate, genState] = useGenerateMatchesMutation();
@@ -746,6 +761,9 @@ export function MatchMakerDetailPage() {
   const manualCourtMax = courtCap > 0 ? Math.min(courtCap, 5) : 5;
   const baseCap = detail.data?.event.base_played ?? 0;
   const maxMatches = detail.data?.event.max_rounds ?? 0;
+  // Starting count locks once matches exist: it rewrites everyone's history.
+  const baseLocked = (detail.data?.matches.length ?? 0) > 0;
+  const useRefereeOn = detail.data?.event.use_referee ?? true;
   const highestRound = detail.data?.matches.length ? Math.max(...detail.data.matches.map((m) => m.round)) : 0;
   // The event's match limit decides how many rounds may still be added.
   const roundsLeft = maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5;
@@ -813,6 +831,19 @@ export function MatchMakerDetailPage() {
     } catch (e) {
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveMaxMatches"));
       setMaxMatchesDraft(maxMatches);
+      setSaveNote("");
+    }
+  }
+
+  async function saveUseReferee(next: boolean) {
+    if (!id || next === useRefereeOn || savingSettings) return;
+    setSaveNote(t("matchmaker.settingsSaving"));
+    try {
+      await updateEvent({ id, body: { use_referee: next } }).unwrap();
+      setGenError("");
+      setSaveNote(t("matchmaker.settingsSaved"));
+    } catch (e) {
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorSaveCourts"));
       setSaveNote("");
     }
   }
@@ -903,8 +934,13 @@ export function MatchMakerDetailPage() {
 
   async function runGenerate() {
     if (!id || genState.isLoading || genModalOpen) return;
+    const level = genMode === "level";
     await runWithProgress(async () => {
-      return generate({ eventId: id, rounds: Math.max(1, Math.min(5, rounds || 1)) }).unwrap();
+      return generate({
+        eventId: id,
+        rounds: level ? 1 : Math.max(1, Math.min(5, rounds || 1)),
+        ...(level ? { played_cap: genCap } : {}),
+      }).unwrap();
     });
   }
 
@@ -917,19 +953,27 @@ export function MatchMakerDetailPage() {
 
   // Manual web-AI flow: fetch the exact prompt, let the user run it in
   // ChatGPT/Groq web (no API key), then validate + save the pasted answer.
-  async function openWebAi() {
-    if (!id || webAiOpen) return;
-    setWebAiOpen(true);
+  async function fetchWebPrompt(mode: "all" | "level", cap: number) {
+    if (!id) return;
     setWebPrompt(null);
-    setWebRaw("");
     setWebError("");
     setCopied(false);
     try {
-      const res = await fetchPrompt({ eventId: id }).unwrap();
+      const res = await fetchPrompt({
+        eventId: id,
+        ...(mode === "level" ? { played_cap: cap } : {}),
+      }).unwrap();
       setWebPrompt(res);
     } catch (e) {
       setWebError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
     }
+  }
+
+  async function openWebAi() {
+    if (!id || webAiOpen) return;
+    setWebAiOpen(true);
+    setWebRaw("");
+    await fetchWebPrompt(webAiMode, webAiCap);
   }
 
   async function copyWebPrompt() {
@@ -961,7 +1005,11 @@ export function MatchMakerDetailPage() {
     if (!id || manualState.isLoading || !webRaw.trim()) return;
     setWebError("");
     try {
-      const res = await submitManual({ eventId: id, raw: webRaw }).unwrap();
+      const res = await submitManual({
+        eventId: id,
+        raw: webRaw,
+        ...(webAiMode === "level" ? { played_cap: webAiCap } : {}),
+      }).unwrap();
       const ai = aiFromResult(res);
       if (ai) rememberManualAi(ai);
       setWebAiOpen(false);
@@ -1141,15 +1189,15 @@ export function MatchMakerDetailPage() {
               </div>
 
               <div className="w-28">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={t("matchmaker.baseHint")}>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1" title={baseLocked ? t("matchmaker.baseLockedHint") : t("matchmaker.baseHint")}>
                   <IconPlay className="h-3 w-3 text-pine" />
                   <span>{t("matchmaker.baseLabel")}</span>
                 </label>
                 <select
                   id="detail-base"
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:opacity-60"
+                  className="w-full appearance-none rounded-lg border border-line bg-white pl-8 pr-8 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine disabled:opacity-60"
                   value={baseDraft ?? baseCap}
-                  disabled={savingSettings}
+                  disabled={savingSettings || baseLocked}
                   onChange={(e) => saveBase(Number(e.target.value))}
                 >
                   {[0, 1, 2, 3, 4, 5].map((n) => (
@@ -1176,6 +1224,17 @@ export function MatchMakerDetailPage() {
                 </select>
               </div>
 
+              <label className="flex cursor-pointer items-center gap-1.5 pb-0.5 text-xs font-bold text-ink" title={t("matchmaker.useRefereeLabel")}>
+                <input
+                  type="checkbox"
+                  className="rounded text-pine focus:ring-pine disabled:opacity-60"
+                  checked={useRefereeOn}
+                  disabled={savingSettings}
+                  onChange={(e) => saveUseReferee(e.target.checked)}
+                />
+                <span>{t("matchmaker.useRefereeLabel")}</span>
+              </label>
+
               <div className="w-32">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
                   <IconRotate className="h-3.5 w-3.5 text-pine" />
@@ -1188,9 +1247,40 @@ export function MatchMakerDetailPage() {
                   max={roundsCap}
                   className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:bg-ink/5 disabled:text-ink-faint"
                   value={rounds}
-                  disabled={roundsLeft <= 0}
+                  disabled={roundsLeft <= 0 || genMode === "level"}
                   onChange={(e) => setRounds(Math.max(0, Number(e.target.value) || 0))}
                 />
+              </div>
+
+              <div className="w-40">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1">
+                  <IconUsers className="h-3.5 w-3.5 text-pine" />
+                  <span>{genMode === "level" ? t("matchmaker.playedModeLevel", { n: genCap }) : t("matchmaker.playedModeAll")}</span>
+                </label>
+                <div className="flex gap-1.5">
+                  <select
+                    id="pool-mode"
+                    aria-label={t("matchmaker.playedModeAll")}
+                    className="min-w-0 flex-1 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                    value={genMode}
+                    onChange={(e) => setGenMode(e.target.value as "all" | "level")}
+                  >
+                    <option value="all">{t("matchmaker.playedModeAll")}</option>
+                    <option value="level">{t("matchmaker.playedModeLevel", { n: genCap })}</option>
+                  </select>
+                  {genMode === "level" && (
+                    <input
+                      id="pool-level"
+                      type="number"
+                      min={0}
+                      max={99}
+                      aria-label={t("matchmaker.playedModeLevel", { n: genCap })}
+                      className="w-16 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                      value={genCap}
+                      onChange={(e) => setGenCap(Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  )}
+                </div>
               </div>
 
               <button
@@ -1214,7 +1304,7 @@ export function MatchMakerDetailPage() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                       <path d="M12 5v14M5 12h14" />
                     </svg>
-                    {t("matchmaker.btnGenerate", { count: rounds || 1 })}
+                    {t("matchmaker.btnGenerate", { count: genMode === "level" ? 1 : rounds || 1 })}
                   </>
                 )}
               </button>
@@ -1294,6 +1384,45 @@ export function MatchMakerDetailPage() {
                   <p className="py-6 text-center text-sm font-semibold text-ink-soft">{t("matchmaker.btnGenerating")}</p>
                 ) : (
                   <>
+                    <div className="mt-3 flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <label htmlFor="webai-mode" className="mb-1 block text-xs font-bold text-ink">
+                          {webAiMode === "level" ? t("matchmaker.playedModeLevel", { n: webAiCap }) : t("matchmaker.playedModeAll")}
+                        </label>
+                        <select
+                          id="webai-mode"
+                          className="w-full rounded-lg border border-line px-2 py-2 text-sm font-semibold bg-white focus:border-pine focus:outline-hidden"
+                          value={webAiMode}
+                          onChange={(e) => {
+                            const mode = e.target.value as "all" | "level";
+                            setWebAiMode(mode);
+                            setWebRaw("");
+                            fetchWebPrompt(mode, webAiCap);
+                          }}
+                        >
+                          <option value="all">{t("matchmaker.playedModeAll")}</option>
+                          <option value="level">{t("matchmaker.playedModeLevel", { n: webAiCap })}</option>
+                        </select>
+                      </div>
+                      {webAiMode === "level" && (
+                        <input
+                          id="webai-cap"
+                          type="number"
+                          min={0}
+                          max={99}
+                          aria-label={t("matchmaker.playedModeLevel", { n: webAiCap })}
+                          className="w-20 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                          value={webAiCap}
+                          onChange={(e) => setWebAiCap(Math.max(0, Number(e.target.value) || 0))}
+                          onBlur={(e) => {
+                            const n = Math.max(0, Number((e.target as HTMLInputElement).value) || 0);
+                            setWebAiCap(n);
+                            fetchWebPrompt("level", n);
+                          }}
+                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        />
+                      )}
+                    </div>
                     <label htmlFor="webai-prompt" className="mt-3 mb-1 block text-xs font-bold text-ink">
                       1. {t("matchmaker.webAiCopy")}
                     </label>
@@ -1435,7 +1564,7 @@ export function MatchMakerDetailPage() {
                 {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {matches.map((m) => (
-                    <MatchCard key={m.id} match={m} maxCourt={courtCap} pool={detail.data.counts ?? []} />
+                    <MatchCard key={m.id} match={m} maxCourt={courtCap} pool={detail.data.counts ?? []} useReferee={detail.data.event.use_referee ?? true} />
                   ))}
                 </div>
               </section>
@@ -1996,10 +2125,12 @@ function MatchCard({
   match: m,
   maxCourt,
   pool,
+  useReferee = true,
 }: {
   match: GenMatch;
   maxCourt: number;
   pool: { player_id: string; name: string; grade: string | null; gender?: string | null; refereed?: number }[];
+  useReferee?: boolean;
 }) {
   const { t } = useI18n();
   const [update, updateState] = useUpdateGenMatchMutation();
@@ -2186,6 +2317,7 @@ function MatchCard({
       {error && <p role="alert" className="px-3 py-1 text-xs text-red-700 font-semibold">{error}</p>}
 
       {/* REFEREE BAR */}
+      {useReferee && (
       <div className="flex items-center gap-2 border-t border-line/60 px-3.5 py-2 bg-court/20">
         <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
           <IconWhistle className="h-3.5 w-3.5 text-amber-700" />
@@ -2217,6 +2349,7 @@ function MatchCard({
           </select>
         )}
       </div>
+      )}
 
       {/* CARD ACTION FOOTER */}
       <div className="flex items-center justify-between gap-2 border-t border-line px-3.5 py-2.5 bg-white">

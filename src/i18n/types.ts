@@ -378,7 +378,8 @@ export interface MatchMakerTranslations {
   courtsHint: string;
   baseLabel: string;
   baseHint: string;
-  maxMatchesLabel: string;
+    baseLockedHint: string;
+  useRefereeLabel: string;  maxMatchesLabel: string;
   maxMatchesHint: string;
   roundProgressLabel: string;
   roundProgressUnlimited: string;
@@ -432,6 +433,8 @@ export interface MatchMakerTranslations {
   generatorDesc: string;
   roundsLabel: string;
   addRoundsHint: string;
+  playedModeAll: string;
+  playedModeLevel: string;
   btnGenerate: string;
   btnGenerating: string;
   genModalTitle: string;
@@ -461,7 +464,7 @@ export interface MatchMakerTranslations {
   manualCardRound: string;
   manualCardNoReferee: string;
   manualCardStatus: string;
-  playerPickPlaceholder: string;  errorSaveCourts: string;
+    playerPickPlaceholder: string;  errorSaveCourts: string;
   errorSaveMaxMatches: string;
   settingsSaving: string;
   settingsSaved: string;

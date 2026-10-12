@@ -65,7 +65,7 @@ export interface PlayerCount {
 }
 
 export interface MatchEventDetail {
-  event: { id: string; name: string; status: string; court_count: number; base_played: number; max_rounds: number; is_public: boolean; show_grades: boolean; player_ids: string[]; source_session_id?: string | null; created_at: string };
+  event: { id: string; name: string; status: string; court_count: number; base_played: number; max_rounds: number; is_public: boolean; show_grades: boolean; use_referee?: boolean; player_ids: string[]; source_session_id?: string | null; created_at: string };
   matches: GenMatch[];
   counts: PlayerCount[];
 }
