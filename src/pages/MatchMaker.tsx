@@ -1269,16 +1269,17 @@ export function MatchMakerDetailPage() {
                     <option value="level">{t("matchmaker.playedModeLevel", { n: genCap })}</option>
                   </select>
                   {genMode === "level" && (
-                    <input
+                    <select
                       id="pool-level"
-                      type="number"
-                      min={0}
-                      max={99}
                       aria-label={t("matchmaker.playedModeLevel", { n: genCap })}
-                      className="w-16 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                      className="w-20 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
                       value={genCap}
-                      onChange={(e) => setGenCap(Math.max(0, Number(e.target.value) || 0))}
-                    />
+                      onChange={(e) => setGenCap(Number(e.target.value))}
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   )}
                 </div>
               </div>
@@ -1405,22 +1406,21 @@ export function MatchMakerDetailPage() {
                         </select>
                       </div>
                       {webAiMode === "level" && (
-                        <input
+                        <select
                           id="webai-cap"
-                          type="number"
-                          min={0}
-                          max={99}
                           aria-label={t("matchmaker.playedModeLevel", { n: webAiCap })}
                           className="w-20 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
                           value={webAiCap}
-                          onChange={(e) => setWebAiCap(Math.max(0, Number(e.target.value) || 0))}
-                          onBlur={(e) => {
-                            const n = Math.max(0, Number((e.target as HTMLInputElement).value) || 0);
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
                             setWebAiCap(n);
                             fetchWebPrompt("level", n);
                           }}
-                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                        />
+                        >
+                          {[0, 1, 2, 3, 4, 5].map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
                       )}
                     </div>
                     <label htmlFor="webai-prompt" className="mt-3 mb-1 block text-xs font-bold text-ink">
