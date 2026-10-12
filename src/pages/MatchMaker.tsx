@@ -107,6 +107,7 @@ export function MatchMakerListPage() {
   const [customSearch, setCustomSearch] = useState("");
   const [sessionSearch, setSessionSearch] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [createOpen, setCreateOpen] = useState(true);
 
   const events = useMatchEventsQuery();
   const sessions = useMabarListQuery("");
@@ -163,19 +164,12 @@ export function MatchMakerListPage() {
 
   async function submit() {
     if (!name.trim() || createState.isLoading) return;
+    // Any pool size goes, even empty: players join later via late arrivals
+    // or top-up auto-pull. Generation itself still needs 4+ players.
     let player_ids: string[] | undefined;
     if (poolSource === "session") {
-      const picked = customIds.filter((pid) => sessionIds.has(pid));
-      if (picked.length < 4) {
-        setError(t("matchmaker.errorNeedFourSession"));
-        return;
-      }
-      player_ids = picked;
+      player_ids = customIds.filter((pid) => sessionIds.has(pid));
     } else if (poolSource === "custom") {
-      if (customIds.length < 4) {
-        setError(t("matchmaker.errorNeedFourCustom"));
-        return;
-      }
       player_ids = [...customIds];
     }
     try {
@@ -187,6 +181,7 @@ export function MatchMakerListPage() {
       setUseReferee(true);
       setCustomIds([]);
       setError("");
+      setCreateOpen(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("matchmaker.errorCreateEvent"));
     }
@@ -213,8 +208,9 @@ export function MatchMakerListPage() {
         sub={t("matchmaker.pageSubtitle")}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
+      <div className={`grid gap-6 ${createOpen ? "lg:grid-cols-[340px_1fr]" : ""}`}>
         {/* CREATE EVENT FORM */}
+        {createOpen ? (
         <section
           aria-label={t("matchmaker.newEventTitle")}
           className="h-fit overflow-hidden rounded-2xl border border-line bg-white shadow-card"
@@ -226,10 +222,19 @@ export function MatchMakerListPage() {
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="text-sm font-bold tracking-tight text-white">{t("matchmaker.newEventTitle")}</h2>
                 <p className="text-[11px] text-paper/70">{t("matchmaker.pageSubtitle")}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(false)}
+                aria-label={t("common.close")}
+                title={t("common.close")}
+                className="rounded-lg px-2 py-1 text-lg font-black leading-none text-paper/70 hover:bg-paper/10 hover:text-white"
+              >
+                ×
+              </button>
             </div>
           </div>
 
@@ -453,6 +458,20 @@ export function MatchMakerListPage() {
             </button>
           </div>
         </section>
+        ) : (
+          <div className="h-fit">
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-bold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              {t("matchmaker.newEventTitle")}
+            </button>
+          </div>
+        )}
 
         {/* EVENTS LIST & CARDS */}
         <section aria-label={t("matchmaker.eventsSectionTitle")} className="space-y-4">
