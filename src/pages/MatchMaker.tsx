@@ -737,9 +737,9 @@ export function MatchMakerDetailPage() {
   const { t } = useI18n();
   const detail = useMatchEventQuery(id ?? "", { skip: !id });
   const [rounds, setRounds] = useState(1);
-  const [genMode, setGenMode] = useState<"all" | "level">("all");
+  const [genMode, setGenMode] = useState<"all" | "level" | "catchup">("all");
   const [genCap, setGenCap] = useState(0);
-  const [webAiMode, setWebAiMode] = useState<"all" | "level">("all");
+  const [webAiMode, setWebAiMode] = useState<"all" | "level" | "catchup">("all");
   const [webAiCap, setWebAiCap] = useState(0);
   const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
   const [matchStatusTab, setMatchStatusTab] = useState<"ALL" | "UPCOMING" | "PLAYING" | "ENDED">("ALL");
@@ -960,12 +960,13 @@ export function MatchMakerDetailPage() {
 
   async function runGenerate() {
     if (!id || genState.isLoading || genModalOpen) return;
-    const level = genMode === "level";
+    const filtered = genMode !== "all";
     await runWithProgress(async () => {
       return generate({
         eventId: id,
-        rounds: level ? 1 : Math.max(1, Math.min(5, rounds || 1)),
-        ...(level ? { played_cap: genCap } : {}),
+        rounds: filtered ? 1 : Math.max(1, Math.min(5, rounds || 1)),
+        ...(genMode === "level" ? { played_cap: genCap } : {}),
+        ...(genMode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
     });
   }
@@ -979,7 +980,7 @@ export function MatchMakerDetailPage() {
 
   // Manual web-AI flow: fetch the exact prompt, let the user run it in
   // ChatGPT/Groq web (no API key), then validate + save the pasted answer.
-  async function fetchWebPrompt(mode: "all" | "level", cap: number) {
+  async function fetchWebPrompt(mode: "all" | "level" | "catchup", cap: number) {
     if (!id) return;
     setWebPrompt(null);
     setWebError("");
@@ -988,6 +989,7 @@ export function MatchMakerDetailPage() {
       const res = await fetchPrompt({
         eventId: id,
         ...(mode === "level" ? { played_cap: cap } : {}),
+        ...(mode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
       setWebPrompt(res);
     } catch (e) {
@@ -1035,6 +1037,7 @@ export function MatchMakerDetailPage() {
         eventId: id,
         raw: webRaw,
         ...(webAiMode === "level" ? { played_cap: webAiCap } : {}),
+        ...(webAiMode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
       const ai = aiFromResult(res);
       if (ai) rememberManualAi(ai);
@@ -1265,7 +1268,7 @@ export function MatchMakerDetailPage() {
                   max={roundsCap}
                   className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:bg-ink/5 disabled:text-ink-faint"
                   value={rounds}
-                  disabled={roundsLeft <= 0 || genMode === "level"}
+                  disabled={roundsLeft <= 0 || genMode !== "all"}
                   onChange={(e) => setRounds(Math.max(0, Number(e.target.value) || 0))}
                 />
               </div>
@@ -1281,10 +1284,11 @@ export function MatchMakerDetailPage() {
                     aria-label={t("matchmaker.playedModeAll")}
                     className="min-w-0 flex-1 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
                     value={genMode}
-                    onChange={(e) => setGenMode(e.target.value as "all" | "level")}
+                    onChange={(e) => setGenMode(e.target.value as "all" | "level" | "catchup")}
                   >
                     <option value="all">{t("matchmaker.playedModeAll")}</option>
                     <option value="level">{t("matchmaker.playedModeLevel", { n: genCap })}</option>
+                    <option value="catchup">{t("matchmaker.playedModeCatchup")}</option>
                   </select>
                   {genMode === "level" && (
                     <select
@@ -1320,8 +1324,8 @@ export function MatchMakerDetailPage() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   type="button"
-                  disabled={genState.isLoading || genModalOpen || roundsLeft <= 0}
-                  onClick={runGenerate}
+                  disabled={genState.isLoading || genModalOpen || (roundsLeft <= 0 && genMode !== "catchup")}
+                onClick={runGenerate}
                   title={
                     maxMatches > 0
                       ? t("matchmaker.roundsLeftHint", { count: roundsLeft })
@@ -1339,15 +1343,15 @@ export function MatchMakerDetailPage() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
-                      {t("matchmaker.btnGenerate", { count: genMode === "level" ? 1 : rounds || 1 })}
+                      {t("matchmaker.btnGenerate", { count: genMode !== "all" ? 1 : rounds || 1 })}
                     </>
                   )}
                 </button>
 
                 <button
                   type="button"
-                  disabled={genState.isLoading || genModalOpen || webAiOpen || manualState.isLoading || roundsLeft <= 0}
-                  onClick={openWebAi}
+                disabled={genState.isLoading || genModalOpen || webAiOpen || manualState.isLoading}
+                onClick={openWebAi}
                   title={t("matchmaker.webAiDesc")}
                   className="flex items-center justify-center gap-2 rounded-xl border border-pine/40 bg-white py-2.5 px-4 text-sm font-extrabold text-pine shadow-2xs hover:bg-court/60 active:scale-[0.99] transition-all disabled:opacity-50"
                 >
@@ -1423,14 +1427,14 @@ export function MatchMakerDetailPage() {
                     <div className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
                         <label htmlFor="webai-mode" className="mb-1 block text-xs font-bold text-ink">
-                          {webAiMode === "level" ? t("matchmaker.playedModeLevel", { n: webAiCap }) : t("matchmaker.playedModeAll")}
+                          {webAiMode === "level" ? t("matchmaker.playedModeLevel", { n: webAiCap }) : webAiMode === "catchup" ? t("matchmaker.playedModeCatchup") : t("matchmaker.playedModeAll")}
                         </label>
                         <select
                           id="webai-mode"
                           className="w-full rounded-lg border border-line px-2 py-2 text-sm font-semibold bg-white focus:border-pine focus:outline-hidden"
                           value={webAiMode}
                           onChange={(e) => {
-                            const mode = e.target.value as "all" | "level";
+                            const mode = e.target.value as "all" | "level" | "catchup";
                             setWebAiMode(mode);
                             setWebRaw("");
                             fetchWebPrompt(mode, webAiCap);
@@ -1438,6 +1442,7 @@ export function MatchMakerDetailPage() {
                         >
                           <option value="all">{t("matchmaker.playedModeAll")}</option>
                           <option value="level">{t("matchmaker.playedModeLevel", { n: webAiCap })}</option>
+                          <option value="catchup">{t("matchmaker.playedModeCatchup")}</option>
                         </select>
                       </div>
                       {webAiMode === "level" && (
@@ -1846,6 +1851,11 @@ export function MatchMakerDetailPage() {
                             <span className="font-extrabold text-sm text-ink truncate">
                               {c.name}
                             </span>
+                            {(c.arrival || 0) > 0 && (
+                              <span className="shrink-0 rounded-full bg-court px-2 py-0.5 text-[10px] font-black text-pine">
+                                {t("matchmaker.arrivalBadge", { n: c.arrival })}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {c.grade ? <GradeChip grade={c.grade} /> : null}
@@ -1902,8 +1912,9 @@ export function MatchMakerDetailPage() {
                     <table className="data">
                       <thead>
                         <tr>
-                          <th className="w-12">{t("matchmaker.colNo")}</th>
-                          <th>{t("matchmaker.colPlayer")}</th>
+                            <th className="w-12">{t("matchmaker.colNo")}</th>
+                            <th>{t("matchmaker.colPlayer")}</th>
+                            <th className="w-20">{t("matchmaker.colArrival")}</th>
                           <th>{t("matchmaker.colGrade")}</th>
                           <th>{t("matchmaker.colGender")}</th>
                           <th className="w-36 text-right">
@@ -1926,6 +1937,7 @@ export function MatchMakerDetailPage() {
                                 <span>{c.name}</span>
                               </div>
                             </td>
+                            <td className="tabular-nums font-bold text-pine">{c.arrival || "—"}</td>
                             <td>{c.grade ? <GradeChip grade={c.grade} /> : <span className="text-ink-faint text-xs">—</span>}</td>
                             <td>{c.gender ? <GenderChip gender={c.gender} /> : <span className="text-ink-faint text-xs">—</span>}</td>
                             <td className="text-right">

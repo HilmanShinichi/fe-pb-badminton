@@ -435,6 +435,7 @@ export interface MatchMakerTranslations {
   addRoundsHint: string;
   playedModeAll: string;
   playedModeLevel: string;
+  playedModeCatchup: string;
   btnGenerate: string;
   btnGenerating: string;
   genModalTitle: string;
@@ -511,6 +512,8 @@ export interface MatchMakerTranslations {
   lateArrivalsNeedSource: string;
   colNo: string;
   colPlayer: string;
+  colArrival: string;
+  arrivalBadge: string;
   colGrade: string;
   colGender: string;
   colPlayed: string;
