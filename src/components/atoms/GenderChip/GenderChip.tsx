@@ -7,7 +7,7 @@ export function GenderChip({ gender }: { gender: string }) {
   return (
     <span
       title={isMale ? t("players.genderMale") : t("players.genderFemale")}
-      className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-bold ${
+      className={`inline-flex items-center rounded-md border px-1 py-0.5 text-[10px] sm:text-xs font-bold ${
         isMale
           ? "border-sky-300 bg-sky-100 text-sky-900"
           : "border-rose-300 bg-rose-100 text-rose-900"

@@ -1125,7 +1125,7 @@ export function MatchMakerDetailPage() {
   }, [grouped, activeRoundTab, matchStatusTab]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       <PageHead
         title={detail.data?.event.name ?? t("matchmaker.pageTitle")}
         sub={
@@ -1508,11 +1508,11 @@ export function MatchMakerDetailPage() {
 
           {/* ROUND TABS FILTER (FOR EFFORTLESS NAVIGATION ON MOBILE/TABLET) */}
           {allRoundNumbers.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 scrollbar-none">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full">
               <button
                 type="button"
                 onClick={() => setActiveRoundTab("ALL")}
-                className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
                   activeRoundTab === "ALL"
                     ? "bg-pine text-white shadow-2xs"
                     : "border border-line bg-white text-ink-soft hover:bg-court/60"
@@ -1527,7 +1527,7 @@ export function MatchMakerDetailPage() {
                     key={r}
                     type="button"
                     onClick={() => setActiveRoundTab(r)}
-                    className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
                       activeRoundTab === r
                         ? "bg-pine text-white shadow-2xs"
                         : "border border-line bg-white text-ink-soft hover:bg-court/60"
@@ -1542,7 +1542,7 @@ export function MatchMakerDetailPage() {
 
           {/* STATUS TABS FILTER */}
           {grouped.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Filter by status">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full" role="tablist" aria-label="Filter by status">
               {(
                 [
                   { key: "ALL" as const, label: t("matchmaker.allRounds") },
@@ -1562,7 +1562,7 @@ export function MatchMakerDetailPage() {
                     role="tab"
                     aria-selected={matchStatusTab === s.key}
                     onClick={() => setMatchStatusTab(s.key)}
-                    className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
                       matchStatusTab === s.key
                         ? "bg-pine text-white shadow-2xs"
                         : "border border-line bg-white text-ink-soft hover:bg-court/60"
@@ -1586,7 +1586,7 @@ export function MatchMakerDetailPage() {
           ) : (
             filteredGrouped.map(([round, matches]) => (
               <section key={round} aria-label={`Round ${round}`} className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-line pb-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-pine text-xs font-black text-lime">
                       {round}
@@ -1596,10 +1596,10 @@ export function MatchMakerDetailPage() {
                     </h2>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-                    <Btn disabled={genState.isLoading} onClick={() => openManualCard(round)}>
+                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => openManualCard(round)}>
                       {t("matchmaker.manualCardBtn")}
                     </Btn>
-                    <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(round, true)}>
+                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => runGenerateRound(round, true)}>
                       {t("matchmaker.btnTopUpRound")}
                     </Btn>
                     <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
@@ -1625,10 +1625,10 @@ export function MatchMakerDetailPage() {
                     {t("matchmaker.roundTitle", { round: r })} · {t("matchmaker.roundDeleted")}
                   </h2>
                   <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-                    <Btn disabled={genState.isLoading} onClick={() => openManualCard(r)}>
+                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => openManualCard(r)}>
                       {t("matchmaker.manualCardBtn")}
                     </Btn>
-                    <Btn disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
+                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
                       {t("matchmaker.btnRegenerateRound", { round: r })}
                     </Btn>
                   </div>
@@ -2130,7 +2130,7 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
 export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left" | "right" }) {
   return (
     <div
-      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/90 p-2 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1.5 sm:space-y-2 ${
+      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/95 p-1.5 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1 sm:space-y-2 overflow-hidden ${
         align === "right" ? "text-right items-end" : "text-left items-start"
       }`}
     >
@@ -2139,7 +2139,7 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
         return (
           <div
             key={p.player_id}
-            className={`flex items-center gap-1.5 sm:gap-2 w-full min-w-0 ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
+            className={`flex items-center gap-1 sm:gap-2 w-full min-w-0 overflow-hidden ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
           >
             <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[9px] sm:text-[10px] font-black text-lime shadow-2xs">
               {initial}
@@ -2151,7 +2151,7 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
               >
                 {p.name}
               </span>
-              <span className={`mt-0.5 flex items-center gap-1 flex-wrap ${align === "right" ? "justify-end" : "justify-start"}`}>
+              <span className={`mt-0.5 flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
                 {p.grade ? <GradeChip grade={p.grade} /> : <span className="text-[10px] text-ink-faint">—</span>}
                 {p.gender && <GenderChip gender={p.gender} />}
               </span>
@@ -2277,24 +2277,24 @@ function MatchCard({
   return (
     <article
       aria-label={`Round ${m.round} match`}
-      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/90 bg-white shadow-card hover:shadow-md transition-all hover:border-pine/30"
+      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/90 bg-white shadow-card hover:shadow-md transition-all hover:border-pine/30 w-full max-w-full"
     >
       {/* CARD HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-3 py-2 sm:px-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-2.5 py-1.5 sm:px-3.5 sm:py-2">
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-          <span className="shrink-0 whitespace-nowrap rounded-md bg-pine/10 border border-pine/20 px-2 py-0.5 text-[11px] font-black uppercase text-pine">
+          <span className="shrink-0 whitespace-nowrap rounded-md bg-pine/10 border border-pine/20 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase text-pine">
             R-{m.round}
           </span>
           {(m.wave ?? 1) > 1 && (
             <span
-              className="shrink-0 whitespace-nowrap rounded-md bg-sky-100 border border-sky-200 px-2 py-0.5 text-[11px] font-black uppercase text-sky-900"
+              className="shrink-0 whitespace-nowrap rounded-md bg-sky-100 border border-sky-200 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase text-sky-900"
               title="Gelombang: giliran bermain antrian berikutnya saat lapangan kosong/siap"
             >
               Gel. {m.wave}
             </span>
           )}
           {m.status !== "UPCOMING" && (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-2 py-0.5 text-[11px] font-black tabular-nums text-ink" title="Match duration">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black tabular-nums text-ink" title="Match duration">
               <IconStopwatch className="h-3 w-3 text-ink-soft shrink-0" />
               <span>{fmtClock(elapsedSec)}</span>
             </span>
@@ -2302,19 +2302,19 @@ function MatchCard({
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {locked ? (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold text-ink-soft">
               <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
               <span>{m.court ? t("matchmaker.courtNumber", { court: m.court }) : t("matchmaker.courtUnlimited")}</span>
             </span>
           ) : (
-            <label className="flex items-center gap-1 text-xs font-extrabold text-ink shrink-0 whitespace-nowrap">
+            <label className="flex items-center gap-1 text-[11px] sm:text-xs font-extrabold text-ink shrink-0 whitespace-nowrap">
               <span className="inline-flex items-center gap-1">
                 <IconCourt className="h-3.5 w-3.5 text-pine shrink-0" />
                 <span className="hidden sm:inline">{t("matchmaker.courtLabel")}</span>
               </span>
               <select
                 aria-label="Court number"
-                className="rounded border border-line px-1 py-0.5 text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden disabled:opacity-60"
+                className="rounded border border-line px-1 py-0.5 text-[11px] sm:text-xs font-bold text-center bg-white focus:border-pine focus:outline-hidden disabled:opacity-60"
                 value={court}
                 disabled={updateState.isLoading}
                 onChange={(e) => saveCourt(Number(e.target.value))}
@@ -2329,7 +2329,7 @@ function MatchCard({
           )}
           {/* STATUS PILL WITH RADIANT GRADIENTS */}
           {m.status === "PLAYING" ? (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-2.5 py-0.5 text-[11px] font-black text-white shadow-sm">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black text-white shadow-sm">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-lime" />
@@ -2337,11 +2337,11 @@ function MatchCard({
               {t("matchmaker.statusPlaying")}
             </span>
           ) : m.status === "ENDED" ? (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-slate-700">
               {t("matchmaker.statusEnded")}
             </span>
           ) : (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-0.5 text-[11px] font-black text-white shadow-2xs">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black text-white shadow-2xs">
               {t("matchmaker.statusUpcoming")}
             </span>
           )}
@@ -2349,11 +2349,11 @@ function MatchCard({
       </div>
 
       {/* DOUBLES MATCH ARENA */}
-      <div className="p-2.5 sm:p-3 bg-gradient-to-b from-[#f8faf9] to-[#edf4f0]/80">
-        <div className="flex items-stretch gap-1.5 sm:gap-2">
+      <div className="p-2 sm:p-3 bg-gradient-to-b from-[#f8faf9] to-[#edf4f0]/80 overflow-hidden">
+        <div className="flex items-stretch gap-1 sm:gap-2">
           <TeamPanel team={m.team1} align="left" />
-          <div className="flex shrink-0 items-center justify-center px-0.5 sm:px-1">
-            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1a4434] text-[10px] sm:text-[11px] font-black text-lime shadow-md border-2 border-lime/30">
+          <div className="flex shrink-0 items-center justify-center px-0.5">
+            <span className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1a4434] text-[9px] sm:text-[11px] font-black text-lime shadow-md border border-lime/30">
               {t("matchmaker.vs")}
             </span>
           </div>
@@ -2365,7 +2365,7 @@ function MatchCard({
 
       {/* REFEREE BAR */}
       {useReferee && (
-      <div className="flex items-center gap-2 border-t border-line/60 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-court/20">
+      <div className="flex items-center gap-2 border-t border-line/60 px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-court/20">
         <span className="inline-flex items-center gap-1 text-xs font-extrabold text-ink-soft shrink-0">
           <IconWhistle className="h-3.5 w-3.5 text-amber-700 shrink-0" />
           <span>{t("matchmaker.refereeLabel")}</span>
@@ -2399,14 +2399,14 @@ function MatchCard({
       )}
 
       {/* CARD ACTION FOOTER */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 sm:px-3.5 sm:py-2.5 bg-white">
-        <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-line px-2.5 py-2 sm:px-3.5 sm:py-2.5 bg-white">
+        <div className="flex items-center gap-1.5">
           {next && (
             <button
               type="button"
               disabled={updateState.isLoading}
               onClick={() => advance(next)}
-              className={`rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
                 next === "PLAYING"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white"
                   : "bg-gradient-to-r from-[#143728] to-[#1e4d3a] hover:brightness-110 text-lime"
@@ -2418,7 +2418,7 @@ function MatchCard({
           {m.status === "ENDED" && (
             <button
               type="button"
-              className="rounded-lg border border-line px-2 py-1.5 sm:px-2.5 text-xs font-bold text-ink-soft hover:bg-court/60 transition-colors"
+              className="rounded-lg border border-line px-2 py-1.5 text-xs font-bold text-ink-soft hover:bg-court/60 transition-colors"
               disabled={updateState.isLoading}
               onClick={() => advance("UPCOMING")}
             >
@@ -2427,10 +2427,10 @@ function MatchCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
-          <div className="flex items-center gap-1 rounded-lg bg-court/40 border border-line/60 px-1.5 py-0.5" title="Shuttlecocks used">
+        <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
+          <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg bg-court/40 border border-line/60 px-1 py-0.5" title="Shuttlecocks used">
             <span className="inline-flex items-center text-xs font-extrabold text-ink-soft">
-              <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+              <IconShuttlecock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-700 shrink-0" />
             </span>
             {!locked ? (
               <>
@@ -2439,29 +2439,29 @@ function MatchCard({
                   aria-label="One fewer shuttlecock"
                   disabled={updateState.isLoading || (cocks ?? 0) <= 0}
                   onClick={() => stepCocks(-1)}
-                  className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
+                  className="flex h-5 w-5 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
                 >
                   −
                 </button>
-                <span className="min-w-4 sm:min-w-5 text-center text-xs sm:text-sm font-black tabular-nums">{cocks ?? 0}</span>
+                <span className="min-w-4 text-center text-xs font-black tabular-nums">{cocks ?? 0}</span>
                 <button
                   type="button"
                   aria-label="One more shuttlecock"
                   disabled={updateState.isLoading}
                   onClick={() => stepCocks(1)}
-                  className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
+                  className="flex h-5 w-5 items-center justify-center rounded border border-line bg-white text-xs font-black text-ink hover:bg-court disabled:opacity-40"
                 >
                   +
                 </button>
               </>
             ) : (
-              <span className="text-xs sm:text-sm font-black tabular-nums px-1">{cocks ?? 0}</span>
+              <span className="text-xs font-black tabular-nums px-1">{cocks ?? 0}</span>
             )}
           </div>
 
           <button
             type="button"
-            className="rounded-lg border border-line/80 px-2 py-1.5 sm:px-2.5 text-xs font-bold text-ink hover:bg-court/60 transition-colors"
+            className="rounded-lg border border-line/80 px-2 py-1.5 text-xs font-bold text-ink hover:bg-court/60 transition-colors"
             onClick={() => setEditing(true)}
           >
             {t("matchmaker.btnEditTeams")}
@@ -2469,7 +2469,7 @@ function MatchCard({
           <button
             type="button"
             aria-label={t("matchmaker.btnDeleteCard")}
-            className="rounded-lg border border-red-200 px-2 py-1.5 sm:px-2.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
+            className="rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
             disabled={removeCardState.isLoading}
             onClick={() => setConfirmingDelete(true)}
           >

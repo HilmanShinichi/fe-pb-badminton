@@ -205,7 +205,7 @@ export function LiveEventPage() {
         </div>
       )}
       {detail.data && (
-        <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter by status">
+        <div className="mb-4 flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full" role="tablist" aria-label="Filter by status">
           {(["ALL", "UPCOMING", "PLAYING", "ENDED"] as const).map((s) => (
             <button
               key={s}

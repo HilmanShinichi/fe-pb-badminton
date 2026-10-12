@@ -421,7 +421,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl px-3.5 py-4 sm:px-5 sm:py-5 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl px-3.5 py-4 sm:px-5 sm:py-5 lg:px-8 overflow-x-hidden">{children}</main>
       </div>
 
       <LogoUploadModal open={logoModalOpen} onClose={() => setLogoModalOpen(false)} />
