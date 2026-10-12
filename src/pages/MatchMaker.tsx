@@ -748,6 +748,7 @@ export function MatchMakerDetailPage() {
   const [lastAi, setLastAi] = useState<GenerateAIMeta | null>(null);
   const [saveNote, setSaveNote] = useState("");
   const [countSearch, setCountSearch] = useState("");
+  const [playedFilter, setPlayedFilter] = useState<number | "ALL">("ALL");
   const [createCard, createCardState] = useCreateGenMatchMutation();
   const [manualOpen, setManualOpen] = useState(false);
   const [manualRound, setManualRound] = useState(1);
@@ -771,6 +772,11 @@ export function MatchMakerDetailPage() {
   const roundsCap = Math.max(1, Math.min(5, roundsLeft));
   // Played and refereed bars share the event's match limit as their scale.
   const countScale = maxMatches > 0 ? maxMatches : 5;
+  // Group tabs follow the match limit setting; unlimited events follow the data.
+  const playedGroupMax =
+    maxMatches > 0
+      ? maxMatches
+      : Math.max(0, ...(detail.data?.counts ?? []).map((c) => c.played));
 
   useEffect(() => {
     if (detail.data) setCourtsDraft(detail.data.event.court_count ?? 0);
@@ -1752,7 +1758,7 @@ export function MatchMakerDetailPage() {
               </span>
             </div>
 
-            <div className="border-b border-line/60 px-4 py-2.5">
+            <div className="border-b border-line/60 px-4 py-2.5 space-y-2">
               <input
                 id="play-counts-search"
                 className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
@@ -1760,12 +1766,37 @@ export function MatchMakerDetailPage() {
                 value={countSearch}
                 onChange={(e) => setCountSearch(e.target.value)}
               />
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" role="tablist" aria-label="Filter by played count">
+                {(["ALL", ...Array.from({ length: playedGroupMax + 1 }, (_, n) => n)] as const).map((g) => {
+                  const count =
+                    g === "ALL"
+                      ? (detail.data.counts ?? []).length
+                      : (detail.data.counts ?? []).filter((c) => c.played === g).length;
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      role="tab"
+                      aria-selected={playedFilter === g}
+                      onClick={() => setPlayedFilter(g)}
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
+                        playedFilter === g
+                          ? "bg-pine text-white shadow-2xs"
+                          : "border border-line bg-white text-ink-soft hover:bg-court/60"
+                      }`}
+                    >
+                      {g === "ALL" ? t("common.all") : `${g}x`} ({count})
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {(() => {
               const q = countSearch.trim().toLowerCase();
               const sorted = [...(detail.data.counts ?? [])]
                 .filter((c) => !q || c.name.toLowerCase().includes(q))
+                .filter((c) => playedFilter === "ALL" || c.played === playedFilter)
                 .sort(
                   (a, b) => b.played - a.played || (a.arrival || 999) - (b.arrival || 999),
                 );
