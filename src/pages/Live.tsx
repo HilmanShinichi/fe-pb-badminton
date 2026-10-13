@@ -248,6 +248,7 @@ export function LiveEventPage() {
 
 function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
   const { id } = useParams<{ id: string }>();
+  const { isId } = useI18n();
   const navigate = useNavigate();
   // Always refetch on mount so Back lands on fresh numbers.
   const detail = usePublicMatchEventQuery(id ?? "", {
@@ -310,6 +311,11 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
                     <td className="font-medium">
                       {c.name}
                       {c.grade ? <span className="ml-2 text-xs text-ink-faint">{c.grade}</span> : null}
+                      {(c.arrival ?? 0) > 0 && (
+                        <span className="ml-2 rounded bg-slate-100 px-1.5 py-px text-[11px] font-black text-ink-soft">
+                          {isId ? `Absen #${c.arrival}` : `Check-in #${c.arrival}`}
+                        </span>
+                      )}
                     </td>
                     <td className="text-right">
                       <div className="flex justify-end">

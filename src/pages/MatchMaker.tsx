@@ -2189,7 +2189,7 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
   );
 }
 
-export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left" | "right" }) {
+export function TeamPanel({ team, align, meta }: { team: GenTeamPlayer[]; align: "left" | "right"; meta?: Record<string, { arrival?: number | null; played?: number | null }> }) {
   return (
     <div
       className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/95 p-1.5 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1 sm:space-y-2 overflow-hidden ${
@@ -2198,6 +2198,7 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
     >
       {team.map((p) => {
         const initial = p.name.trim().slice(0, 1).toUpperCase();
+        const info = meta?.[p.player_id];
         return (
           <div
             key={p.player_id}
@@ -2213,9 +2214,19 @@ export function TeamPanel({ team, align }: { team: GenTeamPlayer[]; align: "left
               >
                 {p.name}
               </span>
-              <span className={`mt-0.5 flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+              <span className={`mt-0.5 flex flex-wrap items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
                 {p.grade ? <GradeChip grade={p.grade} /> : <span className="text-[10px] text-ink-faint">—</span>}
                 {p.gender && <GenderChip gender={p.gender} />}
+                {info && (info.arrival ?? 0) > 0 && (
+                  <span title="Check-in order" className="rounded bg-slate-100 px-1 py-px text-[10px] font-black tabular-nums text-ink-soft">
+                    #{info.arrival}
+                  </span>
+                )}
+                {info && info.played != null && (
+                  <span title="Matches played" className="rounded bg-emerald-50 px-1 py-px text-[10px] font-black tabular-nums text-emerald-700">
+                    {info.played}×
+                  </span>
+                )}
               </span>
             </div>
           </div>
