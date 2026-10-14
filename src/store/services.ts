@@ -360,11 +360,11 @@ export const api = baseApi.injectEndpoints({
       query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/rounds/${round}`, method: "DELETE" }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
-    adjustEventCount: build.mutation<PlayerCount, { eventId: string; playerId: string; played_delta: number; refereed_delta: number }>({
-      query: ({ eventId, playerId, played_delta, refereed_delta }) => ({
+    adjustEventCount: build.mutation<PlayerCount, { eventId: string; playerId: string; played_delta: number; refereed_delta: number; max_played?: number | null }>({
+      query: ({ eventId, playerId, played_delta, refereed_delta, max_played }) => ({
         url: `/api/v1/match-events/${eventId}/counts/${playerId}`,
         method: "PATCH",
-        body: { played_delta, refereed_delta },
+        body: max_played === undefined ? { played_delta, refereed_delta } : { played_delta, refereed_delta, max_played },
       }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),

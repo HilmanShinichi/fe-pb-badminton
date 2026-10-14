@@ -379,7 +379,13 @@ export interface MatchMakerTranslations {
   baseLabel: string;
   baseHint: string;
     baseLockedHint: string;
-  useRefereeLabel: string;  maxMatchesLabel: string;
+  useRefereeLabel: string;
+  maxLabel: string;
+  followEvent: string;
+  maxMinusAria: string;
+  maxPlusAria: string;
+  adjustMaxTitle: string;
+  adjustMaxBody: string;  maxMatchesLabel: string;
   maxMatchesHint: string;
   roundProgressLabel: string;
   roundProgressUnlimited: string;

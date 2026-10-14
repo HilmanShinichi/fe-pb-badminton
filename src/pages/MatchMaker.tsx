@@ -92,6 +92,51 @@ function CountStepper({
   );
 }
 
+// Minus and plus for a personal play limit. Like CountStepper, every press
+// only queues a change — a confirm dialog is what saves it.
+function MaxStepper({
+  name,
+  effMax,
+  onRequest,
+  disabled,
+  small,
+}: {
+  name: string;
+  effMax: number;
+  onRequest: (delta: number) => void;
+  disabled?: boolean;
+  small?: boolean;
+}) {
+  const { t } = useI18n();
+  const button = small
+    ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-sm font-black leading-none text-pine transition-colors hover:bg-court focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:opacity-40"
+    : "flex h-11 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-base font-black leading-none text-pine transition-colors hover:bg-court focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine disabled:cursor-not-allowed disabled:opacity-40";
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        className={button}
+        disabled={disabled || effMax <= 0}
+        onClick={() => onRequest(-1)}
+        aria-label={t("matchmaker.maxMinusAria", { name })}
+        title={t("matchmaker.maxMinusAria", { name })}
+      >
+        −
+      </button>
+      <button
+        type="button"
+        className={button}
+        disabled={disabled}
+        onClick={() => onRequest(1)}
+        aria-label={t("matchmaker.maxPlusAria", { name })}
+        title={t("matchmaker.maxPlusAria", { name })}
+      >
+        +
+      </button>
+    </span>
+  );
+}
+
 export function MatchMakerListPage() {
   const { t } = useI18n();
   const [name, setName] = useState("");
@@ -755,6 +800,7 @@ export function MatchMakerDetailPage() {
   const [deleteRound, deleteRoundState] = useDeleteEventRoundMutation();
   const [pendingRoundDelete, setPendingRoundDelete] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<{ playerId: string; name: string; field: "played" | "refereed"; from: number; to: number } | null>(null);
+  const [pendingMax, setPendingMax] = useState<{ playerId: string; name: string; from: number; to: number } | null>(null);
   const [adjustCount, adjustCountState] = useAdjustEventCountMutation();
   const [updateEvent, updateEventState] = useUpdateMatchEventMutation();
   const [courtsDraft, setCourtsDraft] = useState<number | null>(null);
@@ -1107,6 +1153,36 @@ export function MatchMakerDetailPage() {
       setGenError("");
     } catch (e) {
       setPendingCount(null);
+      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorAdjustCount"));
+    }
+  }
+
+  // Max presses only queue a change; the dialog is what saves it, so a
+  // mis-tap never changes a record. No "follow event" — the limit is always
+  // an explicit number (event limit when no personal override yet).
+  function effMaxOf(maxPlayed: number | null): number {
+    if (maxPlayed !== null && maxPlayed !== undefined) return maxPlayed;
+    if (maxMatches > 0) return maxMatches;
+    return countScale;
+  }
+
+  function requestMaxChange(playerId: string, name: string, from: number | null, delta: number) {
+    if (adjustCountState.isLoading) return;
+    const eff = effMaxOf(from);
+    const to = Math.max(0, Math.min(99, eff + delta));
+    if (to === eff) return;
+    setPendingMax({ playerId, name, from: eff, to });
+  }
+
+  async function confirmMaxChange() {
+    if (!id || !pendingMax || adjustCountState.isLoading) return;
+    const change = pendingMax;
+    try {
+      await adjustCount({ eventId: id, playerId: change.playerId, played_delta: 0, refereed_delta: 0, max_played: change.to }).unwrap();
+      setPendingMax(null);
+      setGenError("");
+    } catch (e) {
+      setPendingMax(null);
       setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorAdjustCount"));
     }
   }
@@ -1770,6 +1846,27 @@ export function MatchMakerDetailPage() {
             />
           )}
 
+          {pendingMax && (
+            <ConfirmModal
+              title={t("matchmaker.adjustMaxTitle")}
+              body={
+                <p>
+                  {t("matchmaker.adjustMaxBody", {
+                    name: pendingMax.name,
+                    from: pendingMax.from,
+                    to: pendingMax.to,
+                  })}
+                </p>
+              }
+              confirmLabel={t("matchmaker.btnConfirmAdjustCount")}
+              busyLabel={t("matchmaker.adjustCountSaving")}
+              confirmVariant="primary"
+              busy={adjustCountState.isLoading}
+              onConfirm={confirmMaxChange}
+              onCancel={() => setPendingMax(null)}
+            />
+          )}
+
           {/* PLAYER PLAY COUNTS LEADERBOARD */}
           <section aria-label={t("matchmaker.playCountsTitle")} className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
             <div className="border-b border-line bg-gradient-to-r from-court/50 via-white to-court/30 px-4 py-3 flex items-center justify-between">
@@ -1880,7 +1977,14 @@ export function MatchMakerDetailPage() {
                                 playerName={c.name}
                                 onRequest={(delta) => requestCountChange(c.player_id, c.name, "played", c.played, delta)}
                               />
-                              <CountProgressBar value={c.played} max={countScale} kind="played" showIcon={false} />
+                              <CountProgressBar value={c.played} max={c.max_played ?? countScale} kind="played" showIcon={false} />
+                              <MaxStepper
+                                name={c.name}
+                                effMax={c.max_played ?? (maxMatches > 0 ? maxMatches : countScale)}
+                                disabled={adjustCountState.isLoading}
+                                small
+                                onRequest={(delta) => requestMaxChange(c.player_id, c.name, c.max_played, delta)}
+                              />
                             </div>
                           </div>
 
@@ -1948,7 +2052,13 @@ export function MatchMakerDetailPage() {
                                   playerName={c.name}
                                   onRequest={(delta) => requestCountChange(c.player_id, c.name, "played", c.played, delta)}
                                 />
-                                <CountProgressBar value={c.played} max={countScale} kind="played" />
+                                <CountProgressBar value={c.played} max={c.max_played ?? countScale} kind="played" />
+                                <MaxStepper
+                                  name={c.name}
+                                  effMax={c.max_played ?? (maxMatches > 0 ? maxMatches : countScale)}
+                                  disabled={adjustCountState.isLoading}
+                                  onRequest={(delta) => requestMaxChange(c.player_id, c.name, c.max_played, delta)}
+                                />
                               </div>
                             </td>
                             <td className="text-right">

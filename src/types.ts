@@ -62,6 +62,7 @@ export interface PlayerCount {
   arrival: number;
   played: number;
   refereed: number;
+  max_played: number | null;
 }
 
 export interface MatchEventDetail {
