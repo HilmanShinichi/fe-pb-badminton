@@ -834,6 +834,15 @@ export function MatchMakerDetailPage() {
   const highestRound = detail.data?.matches.length ? Math.max(...detail.data.matches.map((m) => m.round)) : 0;
   // The event's match limit decides how many rounds may still be added.
   const roundsLeft = maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5;
+  // max_rounds is an allowance per player, not a wave budget: a 29-player night
+  // spends five waves inside its first round, so the round label runs out while
+  // players still owe matches. The backend keeps drawing in that case, so the
+  // button must stay enabled as long as somebody is under their cap.
+  const playersUnderCap = (detail.data?.counts ?? []).filter(
+    (c) => !(maxMatches > 0) || c.played < (c.max_played ?? maxMatches),
+  ).length;
+  const allowanceOpen = maxMatches > 0 && roundsLeft <= 0 && playersUnderCap > 0;
+  const canGenerateAll = roundsLeft > 0 || allowanceOpen;
   const roundsCap = Math.max(1, Math.min(5, roundsLeft));
   // Played and refereed bars share the event's match limit as their scale.
   const countScale = maxMatches > 0 ? maxMatches : 5;
@@ -1344,7 +1353,7 @@ export function MatchMakerDetailPage() {
                   max={roundsCap}
                   className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:bg-ink/5 disabled:text-ink-faint"
                   value={rounds}
-                  disabled={roundsLeft <= 0 || genMode !== "all"}
+                  disabled={!canGenerateAll || genMode !== "all"}
                   onChange={(e) => setRounds(Math.max(0, Number(e.target.value) || 0))}
                 />
               </div>
@@ -1400,11 +1409,13 @@ export function MatchMakerDetailPage() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   type="button"
-                  disabled={genState.isLoading || genModalOpen || (roundsLeft <= 0 && genMode !== "catchup")}
+                  disabled={genState.isLoading || genModalOpen || (!canGenerateAll && genMode !== "catchup")}
                 onClick={runGenerate}
                   title={
                     maxMatches > 0
-                      ? t("matchmaker.roundsLeftHint", { count: roundsLeft })
+                      ? allowanceOpen
+                        ? t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
+                        : t("matchmaker.roundsLeftHint", { count: roundsLeft })
                       : t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
                   }
                   className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
