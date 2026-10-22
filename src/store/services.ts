@@ -4,6 +4,7 @@ import type {
   BillRow,
   GenMatch,
   GenerateMatchesResponse,
+  GenStrategy,
   MabarSession,
   MatchEventDetail,
   MatchEventRow,
@@ -345,15 +346,15 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
-    generateMatches: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean; played_cap?: number; catchup?: boolean }>({
-      query: ({ eventId, rounds, round, topup, played_cap, catchup }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup, played_cap, catchup } }),
+    generateMatches: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, rounds, round, topup, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup, played_cap, catchup, strategy } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
-    generatePrompt: build.mutation<{ round: number; prompt: string }, { eventId: string; round?: number; played_cap?: number; catchup?: boolean }>({
-      query: ({ eventId, round, played_cap, catchup }) => ({ url: `/api/v1/match-events/${eventId}/generate-prompt`, method: "POST", body: { round, played_cap, catchup } }),
+    generatePrompt: build.mutation<{ round: number; prompt: string; strategy?: GenStrategy }, { eventId: string; round?: number; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, round, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-prompt`, method: "POST", body: { round, played_cap, catchup, strategy } }),
     }),
-    generateManual: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; round?: number; raw: string; played_cap?: number; catchup?: boolean }>({
-      query: ({ eventId, round, raw, played_cap, catchup }) => ({ url: `/api/v1/match-events/${eventId}/generate-manual`, method: "POST", body: { round, raw, played_cap, catchup } }),
+    generateManual: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; round?: number; raw: string; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, round, raw, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-manual`, method: "POST", body: { round, raw, played_cap, catchup, strategy } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
     deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({

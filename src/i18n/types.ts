@@ -442,6 +442,11 @@ export interface MatchMakerTranslations {
   playedModeAll: string;
   playedModeLevel: string;
   playedModeCatchup: string;
+  strategyLabel: string;
+  strategyLeveling: string;
+  strategyRest: string;
+  strategyLevelingHint: string;
+  strategyRestHint: string;
   btnGenerate: string;
   btnGenerating: string;
   genModalTitle: string;

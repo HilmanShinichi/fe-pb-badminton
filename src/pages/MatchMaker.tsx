@@ -47,7 +47,7 @@ import {
   PlayerPicker,
   RoundProgress,
 } from "../components";
-import type { GenMatch, GenTeamPlayer, GenerateAIMeta, GenerateMatchesResponse } from "../types";
+import type { GenMatch, GenTeamPlayer, GenStrategy, GenerateAIMeta, GenerateMatchesResponse } from "../types";
 
 const NEXT_STATUS: Record<string, string | null> = { UPCOMING: "PLAYING", PLAYING: "ENDED", ENDED: null };
 
@@ -783,6 +783,10 @@ export function MatchMakerDetailPage() {
   const detail = useMatchEventQuery(id ?? "", { skip: !id });
   const [rounds, setRounds] = useState(1);
   const [genMode, setGenMode] = useState<"all" | "level" | "catchup">("all");
+  // Draw strategy: leveling fills every court (and may reuse someone who just
+  // played), rest leaves a court empty rather than start a second game in a
+  // row. Sent to the API, the prompt preview and the manual paste alike.
+  const [genStrategy, setGenStrategy] = useState<GenStrategy>("leveling");
   const [genCap, setGenCap] = useState(0);
   const [webAiMode, setWebAiMode] = useState<"all" | "level" | "catchup">("all");
   const [webAiCap, setWebAiCap] = useState(0);
@@ -1020,6 +1024,7 @@ export function MatchMakerDetailPage() {
       return generate({
         eventId: id,
         rounds: filtered ? 1 : Math.max(1, Math.min(5, rounds || 1)),
+        strategy: genStrategy,
         ...(genMode === "level" ? { played_cap: genCap } : {}),
         ...(genMode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
@@ -1029,7 +1034,7 @@ export function MatchMakerDetailPage() {
   async function runGenerateRound(round: number, topup = false) {
     if (!id || genState.isLoading || genModalOpen) return;
     await runWithProgress(async () => {
-      return generate({ eventId: id, rounds: 1, round, topup }).unwrap();
+      return generate({ eventId: id, rounds: 1, round, topup, strategy: genStrategy }).unwrap();
     });
   }
 
@@ -1043,6 +1048,7 @@ export function MatchMakerDetailPage() {
     try {
       const res = await fetchPrompt({
         eventId: id,
+        strategy: genStrategy,
         ...(mode === "level" ? { played_cap: cap } : {}),
         ...(mode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
@@ -1091,6 +1097,7 @@ export function MatchMakerDetailPage() {
       const res = await submitManual({
         eventId: id,
         raw: webRaw,
+        strategy: genStrategy,
         ...(webAiMode === "level" ? { played_cap: webAiCap } : {}),
         ...(webAiMode === "catchup" ? { catchup: true } : {}),
       }).unwrap();
@@ -1389,6 +1396,29 @@ export function MatchMakerDetailPage() {
                     </select>
                   )}
                 </div>
+              </div>
+
+              <div className="w-full col-span-2 sm:col-span-1">
+                <label htmlFor="gen-strategy" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
+                  <IconUsers className="h-3.5 w-3.5 text-pine shrink-0" />
+                  <span className="truncate">{t("matchmaker.strategyLabel")}</span>
+                </label>
+                <div className="flex gap-1.5">
+                  <select
+                    id="gen-strategy"
+                    aria-label={t("matchmaker.strategyLabel")}
+                    title={genStrategy === "rest" ? t("matchmaker.strategyRestHint") : t("matchmaker.strategyLevelingHint")}
+                    className="min-w-0 flex-1 rounded-lg border border-line px-2 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white"
+                    value={genStrategy}
+                    onChange={(e) => setGenStrategy(e.target.value as GenStrategy)}
+                  >
+                    <option value="leveling">{t("matchmaker.strategyLeveling")}</option>
+                    <option value="rest">{t("matchmaker.strategyRest")}</option>
+                  </select>
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-ink-faint">
+                  {genStrategy === "rest" ? t("matchmaker.strategyRestHint") : t("matchmaker.strategyLevelingHint")}
+                </p>
               </div>
 
               <div className="w-full col-span-2 sm:col-span-1 flex items-center justify-start pb-2">

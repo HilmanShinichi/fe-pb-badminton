@@ -23,6 +23,8 @@ export interface GenTeamPlayer {
   gender: string | null;
 }
 
+export type GenStrategy = "leveling" | "rest";
+
 export interface GenMatch {
   id: string;
   event_id: string;
