@@ -987,7 +987,9 @@ async function copyNonMemberTableImage(
   const footerRowHeight = 38;
 
   const canvasWidth = totalColsWidth + padX * 2;
-  const tableHeight = headerRowHeight + items.length * rowHeight + footerRowHeight;
+  const unpaidCount = items.filter((i) => !i.paid).length;
+  const footerRows = unpaidCount > 0 ? 2 : 1;
+  const tableHeight = headerRowHeight + items.length * rowHeight + footerRowHeight * footerRows;
   const canvasHeight = padY * 2 + bannerHeight + tableHeight;
 
   const canvas = document.createElement("canvas");
@@ -1125,42 +1127,58 @@ async function copyNonMemberTableImage(
     curY += rowHeight;
   });
 
-  // Footer (TOTAL)
-  const total = items.reduce((a, b) => a + b.fee, 0);
-  ctx.fillStyle = "#fde047";
-  ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
-
-  // Footer Top Border (Thick Black Line)
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(startX, curY);
-  ctx.lineTo(startX + totalColsWidth, curY);
-  ctx.stroke();
-
-  // Footer Bottom Border (Black Line)
-  ctx.beginPath();
-  ctx.moveTo(startX, curY + footerRowHeight);
-  ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
-  ctx.stroke();
-
-  // Footer Vertical Column Separator Lines (Solid Black)
-  ctx.lineWidth = 1;
-  for (const x of colXs) {
-    ctx.beginPath();
-    ctx.moveTo(x, curY);
-    ctx.lineTo(x, curY + footerRowHeight);
-    ctx.stroke();
+  // Footer: TOTAL hanya yang lunas, yang belum dicatat terpisah
+  const paidTotal = items.filter((i) => i.paid).reduce((a, b) => a + b.fee, 0);
+  const unpaidTotal = items.filter((i) => !i.paid).reduce((a, b) => a + b.fee, 0);
+  const footerLines: Array<{ label: string; amount: number; count: number; bg: string; fg: string }> = [
+    { label: "TOTAL", amount: paidTotal, count: items.length - unpaidCount, bg: "#fde047", fg: "#000000" },
+  ];
+  if (unpaidCount > 0) {
+    footerLines.push({ label: "BELUM LUNAS", amount: unpaidTotal, count: unpaidCount, bg: "#fee2e2", fg: "#b91c1c" });
   }
 
-  // Footer Text
-  ctx.fillStyle = "#000000";
-  ctx.font = "900 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("TOTAL", colXs[1] + 12, curY + footerRowHeight / 2);
+  footerLines.forEach((line) => {
+    ctx.fillStyle = line.bg;
+    ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
 
-  ctx.textAlign = "center";
-  ctx.fillText(rupiah(total), colXs[2] + feeColWidth / 2, curY + footerRowHeight / 2);
+    // Footer Top Border (Thick Black Line)
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(startX, curY);
+    ctx.lineTo(startX + totalColsWidth, curY);
+    ctx.stroke();
+
+    // Footer Bottom Border (Black Line)
+    ctx.beginPath();
+    ctx.moveTo(startX, curY + footerRowHeight);
+    ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
+    ctx.stroke();
+
+    // Footer Vertical Column Separator Lines (Solid Black)
+    ctx.lineWidth = 1;
+    for (const x of colXs) {
+      ctx.beginPath();
+      ctx.moveTo(x, curY);
+      ctx.lineTo(x, curY + footerRowHeight);
+      ctx.stroke();
+    }
+
+    // Footer Text
+    ctx.fillStyle = line.fg;
+    ctx.font = "900 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(line.label, colXs[1] + 12, curY + footerRowHeight / 2);
+
+    ctx.textAlign = "center";
+    ctx.fillText(rupiah(line.amount), colXs[2] + feeColWidth / 2, curY + footerRowHeight / 2);
+
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${line.count} org`, startX + totalColsWidth - 12, curY + footerRowHeight / 2);
+
+    curY += footerRowHeight;
+  });
 
   // Outer Border (Solid Black)
   ctx.strokeStyle = "#000000";
@@ -1244,7 +1262,11 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
   const filteredNonMembers = (data.non_members ?? []).filter(
     (nm) => nm.session_id === (currentSession?.id ?? "")
   );
-  const totalNonMember = filteredNonMembers.reduce((a, b) => a + b.fee, 0);
+  // Yang belum lunas tidak ikut dihitung ke TOTAL.
+  const paidNonMembers = filteredNonMembers.filter((nm) => nm.paid);
+  const unpaidNonMembers = filteredNonMembers.filter((nm) => !nm.paid);
+  const unpaidNonMemberTotal = unpaidNonMembers.reduce((a, b) => a + b.fee, 0);
+  const totalNonMember = paidNonMembers.reduce((a, b) => a + b.fee, 0);
 
   if (rows.length === 0 && (data.non_members ?? []).length === 0) {
     return (
@@ -1337,7 +1359,10 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     });
 
     text += `──────────────────────\n`;
-    text += `*TOTAL: ${rupiah(totalNonMember)}* (${filteredNonMembers.length} orang)\n`;
+    text += `*TOTAL: ${rupiah(totalNonMember)}* (${paidNonMembers.length} orang)\n`;
+    if (unpaidNonMembers.length > 0) {
+      text += `*BELUM LUNAS: ${rupiah(unpaidNonMemberTotal)}* (${unpaidNonMembers.length} orang)\n`;
+    }
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -1380,6 +1405,9 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
       csvRows.push([String(idx + 1), nm.player_name, String(nm.fee), nonMemberNote(nm)]);
     });
 
+    if (unpaidNonMembers.length > 0) {
+      csvRows.push(["", "BELUM LUNAS", String(unpaidNonMemberTotal), `${unpaidNonMembers.length} orang`]);
+    }
     csvRows.push(["", "TOTAL", String(totalNonMember), ""]);
 
     const csvContent = [headers, ...csvRows]
@@ -1544,13 +1572,25 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                   ))}
                 </tbody>
                 <tfoot className="font-bold border-t-2 border-neutral-900 bg-yellow-300 text-neutral-900 text-sm">
+                  {unpaidNonMembers.length > 0 && (
+                    <tr className="bg-red-50 text-red-700">
+                      <td className="py-2.5 px-3 border border-neutral-400"></td>
+                      <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">
+                        BELUM LUNAS
+                      </td>
+                      <td className="py-2.5 px-3 border border-neutral-400 font-black text-center whitespace-nowrap">
+                        {rupiah(unpaidNonMemberTotal)}
+                      </td>
+                      <td className="py-2.5 px-3 border border-neutral-400 text-center">{unpaidNonMembers.length} org</td>
+                    </tr>
+                  )}
                   <tr>
                     <td className="py-2.5 px-3 border border-neutral-400"></td>
                     <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">TOTAL</td>
                     <td className="py-2.5 px-3 border border-neutral-400 font-black text-center whitespace-nowrap">
                       {rupiah(totalNonMember)}
                     </td>
-                    <td className="py-2.5 px-3 border border-neutral-400"></td>
+                    <td className="py-2.5 px-3 border border-neutral-400 text-center">{paidNonMembers.length} org</td>
                   </tr>
                 </tfoot>
               </table>

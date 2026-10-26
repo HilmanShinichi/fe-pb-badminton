@@ -1238,9 +1238,14 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
   const [generate, generateState] = useGenerateBillingMutation();
   const [setStatus, statusState] = useUpdateBillingStatusMutation();
 
+  const billRows = bills.data ?? [];
   const expenseList = expenses.data ?? [];
   const totalExpenses = expenseList.reduce((acc, item) => acc + item.amount, 0);
-  const totalBills = (bills.data ?? []).reduce((a, b) => a + b.total, 0);
+  // Tagihan belum lunas bukan pemasukan, jadi tidak ikut dihitung ke total.
+  const paidBills = billRows.filter((b) => b.payment_status === "PAID");
+  const unpaidBills = billRows.filter((b) => b.payment_status !== "PAID");
+  const totalBills = paidBills.reduce((a, b) => a + b.total, 0);
+  const unpaidTotal = unpaidBills.reduce((a, b) => a + b.total, 0);
   const netTotal = totalBills - totalExpenses;
 
   const isDaily = sessionType === "DAILY_EVENT";
@@ -1383,16 +1388,16 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
             <tfoot>
               <tr>
                 <td className="px-3 py-2 text-xs font-semibold text-ink-soft" colSpan={2}>
-                  {(bills.data ?? []).length} players
+                  {billRows.length} players · {paidBills.length} paid
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {rupiah((bills.data ?? []).reduce((a, b) => a + b.court_share, 0))}
+                  {rupiah(paidBills.reduce((a, b) => a + b.court_share, 0))}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${(bills.data ?? []).reduce((a, b) => a + b.shuttlecock_count, 0)} (÷4)`}>
-                  {((bills.data ?? []).reduce((a, b) => a + b.shuttlecock_count, 0)) / 4}
+                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${billRows.reduce((a, b) => a + b.shuttlecock_count, 0)} (÷4)`}>
+                  {(billRows.reduce((a, b) => a + b.shuttlecock_count, 0)) / 4}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                  {rupiah((bills.data ?? []).reduce((a, b) => a + b.shuttlecock_contribution, 0))}
+                  {rupiah(paidBills.reduce((a, b) => a + b.shuttlecock_contribution, 0))}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                   {rupiah(totalBills)}
@@ -1400,6 +1405,18 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                 <td />
                 <td />
               </tr>
+              {unpaidBills.length > 0 && (
+                <tr className="bg-rose-50 text-rose-700">
+                  <td className="px-3 py-2 text-xs font-bold uppercase tracking-wide" colSpan={5}>
+                    Belum lunas (tidak dihitung) — {unpaidBills.map((b) => b.player_name).join(", ")}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-bold tabular-nums">
+                    {rupiah(unpaidTotal)}
+                  </td>
+                  <td />
+                  <td />
+                </tr>
+              )}
               {expenseList.length > 0 && (
                 <>
                   {expenseList.map((exp) => (
@@ -1464,17 +1481,30 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
             <tfoot>
               <tr>
                 <td className="px-3 py-2 text-xs font-semibold text-ink-soft" colSpan={3}>
-                  {(bills.data ?? []).length} players · {(bills.data ?? []).filter((b) => b.payment_status === "PAID").length} paid
+                  {billRows.length} players · {paidBills.length} paid
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                   {rupiah(totalBills)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${(bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)} (÷4)`}>
-                  {((bills.data ?? []).reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)) / 4}
+                <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums" title={`Total: ${billRows.reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)} (÷4)`}>
+                  {(billRows.reduce((a, b) => a + (shuttleOf.get(b.player_id) ?? 0), 0)) / 4}
                 </td>
                 <td />
                 <td />
               </tr>
+              {unpaidBills.length > 0 && (
+                <tr className="bg-rose-50 text-rose-700">
+                  <td className="px-3 py-2 text-xs font-bold uppercase tracking-wide" colSpan={3}>
+                    Belum lunas (tidak dihitung) — {unpaidBills.map((b) => b.player_name).join(", ")}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-bold tabular-nums">
+                    {rupiah(unpaidTotal)}
+                  </td>
+                  <td />
+                  <td />
+                  <td />
+                </tr>
+              )}
               {expenseList.length > 0 && (
                 <>
                   {expenseList.map((exp) => (
