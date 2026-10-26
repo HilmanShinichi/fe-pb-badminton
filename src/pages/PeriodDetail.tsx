@@ -956,6 +956,14 @@ async function copyTableImage(
   });
 }
 
+// payment_method masih ikut terisi saat status UNPAID (defaultnya CASH),
+// jadi NOTE harus diganti label statusnya — kalau tidak, pemain yang belum
+// bayar justru tampil "CASH".
+function nonMemberNote(nm: PeriodAttendanceMatrixNonMember): string {
+  if (!nm.paid) return "BELUM LUNAS";
+  return nm.note || "LUNAS";
+}
+
 async function copyNonMemberTableImage(
   items: PeriodAttendanceMatrixNonMember[],
   sessionDate: string,
@@ -1070,8 +1078,8 @@ async function copyNonMemberTableImage(
     ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
     ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
 
-    // Fee cell background: bright green #00e600 filling the entire cell
-    ctx.fillStyle = "#00e600";
+    // Fee cell background: green when settled, red while still unpaid
+    ctx.fillStyle = nm.paid ? "#00e600" : "#ef4444";
     ctx.fillRect(colXs[2], curY, feeColWidth, rowHeight);
 
     // Text: NO
@@ -1093,10 +1101,10 @@ async function copyNonMemberTableImage(
     ctx.fillText(String(nm.fee), colXs[2] + feeColWidth / 2, curY + rowHeight / 2);
 
     // Text: NOTE
-    ctx.fillStyle = "#475569";
-    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = nm.paid ? "#475569" : "#b91c1c";
+    ctx.font = `${nm.paid ? "" : "bold "}11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
     ctx.textAlign = "left";
-    ctx.fillText(nm.note || "", colXs[3] + 12, curY + rowHeight / 2);
+    ctx.fillText(nonMemberNote(nm), colXs[3] + 12, curY + rowHeight / 2);
 
     // Row Bottom Border Line (Solid Black)
     ctx.strokeStyle = "#000000";
@@ -1325,7 +1333,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     text += `──────────────────────\n`;
 
     filteredNonMembers.forEach((nm, idx) => {
-      text += `${idx + 1}. *${nm.player_name}* - ${rupiah(nm.fee)}${nm.note ? ` (${nm.note})` : ""}\n`;
+      text += `${idx + 1}. *${nm.player_name}* - ${rupiah(nm.fee)} (${nonMemberNote(nm)})\n`;
     });
 
     text += `──────────────────────\n`;
@@ -1369,7 +1377,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     const csvRows: string[][] = [];
 
     filteredNonMembers.forEach((nm, idx) => {
-      csvRows.push([String(idx + 1), nm.player_name, String(nm.fee), nm.note || ""]);
+      csvRows.push([String(idx + 1), nm.player_name, String(nm.fee), nonMemberNote(nm)]);
     });
 
     csvRows.push(["", "TOTAL", String(totalNonMember), ""]);
@@ -1518,10 +1526,20 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                     <tr key={nm.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
                       <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600 text-center">{idx + 1}</td>
                       <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{nm.player_name}</td>
-                      <td className="py-2 px-3 border border-neutral-400 bg-[#00e600] text-black font-bold text-center">
+                      <td
+                        className={`py-2 px-3 border border-neutral-400 text-black font-bold text-center ${
+                          nm.paid ? "bg-[#00e600]" : "bg-[#ef4444]"
+                        }`}
+                      >
                         {nm.fee}
                       </td>
-                      <td className="py-2 px-3 border border-neutral-400 text-left text-neutral-600 text-[11px]">{nm.note || "—"}</td>
+                      <td
+                        className={`py-2 px-3 border border-neutral-400 text-left text-[11px] ${
+                          nm.paid ? "text-neutral-600" : "font-semibold text-red-700"
+                        }`}
+                      >
+                        {nonMemberNote(nm)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
