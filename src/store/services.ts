@@ -336,7 +336,7 @@ export const api = baseApi.injectEndpoints({
       query: ({ id, body }) => ({ url: `/api/v1/match-events/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    publicMatchEvents: build.query<{ id: string; name: string; created_at: string; matches: number; rounds: number; max_rounds: number }[], void>({
+    publicMatchEvents: build.query<{ id: string; name: string; created_at: string; matches: number; max_rounds: number }[], void>({
       query: () => "/api/v1/public/match-events",
     }),
     publicMatchEvent: build.query<MatchEventDetail, string>({
@@ -346,19 +346,15 @@ export const api = baseApi.injectEndpoints({
       query: (id) => ({ url: `/api/v1/match-events/${id}`, method: "DELETE" }),
       invalidatesTags: ["MatchMaker"],
     }),
-    generateMatches: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; rounds: number; round?: number; topup?: boolean; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
-      query: ({ eventId, rounds, round, topup, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { rounds, round, topup, played_cap, catchup, strategy } }),
+    generateMatches: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; count: number; topup?: boolean; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, count, topup, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate`, method: "POST", body: { count, topup, played_cap, catchup, strategy } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
-    generatePrompt: build.mutation<{ round: number; prompt: string; strategy?: GenStrategy }, { eventId: string; round?: number; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
-      query: ({ eventId, round, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-prompt`, method: "POST", body: { round, played_cap, catchup, strategy } }),
+    generatePrompt: build.mutation<{ prompt: string; strategy?: GenStrategy }, { eventId: string; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-prompt`, method: "POST", body: { played_cap, catchup, strategy } }),
     }),
-    generateManual: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; round?: number; raw: string; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
-      query: ({ eventId, round, raw, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-manual`, method: "POST", body: { round, raw, played_cap, catchup, strategy } }),
-      invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
-    }),
-    deleteEventRound: build.mutation<unknown, { eventId: string; round: number }>({
-      query: ({ eventId, round }) => ({ url: `/api/v1/match-events/${eventId}/rounds/${round}`, method: "DELETE" }),
+    generateManual: build.mutation<GenerateMatchesResponse | GenMatch[], { eventId: string; raw: string; played_cap?: number; catchup?: boolean; strategy?: GenStrategy }>({
+      query: ({ eventId, raw, played_cap, catchup, strategy }) => ({ url: `/api/v1/match-events/${eventId}/generate-manual`, method: "POST", body: { raw, played_cap, catchup, strategy } }),
       invalidatesTags: (_r, _e, { eventId }) => [{ type: "MatchMaker", id: eventId }, "MatchMaker"],
     }),
     adjustEventCount: build.mutation<PlayerCount, { eventId: string; playerId: string; played_delta: number; refereed_delta: number; max_played?: number | null }>({
@@ -377,7 +373,7 @@ export const api = baseApi.injectEndpoints({
       query: ({ id, body }) => ({ url: `/api/v1/generated-matches/${id}`, method: "PATCH", body }),
       invalidatesTags: ["MatchMaker"],
     }),
-    createGenMatch: build.mutation<GenMatch, { event_id: string; round: number; team1: string[]; team2: string[]; court?: number; referee_id?: string | null; status?: string; shuttlecock_used?: number }>({
+    createGenMatch: build.mutation<GenMatch, { event_id: string; team1: string[]; team2: string[]; court?: number; referee_id?: string | null; status?: string; shuttlecock_used?: number }>({
       query: (body) => ({ url: "/api/v1/generated-matches", method: "POST", body }),
       invalidatesTags: ["MatchMaker"],
     }),
@@ -740,7 +736,6 @@ export const {
   useGenerateMatchesMutation,
   useGeneratePromptMutation,
   useGenerateManualMutation,
-  useDeleteEventRoundMutation,
   useAdjustEventCountMutation,
   useAddEventPlayersMutation,
   useCreateGenMatchMutation,

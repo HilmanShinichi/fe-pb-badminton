@@ -387,9 +387,6 @@ export interface MatchMakerTranslations {
   adjustMaxTitle: string;
   adjustMaxBody: string;  maxMatchesLabel: string;
   maxMatchesHint: string;
-  roundProgressLabel: string;
-  roundProgressUnlimited: string;
-  roundsLeftHint: string;
   limitReached: string;
   barMaxOf: string;
   barMaxOpen: string;
@@ -437,8 +434,7 @@ export interface MatchMakerTranslations {
   eventDetailSub: string;
   generatorTitle: string;
   generatorDesc: string;
-  roundsLabel: string;
-  addRoundsHint: string;
+  drawCountLabel: string;
   playedModeAll: string;
   playedModeLevel: string;
   playedModeCatchup: string;
@@ -464,7 +460,6 @@ export interface MatchMakerTranslations {
   webAiBtn: string;
   webAiTitle: string;
   webAiDesc: string;
-  webAiRoundTarget: string;
   webAiCopy: string;
   webAiCopied: string;
   webAiPasteLabel: string;
@@ -473,7 +468,6 @@ export interface MatchMakerTranslations {
   webAiCancel: string;
   manualCardBtn: string;
   manualCardTitle: string;
-  manualCardRound: string;
   manualCardNoReferee: string;
   manualCardStatus: string;
     playerPickPlaceholder: string;  errorSaveCourts: string;
@@ -482,15 +476,8 @@ export interface MatchMakerTranslations {
   settingsSaved: string;
   errorGenerate: string;
   noMatchesYet: string;
-  roundTitle: string;
-  roundMatchesCount: string;
-  btnDeleteRound: string;
+  matchesCount: string;
   btnTopUpRound: string;
-  roundDeleted: string;
-  btnRegenerateRound: string;
-  deleteRoundTitle: string;
-  deleteRoundBody: string;
-  btnConfirmDeleteRound: string;
   btnDeleteCard: string;
   deleteCardTitle: string;
   deleteCardBody: string;
@@ -530,7 +517,6 @@ export interface MatchMakerTranslations {
   colPlayed: string;
   colRefereed: string;
   refereeLabel: string;
-  allRounds: string;
   viewCards: string;
   viewTable: string;
 }

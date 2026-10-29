@@ -12,7 +12,6 @@ import {
   IconStopwatch,
   IconWhistle,
   Loading,
-  RoundProgress,
 } from "../components";
 import { TeamPanel, fmtClock } from "./MatchMaker";
 import { useI18n } from "../i18n";
@@ -45,10 +44,7 @@ function LiveCard({ m, nowMs, useReferee = true }: { m: GenMatch; nowMs: number;
         : 0;
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-court/30 px-3.5 py-2">
-        <span className="shrink-0 whitespace-nowrap text-[11px] font-black uppercase text-pine">
-          Round {m.round}{(m.wave ?? 1) > 1 ? ` · Gel. ${m.wave}` : ""}
-        </span>
+      <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5 border-b border-line bg-court/30 px-3.5 py-2">
         <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-2">
           {m.status !== "UPCOMING" && (
             <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] font-black tabular-nums">
@@ -107,13 +103,6 @@ export function LiveIndexPage() {
             <Link key={ev.id} to={`/live/${ev.id}`} className="block rounded-xl border border-line bg-white p-3 shadow-card hover:border-pine/40">
               <span className="font-bold">{ev.name}</span>
               <span className="block text-xs text-ink-soft">{ev.matches} matches</span>
-              <RoundProgress
-                rounds={ev.rounds}
-                maxRounds={ev.max_rounds}
-                label={`${ev.rounds} round${ev.rounds === 1 ? "" : "s"}`}
-                unlimitedLabel={`${ev.rounds} rounds · no limit`}
-                className="mt-2"
-              />
             </Link>
           ))}
         </div>
@@ -130,15 +119,13 @@ export function LiveEventPage() {
   const nowMs = useTicker(anyPlaying);
   const [statusTab, setStatusTab] = useState<"ALL" | "UPCOMING" | "PLAYING" | "ENDED">("ALL");
 
-  const grouped = useMemo(() => {
-    const map = new Map<number, GenMatch[]>();
+  const list = useMemo(() => {
+    const out: GenMatch[] = [];
     for (const m of detail.data?.matches ?? []) {
       if (statusTab !== "ALL" && m.status !== statusTab) continue;
-      const arr = map.get(m.round) ?? [];
-      arr.push(m);
-      map.set(m.round, arr);
+      out.push(m);
     }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+    return out;
   }, [detail.data, statusTab]);
 
   const statusCounts = useMemo(() => {
@@ -161,15 +148,6 @@ export function LiveEventPage() {
       <p className="text-sm text-ink-soft">
         {detail.data ? `${detail.data.matches.length} matches · auto-refreshes` : "Loading…"}
       </p>
-      {detail.data && (
-        <RoundProgress
-          rounds={grouped.length ? grouped[grouped.length - 1][0] : 0}
-          maxRounds={detail.data.event.max_rounds ?? 0}
-          label="Rounds played"
-          unlimitedLabel={`${grouped.length ? grouped[grouped.length - 1][0] : 0} rounds · no limit`}
-          className="mb-4 max-w-sm"
-        />
-      )}
       {detail.data && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Link
@@ -228,19 +206,14 @@ export function LiveEventPage() {
         <Loading />
       ) : detail.isError || !detail.data ? (
         <ErrorBox message="Event not found or not public." onRetry={() => detail.refetch()} />
-      ) : grouped.length === 0 ? (
+      ) : list.length === 0 ? (
         <Empty text={statusTab === "ALL" ? "No matches yet." : `No ${statusTab.charAt(0) + statusTab.slice(1).toLowerCase()} matches.`} />
       ) : (
-        grouped.map(([round, matches]) => (
-          <section key={round} className="mb-5">
-            <h2 className="mb-2 text-sm font-bold">Round {round}</h2>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {matches.map((m) => (
-                <LiveCard key={m.id} m={m} nowMs={nowMs} useReferee={detail.data?.event.use_referee ?? true} />
-              ))}
-            </div>
-          </section>
-        ))
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {list.map((m) => (
+            <LiveCard key={m.id} m={m} nowMs={nowMs} useReferee={detail.data?.event.use_referee ?? true} />
+          ))}
+        </div>
       )}
     </div>
   );

@@ -7,7 +7,6 @@ import {
   useAttendanceQuery,
   useCreateGenMatchMutation,
   useCreateMatchEventMutation,
-  useDeleteEventRoundMutation,
   useDeleteGenMatchMutation,
   useDeleteMatchEventMutation,
   useGenerateManualMutation,
@@ -45,7 +44,6 @@ import {
   Loading,
   PageHead,
   PlayerPicker,
-  RoundProgress,
 } from "../components";
 import type { GenMatch, GenTeamPlayer, GenStrategy, GenerateAIMeta, GenerateMatchesResponse } from "../types";
 
@@ -625,13 +623,6 @@ export function MatchMakerListPage() {
                       )}
                     </div>
 
-                    <RoundProgress
-                      rounds={ev.rounds}
-                      maxRounds={ev.max_rounds}
-                      label={t("matchmaker.roundProgressLabel")}
-                      unlimitedLabel={t("matchmaker.roundProgressUnlimited", { count: ev.rounds })}
-                      className="mt-3"
-                    />
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between">
@@ -655,7 +646,6 @@ export function MatchMakerListPage() {
                     <th className="text-right">{t("matchmaker.colCourts")}</th>
                     <th className="text-right">{t("matchmaker.colPlayers")}</th>
                     <th className="text-right">{t("matchmaker.colMatches")}</th>
-                    <th className="text-right">{t("matchmaker.roundProgressLabel")}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -673,9 +663,6 @@ export function MatchMakerListPage() {
                       </td>
                       <td className="text-right tabular-nums">{ev.players}</td>
                       <td className="text-right tabular-nums">{ev.matches}</td>
-                      <td className="text-right tabular-nums">
-                        {ev.max_rounds > 0 ? `${ev.rounds}/${ev.max_rounds}` : ev.rounds}
-                      </td>
                       <td className="text-right">
                         <DeleteRowButton
                           label={t("common.delete")}
@@ -781,7 +768,8 @@ export function MatchMakerDetailPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const detail = useMatchEventQuery(id ?? "", { skip: !id });
-  const [rounds, setRounds] = useState(1);
+  // Jumlah undian: how many batches one click draws (1-5).
+  const [genCount, setGenCount] = useState(1);
   const [genMode, setGenMode] = useState<"all" | "level" | "catchup">("all");
   // Draw strategy: leveling fills every court (and may reuse someone who just
   // played), rest leaves a court empty rather than start a second game in a
@@ -790,19 +778,16 @@ export function MatchMakerDetailPage() {
   const [genCap, setGenCap] = useState(0);
   const [webAiMode, setWebAiMode] = useState<"all" | "level" | "catchup">("all");
   const [webAiCap, setWebAiCap] = useState(0);
-  const [activeRoundTab, setActiveRoundTab] = useState<number | "ALL">("ALL");
   const [matchStatusTab, setMatchStatusTab] = useState<"ALL" | "UPCOMING" | "PLAYING" | "ENDED">("ALL");
   const [genError, setGenError] = useState("");
   const [generate, genState] = useGenerateMatchesMutation();
   const [fetchPrompt, promptState] = useGeneratePromptMutation();
   const [submitManual, manualState] = useGenerateManualMutation();
   const [webAiOpen, setWebAiOpen] = useState(false);
-  const [webPrompt, setWebPrompt] = useState<{ round: number; prompt: string } | null>(null);
+  const [webPrompt, setWebPrompt] = useState<{ prompt: string } | null>(null);
   const [webRaw, setWebRaw] = useState("");
   const [webError, setWebError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [deleteRound, deleteRoundState] = useDeleteEventRoundMutation();
-  const [pendingRoundDelete, setPendingRoundDelete] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<{ playerId: string; name: string; field: "played" | "refereed"; from: number; to: number } | null>(null);
   const [pendingMax, setPendingMax] = useState<{ playerId: string; name: string; from: number; to: number } | null>(null);
   const [adjustCount, adjustCountState] = useAdjustEventCountMutation();
@@ -820,7 +805,6 @@ export function MatchMakerDetailPage() {
   const [playedFilter, setPlayedFilter] = useState<number | "ALL">("ALL");
   const [createCard, createCardState] = useCreateGenMatchMutation();
   const [manualOpen, setManualOpen] = useState(false);
-  const [manualRound, setManualRound] = useState(1);
   const [mT1, setMT1] = useState<[string, string]>(["", ""]);
   const [mT2, setMT2] = useState<[string, string]>(["", ""]);
   const [mCourt, setMCourt] = useState(0);
@@ -835,19 +819,16 @@ export function MatchMakerDetailPage() {
   // Starting count locks once matches exist: it rewrites everyone's history.
   const baseLocked = (detail.data?.matches.length ?? 0) > 0;
   const useRefereeOn = detail.data?.event.use_referee ?? true;
-  const highestRound = detail.data?.matches.length ? Math.max(...detail.data.matches.map((m) => m.round)) : 0;
-  // The event's match limit decides how many rounds may still be added.
-  const roundsLeft = maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5;
-  // max_rounds is an allowance per player, not a wave budget: a 29-player night
-  // spends five waves inside its first round, so the round label runs out while
-  // players still owe matches. The backend keeps drawing in that case, so the
-  // button must stay enabled as long as somebody is under their cap.
+  // max_rounds is a per-player allowance, not a batch counter: the backend
+  // keeps drawing for whoever is still below their cap, and only refuses when
+  // nobody is left under it. The button mirrors that: enabled until the whole
+  // pool sits at the limit.
   const playersUnderCap = (detail.data?.counts ?? []).filter(
     (c) => !(maxMatches > 0) || c.played < (c.max_played ?? maxMatches),
   ).length;
-  const allowanceOpen = maxMatches > 0 && roundsLeft <= 0 && playersUnderCap > 0;
-  const canGenerateAll = roundsLeft > 0 || allowanceOpen;
-  const roundsCap = Math.max(1, Math.min(5, roundsLeft));
+  const poolSize = (detail.data?.counts ?? []).length;
+  const allAtCap = maxMatches > 0 && poolSize > 0 && playersUnderCap === 0;
+  const canGenerateAll = !allAtCap;
   // Played and refereed bars share the event's match limit as their scale.
   const countScale = maxMatches > 0 ? maxMatches : 5;
   // Group tabs follow the match limit setting; unlimited events follow the data.
@@ -867,10 +848,6 @@ export function MatchMakerDetailPage() {
   useEffect(() => {
     if (detail.data) setMaxMatchesDraft(detail.data.event.max_rounds ?? 0);
   }, [detail.data?.event.max_rounds]);
-
-  useEffect(() => {
-    setRounds((prev) => Math.min(Math.max(1, prev), Math.max(1, Math.min(5, maxMatches > 0 ? Math.max(0, maxMatches - highestRound) : 5))));
-  }, [maxMatches, highestRound]);
 
   // Generator settings save immediately on change (no blur needed), so an
   // edit can never be silently lost on refresh. The control locks while the
@@ -1023,7 +1000,7 @@ export function MatchMakerDetailPage() {
     await runWithProgress(async () => {
       return generate({
         eventId: id,
-        rounds: filtered ? 1 : Math.max(1, Math.min(5, rounds || 1)),
+        count: filtered ? 1 : Math.max(1, Math.min(5, genCount || 1)),
         strategy: genStrategy,
         ...(genMode === "level" ? { played_cap: genCap } : {}),
         ...(genMode === "catchup" ? { catchup: true } : {}),
@@ -1031,10 +1008,12 @@ export function MatchMakerDetailPage() {
     });
   }
 
-  async function runGenerateRound(round: number, topup = false) {
+  // Susulan only draws pool members who have no card at all yet (late
+  // arrivals), so nobody waits for the next full draw to get on court.
+  async function runTopUp() {
     if (!id || genState.isLoading || genModalOpen) return;
     await runWithProgress(async () => {
-      return generate({ eventId: id, rounds: 1, round, topup, strategy: genStrategy }).unwrap();
+      return generate({ eventId: id, count: 1, topup: true, strategy: genStrategy }).unwrap();
     });
   }
 
@@ -1112,8 +1091,7 @@ export function MatchMakerDetailPage() {
     }
   }
 
-  function openManualCard(round: number) {
-    setManualRound(Math.max(1, round));
+  function openManualCard() {
     setMT1(["", ""]);
     setMT2(["", ""]);
     setMCourt(0);
@@ -1134,7 +1112,6 @@ export function MatchMakerDetailPage() {
     try {
       await createCard({
         event_id: id,
-        round: Math.max(1, manualRound || 1),
         team1,
         team2,
         court: mCourt,
@@ -1203,46 +1180,13 @@ export function MatchMakerDetailPage() {
     }
   }
 
-  async function confirmRoundDelete() {
-    if (!id || pendingRoundDelete === null || deleteRoundState.isLoading) return;
-    try {
-      await deleteRound({ eventId: id, round: pendingRoundDelete }).unwrap();
-      setPendingRoundDelete(null);
-      setGenError("");
-    } catch (e) {
-      setPendingRoundDelete(null);
-      setGenError(e instanceof ApiError ? e.message : t("matchmaker.errorGenerate"));
-    }
-  }
-
-  const grouped = useMemo(() => {
-    const map = new Map<number, GenMatch[]>();
-    for (const m of detail.data?.matches ?? []) {
-      const arr = map.get(m.round) ?? [];
-      arr.push(m);
-      map.set(m.round, arr);
-    }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
-  }, [detail.data]);
-
-  const allRoundNumbers = useMemo(() => grouped.map(([r]) => r), [grouped]);
-
-  const missingRounds = useMemo(() => {
-    if (grouped.length === 0) return [];
-    const max = Math.max(...grouped.map(([r]) => r));
-    const have = new Set(grouped.map(([r]) => r));
-    const out: number[] = [];
-    for (let r = 1; r <= max; r++) if (!have.has(r)) out.push(r);
-    return out;
-  }, [grouped]);
-
-  const filteredGrouped = useMemo(() => {
-    const byRound = activeRoundTab === "ALL" ? grouped : grouped.filter(([r]) => r === activeRoundTab);
-    if (matchStatusTab === "ALL") return byRound;
-    return byRound
-      .map(([r, ms]) => [r, ms.filter((m) => m.status === matchStatusTab)] as [number, GenMatch[]])
-      .filter(([, ms]) => ms.length > 0);
-  }, [grouped, activeRoundTab, matchStatusTab]);
+  // One flat chronology: the backend keeps waves only as referee/referee
+  // mechanics, so the list itself carries no group labels.
+  const matches = useMemo(() => detail.data?.matches ?? [], [detail.data]);
+  const filteredMatches = useMemo(
+    () => matches.filter((m) => matchStatusTab === "ALL" || m.status === matchStatusTab),
+    [matches, matchStatusTab],
+  );
 
   return (
     <div className="space-y-5 sm:space-y-6 w-full max-w-full overflow-x-hidden">
@@ -1349,19 +1293,19 @@ export function MatchMakerDetailPage() {
               </div>
 
               <div className="w-full">
-                <label htmlFor="rounds" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
+                <label htmlFor="draw-count" className="flex items-center gap-1.5 text-xs font-bold text-ink mb-1 truncate">
                   <IconRotate className="h-3.5 w-3.5 text-pine shrink-0" />
-                  <span className="truncate">{t("matchmaker.roundsLabel")}</span>
+                  <span className="truncate">{t("matchmaker.drawCountLabel")}</span>
                 </label>
                 <input
-                  id="rounds"
+                  id="draw-count"
                   type="number"
                   min={1}
-                  max={roundsCap}
+                  max={5}
                   className="w-full rounded-lg border border-line px-3 py-2 text-sm font-semibold focus:border-pine focus:outline-hidden bg-white disabled:bg-ink/5 disabled:text-ink-faint"
-                  value={rounds}
+                  value={genCount}
                   disabled={!canGenerateAll || genMode !== "all"}
-                  onChange={(e) => setRounds(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={(e) => setGenCount(Math.max(1, Math.min(5, Number(e.target.value) || 1)))}
                 />
               </div>
 
@@ -1440,14 +1384,8 @@ export function MatchMakerDetailPage() {
                 <button
                   type="button"
                   disabled={genState.isLoading || genModalOpen || (!canGenerateAll && genMode !== "catchup")}
-                onClick={runGenerate}
-                  title={
-                    maxMatches > 0
-                      ? allowanceOpen
-                        ? t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
-                        : t("matchmaker.roundsLeftHint", { count: roundsLeft })
-                      : t("matchmaker.addRoundsHint", { next: (allRoundNumbers.length ? Math.max(...allRoundNumbers) + 1 : 1) })
-                  }
+                  onClick={runGenerate}
+                  title={allAtCap ? t("matchmaker.limitReached", { count: maxMatches }) : undefined}
                   className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
                 >
                   {genModalOpen ? (
@@ -1460,9 +1398,20 @@ export function MatchMakerDetailPage() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
-                      {t("matchmaker.btnGenerate", { count: genMode !== "all" ? 1 : rounds || 1 })}
+                      {t("matchmaker.btnGenerate", { count: genMode !== "all" ? 1 : genCount || 1 })}
                     </>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={genState.isLoading || genModalOpen}
+                  onClick={runTopUp}
+                  title={t("matchmaker.btnTopUpRound")}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-pine/40 bg-white py-2.5 px-4 text-sm font-extrabold text-pine shadow-2xs hover:bg-court/60 active:scale-[0.99] transition-all disabled:opacity-50"
+                >
+                  <IconUsers className="h-4 w-4" />
+                  {t("matchmaker.btnTopUpRound")}
                 </button>
 
                 <button
@@ -1477,17 +1426,9 @@ export function MatchMakerDetailPage() {
                 </button>
               </div>
 
-              <div className="w-full sm:w-auto sm:min-w-[200px] sm:max-w-xs">
-                <RoundProgress
-                  rounds={highestRound}
-                  maxRounds={maxMatches}
-                  label={t("matchmaker.roundProgressLabel")}
-                  unlimitedLabel={t("matchmaker.roundProgressUnlimited", { count: highestRound })}
-                />
-              </div>
             </div>
 
-            {maxMatches > 0 && roundsLeft <= 0 && (
+            {allAtCap && (
               <p className="mt-3 text-xs font-semibold text-ink-soft">{t("matchmaker.limitReached", { count: maxMatches })}</p>
             )}
             {saveNote && !genError && (
@@ -1530,11 +1471,6 @@ export function MatchMakerDetailPage() {
                     <h3 className="text-base font-black text-ink">{t("matchmaker.webAiTitle")}</h3>
                     <p className="text-xs text-ink-soft mt-0.5">{t("matchmaker.webAiDesc")}</p>
                   </div>
-                  {webPrompt && (
-                    <span className="shrink-0 rounded-full bg-pine px-2.5 py-0.5 text-xs font-black text-lime">
-                      {t("matchmaker.webAiRoundTarget", { round: webPrompt.round })}
-                    </span>
-                  )}
                 </div>
 
                 {promptState.isLoading && !webPrompt && !webError ? (
@@ -1653,46 +1589,12 @@ export function MatchMakerDetailPage() {
             sourceSessionId={detail.data.event.source_session_id ?? null}
           />
 
-          {/* ROUND TABS FILTER (FOR EFFORTLESS NAVIGATION ON MOBILE/TABLET) */}
-          {allRoundNumbers.length > 1 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full">
-              <button
-                type="button"
-                onClick={() => setActiveRoundTab("ALL")}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
-                  activeRoundTab === "ALL"
-                    ? "bg-pine text-white shadow-2xs"
-                    : "border border-line bg-white text-ink-soft hover:bg-court/60"
-                }`}
-              >
-                {t("matchmaker.allRounds")} ({detail.data.matches.length})
-              </button>
-              {allRoundNumbers.map((r) => {
-                const count = detail.data.matches.filter((m) => m.round === r).length;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setActiveRoundTab(r)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition-colors ${
-                      activeRoundTab === r
-                        ? "bg-pine text-white shadow-2xs"
-                        : "border border-line bg-white text-ink-soft hover:bg-court/60"
-                    }`}
-                  >
-                    {t("matchmaker.roundTitle", { round: r })} ({count})
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           {/* STATUS TABS FILTER */}
-          {grouped.length > 0 && (
+          {matches.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full" role="tablist" aria-label="Filter by status">
               {(
                 [
-                  { key: "ALL" as const, label: t("matchmaker.allRounds") },
+                  { key: "ALL" as const, label: t("common.all") },
                   { key: "UPCOMING" as const, label: t("matchmaker.statusUpcoming") },
                   { key: "PLAYING" as const, label: t("matchmaker.statusPlaying") },
                   { key: "ENDED" as const, label: t("matchmaker.statusEnded") },
@@ -1722,76 +1624,38 @@ export function MatchMakerDetailPage() {
             </div>
           )}
 
-          {/* MATCHES ARENA */}
-          {grouped.length === 0 ? (
+          {/* MATCHES ARENA: one flat list, no group labels */}
+          {matches.length === 0 ? (
             <div className="rounded-2xl border border-line bg-white p-8 shadow-card text-center">
               <p className="text-sm font-semibold text-ink-soft">{t("matchmaker.noMatchesYet")}</p>
-              <div className="mt-3">
-                <Btn onClick={() => openManualCard(1)}>{t("matchmaker.manualCardBtn")}</Btn>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <Btn onClick={runTopUp}>{t("matchmaker.btnTopUpRound")}</Btn>
+                <Btn onClick={() => openManualCard()}>{t("matchmaker.manualCardBtn")}</Btn>
               </div>
             </div>
           ) : (
-            filteredGrouped.map(([round, matches]) => (
-              <section key={round} aria-label={`Round ${round}`} className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-pine text-xs font-black text-lime">
-                      {round}
-                    </span>
-                    <h2 className="text-sm font-extrabold text-ink">
-                      {t("matchmaker.roundTitle", { round })} · {t("matchmaker.roundMatchesCount", { count: matches.length })}
-                    </h2>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => openManualCard(round)}>
-                      {t("matchmaker.manualCardBtn")}
-                    </Btn>
-                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => runGenerateRound(round, true)}>
-                      {t("matchmaker.btnTopUpRound")}
-                    </Btn>
-                    <DeleteRowButton label={t("matchmaker.btnDeleteRound")} onClick={() => setPendingRoundDelete(round)} />
-                  </div>
+            <section aria-label={t("matchmaker.cardMatches", { count: filteredMatches.length })} className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-2.5">
+                <h2 className="text-sm font-extrabold text-ink">
+                  {t("matchmaker.matchesCount", { count: filteredMatches.length })}
+                </h2>
+                <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                  <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={runTopUp}>
+                    {t("matchmaker.btnTopUpRound")}
+                  </Btn>
+                  <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => openManualCard()}>
+                    {t("matchmaker.manualCardBtn")}
+                  </Btn>
                 </div>
+              </div>
 
-                {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
-                <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {matches.map((m) => (
-                    <MatchCard key={m.id} match={m} maxCourt={courtCap} pool={detail.data.counts ?? []} useReferee={detail.data.event.use_referee ?? true} />
-                  ))}
-                </div>
-              </section>
-            ))
-          )}
-
-          {missingRounds
-            .filter((r) => activeRoundTab === "ALL" || activeRoundTab === r)
-            .map((r) => (
-              <section key={`missing-${r}`} aria-label={`Round ${r} empty`} className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dashed border-line pb-2">
-                  <h2 className="text-sm font-extrabold text-ink-faint">
-                    {t("matchmaker.roundTitle", { round: r })} · {t("matchmaker.roundDeleted")}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => openManualCard(r)}>
-                      {t("matchmaker.manualCardBtn")}
-                    </Btn>
-                    <Btn className="!px-2.5 !py-1 !text-xs" disabled={genState.isLoading} onClick={() => runGenerateRound(r)}>
-                      {t("matchmaker.btnRegenerateRound", { round: r })}
-                    </Btn>
-                  </div>
-                </div>
-              </section>
-            ))}
-
-          {pendingRoundDelete !== null && (
-            <ConfirmModal
-              title={t("matchmaker.deleteRoundTitle", { round: pendingRoundDelete })}
-              body={<p>{t("matchmaker.deleteRoundBody", { round: pendingRoundDelete })}</p>}
-              confirmLabel={t("matchmaker.btnConfirmDeleteRound")}
-              busy={deleteRoundState.isLoading}
-              onConfirm={confirmRoundDelete}
-              onCancel={() => setPendingRoundDelete(null)}
-            />
+              {/* RESPONSIVE MATCH CARDS GRID: 1 col on mobile, 2 cols on tablet, 3 cols on PC */}
+              <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredMatches.map((m) => (
+                  <MatchCard key={m.id} match={m} maxCourt={courtCap} pool={detail.data.counts ?? []} useReferee={detail.data.event.use_referee ?? true} />
+                ))}
+              </div>
+            </section>
           )}
 
           {manualOpen && (
@@ -1799,17 +1663,6 @@ export function MatchMakerDetailPage() {
               title={t("matchmaker.manualCardTitle")}
               body={
                 <div className="space-y-3">
-                  <Field label={t("matchmaker.manualCardRound")}>
-                    <input
-                      id="manual-round"
-                      type="number"
-                      min={1}
-                      max={99}
-                      className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-pine focus:outline-hidden focus:ring-1 focus:ring-pine"
-                      value={manualRound}
-                      onChange={(e) => setManualRound(Math.max(1, Number(e.target.value) || 1))}
-                    />
-                  </Field>
                   {([
                     { key: "t1a", label: `${t("matchmaker.team1")} 1`, value: mT1[0], set: (v: string) => setMT1([v, mT1[1]]) },
                     { key: "t1b", label: `${t("matchmaker.team1")} 2`, value: mT1[1], set: (v: string) => setMT1([mT1[0], v]) },
@@ -2500,23 +2353,11 @@ function MatchCard({
 
   return (
     <article
-      aria-label={`Round ${m.round} match`}
       className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/90 bg-white shadow-card hover:shadow-md transition-all hover:border-pine/30 w-full max-w-full"
     >
       {/* CARD HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-line bg-gradient-to-r from-court/30 via-white to-court/30 px-2.5 py-1.5 sm:px-3.5 sm:py-2">
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-          <span className="shrink-0 whitespace-nowrap rounded-md bg-pine/10 border border-pine/20 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase text-pine">
-            R-{m.round}
-          </span>
-          {(m.wave ?? 1) > 1 && (
-            <span
-              className="shrink-0 whitespace-nowrap rounded-md bg-sky-100 border border-sky-200 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase text-sky-900"
-              title="Gelombang: giliran bermain antrian berikutnya saat lapangan kosong/siap"
-            >
-              Gel. {m.wave}
-            </span>
-          )}
           {m.status !== "UPCOMING" && (
             <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-md bg-ink/5 border border-line px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black tabular-nums text-ink" title="Match duration">
               <IconStopwatch className="h-3 w-3 text-ink-soft shrink-0" />
@@ -2754,7 +2595,7 @@ function EditTeamsModal({
 
   return (
     <ConfirmModal
-      title={t("matchmaker.editTeamsModalTitle", { round: m.round })}
+      title={t("matchmaker.editTeamsModalTitle")}
       body={
         <div className="space-y-3">
           <p className="text-xs text-ink-faint">{t("matchmaker.editTeamsModalHint")}</p>

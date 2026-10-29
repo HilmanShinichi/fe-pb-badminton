@@ -28,7 +28,6 @@ export type GenStrategy = "leveling" | "rest";
 export interface GenMatch {
   id: string;
   event_id: string;
-  round: number;
   wave: number;
   team1: GenTeamPlayer[];
   team2: GenTeamPlayer[];
@@ -53,7 +52,6 @@ export interface MatchEventRow {
   created_at: string;
   players: number;
   matches: number;
-  rounds: number;
 }
 
 export interface PlayerCount {
