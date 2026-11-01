@@ -15,7 +15,7 @@ map, struktur file, dan gotchas. Tujuannya supaya tidak perlu re-explore dari no
   `backend/internal/httpx/middleware.go`.
 - i18n: teks baru masuk `src/i18n/id.ts` dan `src/i18n/en.ts`.
 - Halaman besar, hati-hati saat edit:
-  `MatchMaker.tsx` 2782 · `PeriodDetail.tsx` 1679 · `Reports.tsx` 1570 ·
+  `MatchMaker.tsx` 2782 · `PeriodDetail.tsx` 1760 · `Reports.tsx` 1570 ·
   `MabarDetail.tsx` 1511 · `NoShowTracker.tsx` 1417 · `Live.tsx` 906.
 - Dev: `npm run dev` (proxy `/api` → `:8080`). Build: `npm run build`.
   Lint: `npm run lint`.

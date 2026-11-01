@@ -216,11 +216,15 @@ export interface PeriodAttendanceMatrixRow {
 
 export interface PeriodAttendanceMatrixNonMember {
   session_id: string;
+  /** Tanggal sesi tagihan (YYYY-MM-DD). Untuk carry_over: tanggal openplay lamanya. */
+  session_date: string;
   player_id: string;
   player_name: string;
   fee: number;
   paid: boolean;
   note: string;
+  /** true = tagihan non-member dari sesi sebelum period ini yang masih UNPAID. */
+  carry_over?: boolean;
 }
 
 export interface PeriodAttendanceMatrixResponse {

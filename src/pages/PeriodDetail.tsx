@@ -959,7 +959,10 @@ async function copyTableImage(
 // payment_method masih ikut terisi saat status UNPAID (defaultnya CASH),
 // jadi NOTE harus diganti label statusnya — kalau tidak, pemain yang belum
 // bayar justru tampil "CASH".
+// Baris carry_over = tunggakan dari sesi SEBELUM period ini; tanggal openplay
+// lamanya dicantumkan sebagai pembeda dari tagihan pertemuan berjalan.
 function nonMemberNote(nm: PeriodAttendanceMatrixNonMember): string {
+  if (nm.carry_over) return `BELUM LUNAS SEJAK ${dateDmy(nm.session_date)}`;
   if (!nm.paid) return "BELUM LUNAS";
   return nm.note || "LUNAS";
 }
@@ -1076,8 +1079,9 @@ async function copyNonMemberTableImage(
   // Body Rows
   let curY = startY + headerRowHeight;
   items.forEach((nm, idx) => {
-    // Row background (white or subtle alternating)
-    ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+    // Row background (white or subtle alternating); tunggakan carry-over
+    // selalu merah muda supaya menonjol dari tagihan pertemuan ini
+    ctx.fillStyle = nm.carry_over ? "#fee2e2" : idx % 2 === 0 ? "#ffffff" : "#f8fafc";
     ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
 
     // Fee cell background: green when settled, red while still unpaid
@@ -1259,9 +1263,13 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     : `INCLUDE KOK ${rupiah(data.non_member_fee || 25000)}`;
 
   const currentSession = sessions.find((s) => s.id === selectedSessionId) ?? sessions[0];
-  const filteredNonMembers = (data.non_members ?? []).filter(
-    (nm) => nm.session_id === (currentSession?.id ?? "")
+  // Tunggakan carry-over (tagihan non-member dari sesi sebelum period ini yang
+  // masih UNPAID) selalu tampil di semua pertemuan, bukan hanya pada sesi asalnya.
+  const carryOverNonMembers = (data.non_members ?? []).filter((nm) => nm.carry_over);
+  const sessionNonMembers = (data.non_members ?? []).filter(
+    (nm) => !nm.carry_over && nm.session_id === (currentSession?.id ?? "")
   );
+  const filteredNonMembers = [...carryOverNonMembers, ...sessionNonMembers];
   // Yang belum lunas tidak ikut dihitung ke TOTAL.
   const paidNonMembers = filteredNonMembers.filter((nm) => nm.paid);
   const unpaidNonMembers = filteredNonMembers.filter((nm) => !nm.paid);
@@ -1356,6 +1364,10 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
 
     filteredNonMembers.forEach((nm, idx) => {
       text += `${idx + 1}. *${nm.player_name}* - ${rupiah(nm.fee)} (${nonMemberNote(nm)})\n`;
+      // Pisahkan blok tunggakan lama dari tagihan pertemuan ini
+      if (nm.carry_over && !filteredNonMembers[idx + 1]?.carry_over) {
+        text += `──────────────────────\n`;
+      }
     });
 
     text += `──────────────────────\n`;
@@ -1433,7 +1445,9 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
               {activeTab === "member" ? "Rekap Kehadiran & Kas Kok Member" : "Rekap List Non-Member (Tamu)"}
             </h2>
             <span className="text-xs font-medium text-ink-soft">
-              · {activeTab === "member" ? `${rows.length} member · ${sessions.length} pertemuan` : `${filteredNonMembers.length} non-member pada pertemuan ini`}
+              · {activeTab === "member"
+                ? `${rows.length} member · ${sessions.length} pertemuan`
+                : `${sessionNonMembers.length} non-member pada pertemuan ini${carryOverNonMembers.length > 0 ? ` · ${carryOverNonMembers.length} tunggakan sebelumnya` : ""}`}
             </span>
           </div>
           <p className="mt-0.5 text-xs text-ink-faint">
@@ -1551,7 +1565,16 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 </thead>
                 <tbody className="bg-white">
                   {filteredNonMembers.map((nm, idx) => (
-                    <tr key={nm.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
+                    <tr
+                      key={`${nm.session_id}-${nm.player_id}`}
+                      className={
+                        nm.carry_over
+                          ? "bg-red-100 hover:bg-red-200"
+                          : idx % 2 === 0
+                          ? "bg-white hover:bg-neutral-50"
+                          : "bg-neutral-50/70 hover:bg-neutral-100"
+                      }
+                    >
                       <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600 text-center">{idx + 1}</td>
                       <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{nm.player_name}</td>
                       <td
