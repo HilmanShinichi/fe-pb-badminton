@@ -967,6 +967,16 @@ function nonMemberNote(nm: PeriodAttendanceMatrixNonMember): string {
   return nm.note || "LUNAS";
 }
 
+// Memotong teks canvas agar tidak melewati batas kolomnya, dengan ellipsis.
+function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let out = text;
+  while (out.length > 1 && ctx.measureText(`${out}…`).width > maxWidth) {
+    out = out.slice(0, -1);
+  }
+  return `${out}…`;
+}
+
 async function copyNonMemberTableImage(
   items: PeriodAttendanceMatrixNonMember[],
   sessionDate: string,
@@ -979,7 +989,20 @@ async function copyNonMemberTableImage(
   const noColWidth = 50;
   const nameColWidth = 180;
   const feeColWidth = 160;
-  const noteColWidth = 140;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+
+  // Lebar kolom NOTE dihitung dari label terpanjang ("BELUM LUNAS SEJAK
+  // 25/10/2026" pada baris carry-over) — lebar tetap 140px membuat teksnya
+  // meluber keluar row. Dibatasi 320px; sisa kelebihannya dipotong fitText().
+  ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  const longestNote = items.reduce(
+    (max, nm) => Math.max(max, ctx.measureText(nonMemberNote(nm)).width),
+    0
+  );
+  const noteColWidth = Math.min(320, Math.max(140, Math.ceil(longestNote) + 24));
 
   const totalColsWidth = noColWidth + nameColWidth + feeColWidth + noteColWidth;
   const padX = 24;
@@ -995,11 +1018,8 @@ async function copyNonMemberTableImage(
   const tableHeight = headerRowHeight + items.length * rowHeight + footerRowHeight * footerRows;
   const canvasHeight = padY * 2 + bannerHeight + tableHeight;
 
-  const canvas = document.createElement("canvas");
   canvas.width = canvasWidth * scale;
   canvas.height = canvasHeight * scale;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
 
   ctx.scale(scale, scale);
 
@@ -1098,7 +1118,7 @@ async function copyNonMemberTableImage(
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(nm.player_name, colXs[1] + 12, curY + rowHeight / 2);
+    ctx.fillText(fitText(ctx, nm.player_name, nameColWidth - 20), colXs[1] + 12, curY + rowHeight / 2);
 
     // Text: FEE
     ctx.fillStyle = "#000000";
@@ -1110,7 +1130,7 @@ async function copyNonMemberTableImage(
     ctx.fillStyle = nm.paid ? "#475569" : "#b91c1c";
     ctx.font = `${nm.paid ? "" : "bold "}11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
     ctx.textAlign = "left";
-    ctx.fillText(nonMemberNote(nm), colXs[3] + 12, curY + rowHeight / 2);
+    ctx.fillText(fitText(ctx, nonMemberNote(nm), noteColWidth - 20), colXs[3] + 12, curY + rowHeight / 2);
 
     // Row Bottom Border Line (Solid Black)
     ctx.strokeStyle = "#000000";
