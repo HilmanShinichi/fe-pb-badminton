@@ -65,7 +65,8 @@ const TAB_ICONS: Record<Tab, ReactNode> = {
 export function ReportsPage() {
   const { t, dateFormatted, isId } = useI18n();
   const [tab, setTab] = useState<Tab>("attendance");
-  const [months, setMonths] = useState(2);
+  const [attendanceMonths, setAttendanceMonths] = useState(3);
+  const [inactiveMonths, setInactiveMonths] = useState(2);
   const [downloading, setDownloading] = useState(false);
   const [dlError, setDlError] = useState("");
 
@@ -150,7 +151,8 @@ export function ReportsPage() {
               setDlError("");
               setDownloading(true);
               try {
-                await downloadAuthedCsv(csvPath(tab, months, reportFilter), `report-${tab}.csv`);
+                const activeMonths = tab === "attendance" ? attendanceMonths : inactiveMonths;
+                await downloadAuthedCsv(csvPath(tab, activeMonths, reportFilter), `report-${tab}.csv`);
               } catch (e) {
                 setDlError(e instanceof Error ? e.message : t("common.downloadFailed"));
               } finally {
@@ -357,12 +359,12 @@ export function ReportsPage() {
       </div>
 
       {/* Active Tab View */}
-      {tab === "attendance" && <AttendanceReport filter={reportFilter} months={months} onMonths={setMonths} />}
+      {tab === "attendance" && <AttendanceReport filter={reportFilter} months={attendanceMonths} onMonths={setAttendanceMonths} />}
       {tab === "noshow" && <NoShowReport filter={reportFilter} />}
       {tab === "shuttlecock" && <ShuttlecockReport filter={reportFilter} />}
       {tab === "usage" && <UsageReport filter={reportFilter} />}
       {tab === "financial" && <FinancialReport filter={reportFilter} />}
-      {tab === "inactive" && <InactiveReport filter={reportFilter} months={months} onMonths={setMonths} />}
+      {tab === "inactive" && <InactiveReport filter={reportFilter} months={inactiveMonths} onMonths={setInactiveMonths} />}
     </div>
   );
 }
