@@ -675,8 +675,8 @@ export const api = baseApi.injectEndpoints({
       query: (p) => `/api/v1/reports/financial${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
-    reportInactive: build.query<InactiveReport, number>({
-      query: (months) => `/api/v1/reports/inactive-members?months=${months}`,
+    reportInactive: build.query<InactiveReport, ReportFilterParams | void>({
+      query: (p) => `/api/v1/reports/inactive-members${buildReportQuery(p)}`,
       providesTags: ["Reports"],
     }),
     noShowTracker: build.query<NoShowTrackerResponse, NoShowTrackerParams | void>({

@@ -33,6 +33,13 @@ export function MabarListPage() {
     !!form.date &&
     (form.type === "DAILY_EVENT" ? !!form.venue_description.trim() : !!form.period_id);
 
+  // One session per period per date (matches the backend's unique index).
+  // Caught here too so the form says why before the request even goes out.
+  const duplicate =
+    form.type === "PERIOD" &&
+    !!form.period_id &&
+    (list.data ?? []).some((s) => s.period_id === form.period_id && s.date === form.date);
+
   // Per-session court share of a period: venue total split evenly, same rule
   // the backend uses when generating sessions. Auto-filled on creation so a
   // period session never starts at Rp0 court cost.
@@ -76,7 +83,13 @@ export function MabarListPage() {
       setError("");
       setForm({ ...form, venue_description: "" });
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t("mabar.errorCreateSession"));
+      setError(
+        e instanceof ApiError && e.code === "SESSION_EXISTS"
+          ? t("mabar.errorDuplicateSession")
+          : e instanceof ApiError
+            ? e.message
+            : t("mabar.errorCreateSession"),
+      );
     }
   }
 
@@ -177,9 +190,13 @@ export function MabarListPage() {
               <input id="date" type="date" className="w-full" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </Field>
 
+            {duplicate && (
+              <p role="alert" className="text-xs text-red-700">{t("mabar.errorDuplicateSession")}</p>
+            )}
+
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
-            <Btn className="w-full justify-center" disabled={!valid || createState.isLoading} onClick={submit}>
+            <Btn className="w-full justify-center" disabled={!valid || duplicate || createState.isLoading} onClick={submit}>
               {createState.isLoading ? t("mabar.btnCreating") : t("mabar.btnCreateSession")}
             </Btn>
           </div>

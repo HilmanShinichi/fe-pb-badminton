@@ -65,7 +65,7 @@ const TAB_ICONS: Record<Tab, ReactNode> = {
 export function ReportsPage() {
   const { t, dateFormatted, isId } = useI18n();
   const [tab, setTab] = useState<Tab>("attendance");
-  const [months, setMonths] = useState(3);
+  const [months, setMonths] = useState(2);
   const [downloading, setDownloading] = useState(false);
   const [dlError, setDlError] = useState("");
 
@@ -362,7 +362,7 @@ export function ReportsPage() {
       {tab === "shuttlecock" && <ShuttlecockReport filter={reportFilter} />}
       {tab === "usage" && <UsageReport filter={reportFilter} />}
       {tab === "financial" && <FinancialReport filter={reportFilter} />}
-      {tab === "inactive" && <InactiveReport months={months} onMonths={setMonths} />}
+      {tab === "inactive" && <InactiveReport filter={reportFilter} months={months} onMonths={setMonths} />}
     </div>
   );
 }
@@ -634,6 +634,7 @@ function AttendanceReport({
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {[
+                { val: 2, label: isId ? "2 Bulan Terakhir" : "Last 2 Months" },
                 { val: 3, label: isId ? "3 Bulan Terakhir" : "Last 3 Months" },
                 { val: 6, label: isId ? "6 Bulan Terakhir" : "Last 6 Months" },
                 { val: 9, label: isId ? "9 Bulan Terakhir" : "Last 9 Months" },
@@ -1457,10 +1458,19 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
  * 6. INACTIVE MEMBERS REPORT
  * ========================================================================= */
 
-function InactiveReport({ months, onMonths }: { months: number; onMonths: (n: number) => void }) {
+function InactiveReport({
+  filter,
+  months,
+  onMonths,
+}: {
+  filter: ReportFilterParams;
+  months: number;
+  onMonths: (n: number) => void;
+}) {
   const { t, dateFormatted, isId } = useI18n();
   const [qStr, setQStr] = useState("");
-  const q = useReportInactiveQuery(months);
+  const queryFilter = useMemo<ReportFilterParams>(() => ({ ...filter, months }), [filter, months]);
+  const q = useReportInactiveQuery(queryFilter);
 
   const players = useMemo(() => q.data?.players || [], [q.data]);
 
@@ -1484,7 +1494,7 @@ function InactiveReport({ months, onMonths }: { months: number; onMonths: (n: nu
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-ink">{isId ? "Batas Waktu Nonaktif:" : "Inactivity Threshold:"}</span>
           <div className="inline-flex rounded-lg border border-line bg-court/50 p-0.5">
-            {[3, 6, 9, 12].map((m) => (
+            {[2, 3, 6, 9, 12].map((m) => (
               <button
                 key={m}
                 type="button"
@@ -1543,10 +1553,19 @@ function InactiveReport({ months, onMonths }: { months: number; onMonths: (n: nu
               <tbody>
                 {filtered.map((r) => {
                   const days = Number(r.days_inactive || 0);
+                  const hasPlayed = r.last_present && r.last_present !== "-";
                   return (
                     <tr key={String(r.player)} className="hover:bg-court/30">
                       <td className="font-semibold text-ink">{String(r.player)}</td>
-                      <td className="text-xs text-ink-soft">{dateFormatted(String(r.last_present))}</td>
+                      <td className="text-xs text-ink-soft">
+                        {hasPlayed ? (
+                          dateFormatted(String(r.last_present))
+                        ) : (
+                          <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-200/60">
+                            {isId ? "Belum pernah main" : "Never played"}
+                          </span>
+                        )}
+                      </td>
                       <td className="text-right font-medium tabular-nums">{num(Number(r.total_present))}</td>
                       <td className="text-right">
                         <span

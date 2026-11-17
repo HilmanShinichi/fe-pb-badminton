@@ -242,6 +242,7 @@ export interface ReportsTranslations {
   kpiInactiveMembers: string;
   kpiAvgDaysAbsent: string;
   kpiLongestAbsence: string;
+  inactiveThreshold2: string;
   inactiveThreshold3: string;
   inactiveThreshold6: string;
   inactiveThreshold9: string;
@@ -549,6 +550,7 @@ export interface MabarTranslations {
   btnCreating: string;
   errorPeriodRequired: string;
   errorVenueRequired: string;
+  errorDuplicateSession: string;
   errorCreateSession: string;
   errorLoadSessions: string;
   emptySessions: string;
