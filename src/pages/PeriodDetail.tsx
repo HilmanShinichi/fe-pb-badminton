@@ -18,6 +18,7 @@ import {
   useUpdatePeriodMutation,
 } from "../store/services";
 import { dateDmy, dateId, rupiah } from "../format";
+import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Field, Loading, MoneyInput, OpenLink, PageHead } from "../ui";
 import type { Membership, PeriodAttendanceMatrixNonMember, PeriodAttendanceMatrixResponse } from "../types";
 
@@ -34,6 +35,7 @@ function commitmentPaid(m: Membership): boolean {
 export function PeriodDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [error, setError] = useState("");
   const [pick, setPick] = useState("");
   const [newName, setNewName] = useState("");
@@ -126,6 +128,14 @@ export function PeriodDetailPage() {
   const remainingSessions = Math.max(0, plannedSessions - heldSessions.length);
   const lastHeldDate = heldSessions.length ? heldSessions[heldSessions.length - 1].date : null;
   const progressPct = Math.min(100, Math.round((heldSessions.length / plannedSessions) * 100));
+
+  // Session breakdown totals — used to reconcile per-night rows with the
+  // commitment fees (iuran), which are not tied to any single session.
+  const bRows = breakdown.data ?? [];
+  const sumRevenue = bRows.reduce((a, r) => a + r.revenue, 0);
+  const sumCost = bRows.reduce((a, r) => a + r.operating_cost, 0);
+  const sumProfit = bRows.reduce((a, r) => a + r.profit, 0);
+  const netProfit = sumProfit + s.total_revenue;
 
   async function submitMember() {
     if (!pick) return;
@@ -275,9 +285,9 @@ export function PeriodDetailPage() {
         </dl>
         <dl className="grid grid-cols-2 divide-x divide-line/70 border-t border-line/70 sm:grid-cols-4 bg-white">
           <Cell label="Billed so far" value={rupiah(proj.revenue_billed)} sub={`${s.member_present} member visits · ${s.non_member_present} non-member`} />
-          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed − cost to date" highlight={proj.profit_billed >= 0 ? "emerald" : "rose"} />
+          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed (incl. iuran) − court total − shuttles" highlight={proj.profit_billed >= 0 ? "emerald" : "rose"} />
           <Cell label="Actual cash" value={rupiah(s.cash_flow)} sub={`In ${rupiah(s.cash_in)} · Out ${rupiah(s.cash_out)}`} />
-          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Revenue ${rupiah(s.total_revenue)} · Cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
+          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Iuran ${rupiah(s.total_revenue)} · cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
         </dl>
         {editing && !done && (
           <div className="grid gap-2 border-t border-line p-3 sm:grid-cols-4">
@@ -334,11 +344,22 @@ export function PeriodDetailPage() {
           <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Period Finances & Cash Balance</h2>
         </div>
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4 bg-white">
-          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · avg ${rupiah(s.avg_profit_per_session)}/session`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
-          <Cell label="Revenue" value={rupiah(s.total_revenue)} sub={`Cash in ${rupiah(s.cash_in)}`} />
-          <Cell label="Operating cost" value={rupiah(s.operating_cost)} sub={`Courts ${rupiah(s.total_venue_cost)} · Shuttles ${rupiah(s.shuttlecock_usage_cost)}`} />
+          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · iuran − kok`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
+          <Cell label="Commitment fees (iuran)" value={rupiah(s.total_revenue)} sub="Money in from memberships · session dues below" />
+          <Cell
+            label="Operating cost"
+            value={rupiah(s.operating_cost)}
+            sub={
+              s.total_venue_cost > 0
+                ? `Courts ${rupiah(s.total_venue_cost)} · Shuttles ${rupiah(s.shuttlecock_usage_cost)}`
+                : `Shuttles ${rupiah(s.shuttlecock_usage_cost)} · court rental counted per night below`
+            }
+          />
           <Cell label="Cash flow" value={rupiah(s.cash_flow)} sub={`Out ${rupiah(s.cash_out)} · stock ${s.shuttlecock_stock} pcs`} />
         </dl>
+        <p className="border-t border-line/70 bg-emerald-50/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
+          {t("periods.detailFinancesNote")}
+        </p>
       </section>
 
       <div className="flex flex-col gap-5">
@@ -358,7 +379,10 @@ export function PeriodDetailPage() {
               {` · ends ${dateId(s.period.end_date)}`}
             </p>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Whole-period totals (including items without a session) are in the projection and finances above.
+              {t("periods.detailSessionNote")}
+            </p>
+            <p className="mt-0.5 text-xs text-ink-faint">
+              Whole-period figures (commitment fees, projection) are in the projection and finances above.
             </p>
             <div
               className="mt-2 h-2 overflow-hidden rounded-full bg-court/80 border border-line/40"
@@ -382,7 +406,7 @@ export function PeriodDetailPage() {
                 <tr><th>Date</th><th className="text-right">Present</th><th className="text-right">Revenue</th><th className="text-right">Cost</th><th className="text-right">Profit</th><th></th></tr>
               </thead>
               <tbody>
-                {(breakdown.data ?? []).map((row) => (
+                {bRows.map((row) => (
                   <tr key={row.session_id}>
                     <td className="whitespace-nowrap">{dateId(row.date)}</td>
                     <td className="text-right tabular-nums">{row.players_present}</td>
@@ -401,16 +425,45 @@ export function PeriodDetailPage() {
                     Sessions subtotal
                   </td>
                   <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {(breakdown.data ?? []).reduce((a, r) => a + r.players_present, 0)}
+                    {bRows.reduce((a, r) => a + r.players_present, 0)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {rupiah((breakdown.data ?? []).reduce((a, r) => a + r.revenue, 0))}
+                    {rupiah(sumRevenue)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {rupiah((breakdown.data ?? []).reduce((a, r) => a + r.operating_cost, 0))}
+                    {rupiah(sumCost)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {rupiah((breakdown.data ?? []).reduce((a, r) => a + r.profit, 0))}
+                    {rupiah(sumProfit)}
+                  </td>
+                  <td />
+                </tr>
+                <tr className="bg-court/5">
+                  <td className="px-3 py-2 text-xs text-ink-soft">
+                    {t("periods.detailIuranRow")}
+                  </td>
+                  <td />
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-ink-soft">
+                    {rupiah(s.total_revenue)}
+                  </td>
+                  <td />
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums text-green-700">
+                    +{rupiah(s.total_revenue)}
+                  </td>
+                  <td />
+                </tr>
+                <tr className="border-t-2 border-line bg-emerald-50/50">
+                  <td className="px-3 py-2.5 text-xs font-bold text-ink" colSpan={2}>
+                    {t("periods.detailNetRow")}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
+                    {rupiah(sumRevenue + s.total_revenue)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
+                    {rupiah(sumCost)}
+                  </td>
+                  <td className={`whitespace-nowrap px-3 py-2.5 text-right text-sm font-extrabold tabular-nums ${netProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                    {netProfit >= 0 ? "+" : ""}{rupiah(netProfit)}
                   </td>
                   <td />
                 </tr>

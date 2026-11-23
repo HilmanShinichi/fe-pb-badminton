@@ -130,6 +130,12 @@ export function ProfitDetailModal({
             </div>
           </div>
 
+          {isPeriod && (
+            <p className="-mt-1 text-[11px] leading-relaxed text-ink-faint">
+              {t("dashboard.profitModalPeriodNote")}
+            </p>
+          )}
+
           {/* Court Fund Cross-subsidy breakdown (for PERIOD sessions) */}
           {isPeriod && courtFund && (
             <div className="rounded-xl border border-pine/30 bg-pine/5 p-3.5 space-y-3">

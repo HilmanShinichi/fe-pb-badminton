@@ -318,6 +318,7 @@ export interface DashboardTranslations {
   profitDetailCourt: string;
   profitDetailCourtPrepaid: string;
   profitDetailNet: string;
+  profitModalPeriodNote: string;
   clickForDetails: string;
   deleteModalTitle: string;
   deleteModalSessionIntro: string;
@@ -604,6 +605,10 @@ export interface PeriodsTranslations {
   colStatus: string;
   btnOpenPeriod: string;
   sessionsCount: string;
+  detailFinancesNote: string;
+  detailSessionNote: string;
+  detailIuranRow: string;
+  detailNetRow: string;
 }
 
 export interface InventoryTranslations {
