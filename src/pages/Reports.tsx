@@ -1496,7 +1496,7 @@ function InactiveReport({
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-ink">{isId ? "Batas Waktu Nonaktif:" : "Inactivity Threshold:"}</span>
           <div className="inline-flex rounded-lg border border-line bg-court/50 p-0.5">
-            {[2, 3, 6, 9, 12].map((m) => (
+            {[1, 2, 3, 6, 9, 12].map((m) => (
               <button
                 key={m}
                 type="button"
