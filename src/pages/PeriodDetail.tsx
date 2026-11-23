@@ -137,7 +137,7 @@ export function PeriodDetailPage() {
   const sumRevenue = bRows.reduce((a, r) => a + r.revenue, 0);
   const sumShuttleCost = bRows.reduce((a, r) => a + (r.shuttlecock_cost ?? 0), 0);
   const courtUsed = bRows.reduce((a, r) => a + (r.court_cost ?? 0), 0);
-  const courtBudget = proj.venue_total > 0 ? proj.venue_total : courtUsed;
+  const courtBudget = Math.max(proj.venue_total ?? 0, courtUsed);
   const courtRemaining = Math.max(0, courtBudget - courtUsed);
   const sessionProfitOf = (r: { revenue: number; shuttlecock_cost?: number; operating_cost?: number }) =>
     r.revenue - (r.shuttlecock_cost ?? r.operating_cost ?? 0);
