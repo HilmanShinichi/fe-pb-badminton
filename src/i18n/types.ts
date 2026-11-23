@@ -608,7 +608,10 @@ export interface PeriodsTranslations {
   detailFinancesNote: string;
   detailSessionNote: string;
   detailIuranRow: string;
+  detailCourtRow: string;
   detailNetRow: string;
+  colShuttles: string;
+  colSessionProfit: string;
 }
 
 export interface InventoryTranslations {

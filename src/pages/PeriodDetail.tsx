@@ -129,13 +129,18 @@ export function PeriodDetailPage() {
   const lastHeldDate = heldSessions.length ? heldSessions[heldSessions.length - 1].date : null;
   const progressPct = Math.min(100, Math.round((heldSessions.length / plannedSessions) * 100));
 
-  // Session breakdown totals — used to reconcile per-night rows with the
-  // commitment fees (iuran), which are not tied to any single session.
+  // Session breakdown totals — per-session operating cost in a PERIOD reflects
+  // shuttlecock usage, because court costs are pre-funded upfront by commitment fees (iuran).
   const bRows = breakdown.data ?? [];
   const sumRevenue = bRows.reduce((a, r) => a + r.revenue, 0);
-  const sumCost = bRows.reduce((a, r) => a + r.operating_cost, 0);
-  const sumProfit = bRows.reduce((a, r) => a + r.profit, 0);
-  const netProfit = sumProfit + s.total_revenue;
+  const sumShuttleCost = bRows.reduce((a, r) => a + (r.shuttlecock_cost ?? 0), 0);
+  const sumCourtCost = bRows.reduce((a, r) => a + (r.court_cost ?? 0), 0);
+  const sessionProfitOf = (r: { revenue: number; shuttlecock_cost?: number; operating_cost?: number }) =>
+    r.revenue - (r.shuttlecock_cost ?? r.operating_cost ?? 0);
+  const sumSessionProfit = bRows.reduce((a, r) => a + sessionProfitOf(r), 0);
+  const totalIn = sumRevenue + s.total_revenue;
+  const totalOut = sumShuttleCost + sumCourtCost;
+  const netProfit = totalIn - totalOut;
 
   async function submitMember() {
     if (!pick) return;
@@ -403,21 +408,32 @@ export function PeriodDetailPage() {
             <div className="overflow-x-auto">
             <table className="data">
               <thead>
-                <tr><th>Date</th><th className="text-right">Present</th><th className="text-right">Revenue</th><th className="text-right">Cost</th><th className="text-right">Profit</th><th></th></tr>
+                <tr>
+                  <th>Date</th>
+                  <th className="text-right">Present</th>
+                  <th className="text-right">Revenue</th>
+                  <th className="text-right">{t("periods.colShuttles")}</th>
+                  <th className="text-right">{t("periods.colSessionProfit")}</th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
-                {bRows.map((row) => (
-                  <tr key={row.session_id}>
-                    <td className="whitespace-nowrap">{dateId(row.date)}</td>
-                    <td className="text-right tabular-nums">{row.players_present}</td>
-                    <td className="whitespace-nowrap text-right tabular-nums">{rupiah(row.revenue)}</td>
-                    <td className="whitespace-nowrap text-right tabular-nums">{rupiah(row.operating_cost)}</td>
-                    <td className={`whitespace-nowrap text-right font-semibold tabular-nums ${row.profit < 0 ? "text-red-700" : "text-green-700"}`}>
-                      {rupiah(row.profit)}
-                    </td>
-                    <td className="text-right"><OpenLink to={`/mabar/${row.session_id}`} /></td>
-                  </tr>
-                ))}
+                {bRows.map((row) => {
+                  const sCost = row.shuttlecock_cost ?? row.operating_cost;
+                  const sProfit = sessionProfitOf(row);
+                  return (
+                    <tr key={row.session_id}>
+                      <td className="whitespace-nowrap">{dateId(row.date)}</td>
+                      <td className="text-right tabular-nums">{row.players_present}</td>
+                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(row.revenue)}</td>
+                      <td className="whitespace-nowrap text-right tabular-nums">{rupiah(sCost)}</td>
+                      <td className={`whitespace-nowrap text-right font-semibold tabular-nums ${sProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                        {sProfit >= 0 ? "+" : ""}{rupiah(sProfit)}
+                      </td>
+                      <td className="text-right"><OpenLink to={`/mabar/${row.session_id}`} /></td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr>
@@ -431,18 +447,17 @@ export function PeriodDetailPage() {
                     {rupiah(sumRevenue)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {rupiah(sumCost)}
+                    {rupiah(sumShuttleCost)}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
-                    {rupiah(sumProfit)}
+                  <td className={`whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums ${sumSessionProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                    {sumSessionProfit >= 0 ? "+" : ""}{rupiah(sumSessionProfit)}
                   </td>
                   <td />
                 </tr>
                 <tr className="bg-court/5">
-                  <td className="px-3 py-2 text-xs text-ink-soft">
+                  <td className="px-3 py-2 text-xs text-ink-soft" colSpan={2}>
                     {t("periods.detailIuranRow")}
                   </td>
-                  <td />
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-ink-soft">
                     {rupiah(s.total_revenue)}
                   </td>
@@ -452,15 +467,30 @@ export function PeriodDetailPage() {
                   </td>
                   <td />
                 </tr>
+                {sumCourtCost > 0 && (
+                  <tr className="bg-court/5">
+                    <td className="px-3 py-2 text-xs text-ink-soft" colSpan={2}>
+                      {t("periods.detailCourtRow", { count: bRows.length })}
+                    </td>
+                    <td />
+                    <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-ink-soft">
+                      {rupiah(sumCourtCost)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums text-red-700">
+                      −{rupiah(sumCourtCost)}
+                    </td>
+                    <td />
+                  </tr>
+                )}
                 <tr className="border-t-2 border-line bg-emerald-50/50">
                   <td className="px-3 py-2.5 text-xs font-bold text-ink" colSpan={2}>
                     {t("periods.detailNetRow")}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
-                    {rupiah(sumRevenue + s.total_revenue)}
+                    {rupiah(totalIn)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
-                    {rupiah(sumCost)}
+                    {rupiah(totalOut)}
                   </td>
                   <td className={`whitespace-nowrap px-3 py-2.5 text-right text-sm font-extrabold tabular-nums ${netProfit < 0 ? "text-red-700" : "text-green-700"}`}>
                     {netProfit >= 0 ? "+" : ""}{rupiah(netProfit)}
