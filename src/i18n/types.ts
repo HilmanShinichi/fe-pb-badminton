@@ -609,7 +609,10 @@ export interface PeriodsTranslations {
   detailSessionNote: string;
   detailIuranRow: string;
   detailCourtRow: string;
+  detailCourtSplit: string;
   detailNetRow: string;
+  detailNetFormula: string;
+  detailNetNote: string;
   colShuttles: string;
   colSessionProfit: string;
 }

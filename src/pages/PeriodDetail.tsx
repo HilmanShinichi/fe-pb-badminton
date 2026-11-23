@@ -130,16 +130,20 @@ export function PeriodDetailPage() {
   const progressPct = Math.min(100, Math.round((heldSessions.length / plannedSessions) * 100));
 
   // Session breakdown totals — per-session operating cost in a PERIOD reflects
-  // shuttlecock usage, because court costs are pre-funded upfront by commitment fees (iuran).
+  // shuttlecock usage, because court costs are pre-funded upfront by commitment
+  // fees (iuran). The court line below charges the whole period's court budget
+  // (all planned sessions), so the net already includes nights not yet played.
   const bRows = breakdown.data ?? [];
   const sumRevenue = bRows.reduce((a, r) => a + r.revenue, 0);
   const sumShuttleCost = bRows.reduce((a, r) => a + (r.shuttlecock_cost ?? 0), 0);
-  const sumCourtCost = bRows.reduce((a, r) => a + (r.court_cost ?? 0), 0);
+  const courtUsed = bRows.reduce((a, r) => a + (r.court_cost ?? 0), 0);
+  const courtBudget = proj.venue_total > 0 ? proj.venue_total : courtUsed;
+  const courtRemaining = Math.max(0, courtBudget - courtUsed);
   const sessionProfitOf = (r: { revenue: number; shuttlecock_cost?: number; operating_cost?: number }) =>
     r.revenue - (r.shuttlecock_cost ?? r.operating_cost ?? 0);
   const sumSessionProfit = bRows.reduce((a, r) => a + sessionProfitOf(r), 0);
   const totalIn = sumRevenue + s.total_revenue;
-  const totalOut = sumShuttleCost + sumCourtCost;
+  const totalOut = sumShuttleCost + courtBudget;
   const netProfit = totalIn - totalOut;
 
   async function submitMember() {
@@ -467,30 +471,36 @@ export function PeriodDetailPage() {
                   </td>
                   <td />
                 </tr>
-                {sumCourtCost > 0 && (
+                {courtBudget > 0 && (
                   <tr className="bg-court/5">
                     <td className="px-3 py-2 text-xs text-ink-soft" colSpan={2}>
-                      {t("periods.detailCourtRow", { count: bRows.length })}
+                      {t("periods.detailCourtRow", { count: plannedSessions })}
+                      {courtRemaining > 0 && (
+                        <span className="block text-[11px] text-ink-faint">
+                          {t("periods.detailCourtSplit", {
+                            used: rupiah(courtUsed),
+                            held: bRows.length,
+                            planned: plannedSessions,
+                          })}
+                        </span>
+                      )}
                     </td>
                     <td />
                     <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-ink-soft">
-                      {rupiah(sumCourtCost)}
+                      {rupiah(courtBudget)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums text-red-700">
-                      −{rupiah(sumCourtCost)}
+                      −{rupiah(courtBudget)}
                     </td>
                     <td />
                   </tr>
                 )}
                 <tr className="border-t-2 border-line bg-emerald-50/50">
-                  <td className="px-3 py-2.5 text-xs font-bold text-ink" colSpan={2}>
+                  <td className="px-3 py-2.5 text-xs font-bold text-ink" colSpan={4}>
                     {t("periods.detailNetRow")}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
-                    {rupiah(totalIn)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums">
-                    {rupiah(totalOut)}
+                    <span className="block text-[11px] font-normal text-ink-faint tabular-nums">
+                      {t("periods.detailNetFormula", { in: rupiah(totalIn), out: rupiah(totalOut) })}
+                    </span>
                   </td>
                   <td className={`whitespace-nowrap px-3 py-2.5 text-right text-sm font-extrabold tabular-nums ${netProfit < 0 ? "text-red-700" : "text-green-700"}`}>
                     {netProfit >= 0 ? "+" : ""}{rupiah(netProfit)}
@@ -500,6 +510,16 @@ export function PeriodDetailPage() {
               </tfoot>
             </table>
             </div>
+          )}
+          {(breakdown.data ?? []).length > 0 && (
+            <p className="border-t border-line/70 bg-emerald-50/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
+              {t("periods.detailNetNote", {
+                budget: rupiah(courtBudget),
+                planned: plannedSessions,
+                used: rupiah(courtUsed),
+                held: bRows.length,
+              })}
+            </p>
           )}
         </section>
 
