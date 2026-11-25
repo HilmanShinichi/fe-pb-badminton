@@ -20,6 +20,7 @@ import { LiveEventPage, LiveIndexPage, LivePlayedPage, LiveRefereedPage, LiveArr
 import { UsersPage } from "./pages/Users";
 import { NoAccessPage } from "./pages/NoAccess";
 import { I18nProvider } from "./i18n";
+import { ThemeProvider } from "./theme";
 import { canAccess, homeFor } from "./permissions";
 import "./index.css";
 
@@ -43,34 +44,36 @@ function Need({ perm, children }: { perm: string; children: JSX.Element }) {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Provider store={store}>
-      <I18nProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/live" element={<LiveIndexPage />} />
-            <Route path="/live/:id" element={<LiveEventPage />} />
-            <Route path="/live/:id/played" element={<LivePlayedPage />} />
-            <Route path="/live/:id/refereed" element={<LiveRefereedPage />} />
-            <Route path="/live/:id/arrival" element={<LiveArrivalPage />} />
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/no-access" element={<Guard><NoAccessPage /></Guard>} />
-            <Route path="/users" element={<Guard><Need perm="users"><UsersPage /></Need></Guard>} />
-            <Route path="/dashboard" element={<Guard><Need perm="dashboard"><DashboardPage /></Need></Guard>} />
-            <Route path="/mabar" element={<Guard><Need perm="mabar"><MabarListPage /></Need></Guard>} />
-            <Route path="/mabar/:id" element={<Guard><Need perm="mabar"><MabarDetailPage /></Need></Guard>} />
-            <Route path="/periods" element={<Guard><Need perm="periods"><PeriodListPage /></Need></Guard>} />
-            <Route path="/periods/:id" element={<Guard><Need perm="periods"><PeriodDetailPage /></Need></Guard>} />
-            <Route path="/players" element={<Guard><Need perm="players"><PlayersPage /></Need></Guard>} />
-            <Route path="/no-shows" element={<Guard><Need perm="reports"><NoShowTrackerPage /></Need></Guard>} />
-            <Route path="/inventory" element={<Guard><Need perm="inventory"><InventoryPage /></Need></Guard>} />
-            <Route path="/finance" element={<Guard><Need perm="finance"><FinancePage /></Need></Guard>} />
-            <Route path="/reports" element={<Guard><Need perm="reports"><ReportsPage /></Need></Guard>} />
-            <Route path="/simulator" element={<Guard><Need perm="simulator"><SimulatorPage /></Need></Guard>} />
-            <Route path="/match-maker" element={<Guard><Need perm="matchmaker"><MatchMakerListPage /></Need></Guard>} />
-            <Route path="/match-maker/:id" element={<Guard><Need perm="matchmaker"><MatchMakerDetailPage /></Need></Guard>} />
-          </Routes>
-        </BrowserRouter>
-      </I18nProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/live" element={<LiveIndexPage />} />
+              <Route path="/live/:id" element={<LiveEventPage />} />
+              <Route path="/live/:id/played" element={<LivePlayedPage />} />
+              <Route path="/live/:id/refereed" element={<LiveRefereedPage />} />
+              <Route path="/live/:id/arrival" element={<LiveArrivalPage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/no-access" element={<Guard><NoAccessPage /></Guard>} />
+              <Route path="/users" element={<Guard><Need perm="users"><UsersPage /></Need></Guard>} />
+              <Route path="/dashboard" element={<Guard><Need perm="dashboard"><DashboardPage /></Need></Guard>} />
+              <Route path="/mabar" element={<Guard><Need perm="mabar"><MabarListPage /></Need></Guard>} />
+              <Route path="/mabar/:id" element={<Guard><Need perm="mabar"><MabarDetailPage /></Need></Guard>} />
+              <Route path="/periods" element={<Guard><Need perm="periods"><PeriodListPage /></Need></Guard>} />
+              <Route path="/periods/:id" element={<Guard><Need perm="periods"><PeriodDetailPage /></Need></Guard>} />
+              <Route path="/players" element={<Guard><Need perm="players"><PlayersPage /></Need></Guard>} />
+              <Route path="/no-shows" element={<Guard><Need perm="reports"><NoShowTrackerPage /></Need></Guard>} />
+              <Route path="/inventory" element={<Guard><Need perm="inventory"><InventoryPage /></Need></Guard>} />
+              <Route path="/finance" element={<Guard><Need perm="finance"><FinancePage /></Need></Guard>} />
+              <Route path="/reports" element={<Guard><Need perm="reports"><ReportsPage /></Need></Guard>} />
+              <Route path="/simulator" element={<Guard><Need perm="simulator"><SimulatorPage /></Need></Guard>} />
+              <Route path="/match-maker" element={<Guard><Need perm="matchmaker"><MatchMakerListPage /></Need></Guard>} />
+              <Route path="/match-maker/:id" element={<Guard><Need perm="matchmaker"><MatchMakerDetailPage /></Need></Guard>} />
+            </Routes>
+          </BrowserRouter>
+        </I18nProvider>
+      </ThemeProvider>
     </Provider>
   </StrictMode>
 );

@@ -2,8 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --theme-primary: #141518;
+  --theme-primaryDeep: #27272a;
+  --theme-primaryHover: #09090b;
+  --theme-accent: #a5b4fc;
+  --theme-accentDeep: #4338ca;
+  --theme-surface: #f5f6f8;
+  --theme-surfaceAlt: #eaedf2;
+  --theme-cardBg: #ffffff;
+  --theme-trackBg: #eaedf2;
+  --theme-border: #e5e7eb;
+  --theme-text: #111827;
+  --theme-textSoft: #4b5563;
+  --theme-textFaint: #5a6270;
+  --theme-sidebarGradientFrom: #ffffff;
+  --theme-sidebarGradientVia: #ffffff;
+  --theme-sidebarGradientTo: #f8f9fb;
+  --theme-sidebarText: #111827;
+  --theme-ctaBg: #141518;
+  --theme-ctaBgHover: #27272a;
+  --theme-ctaText: #ffffff;
+  --theme-badgeBg: #fef3c7;
+  --theme-badgeText: #78350f;
+  --theme-linkAccent: #4338ca;
+  --theme-linkSoftBg: #eef2ff;
+  --theme-linkSoftText: #3730a3;
+  --theme-shadow-card: 0 1px 2px rgb(17 24 39 / 0.04);
+
+  --rgb-pine: 20 21 24;
+  --rgb-pine-deep: 39 39 42;
+  --rgb-court: 234 237 242;
+  --rgb-lime: 165 180 252;
+  --rgb-lime-deep: 67 56 202;
+  --rgb-paper: 245 246 248;
+  --rgb-ink: 17 24 39;
+  --rgb-ink-soft: 75 85 99;
+  --rgb-ink-faint: 90 98 112;
+  --rgb-line: 229 231 235;
+  --rgb-card: 255 255 255;
+  --rgb-track: 234 237 242;
+  --rgb-link: 67 56 202;
+}
+
+[data-theme="green"] {
+  --theme-shadow-card: 0 1px 2px rgb(28 36 32 / 0.07);
+}
+
+[data-theme="light"] {
+  --theme-shadow-card: 0 1px 3px rgb(15 23 42 / 0.06);
+}
+
+[data-theme="modern"] {
+  --theme-shadow-card: 0 1px 2px rgb(17 24 39 / 0.04);
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 body {
-  @apply bg-paper text-ink antialiased overflow-x-hidden;
+  background-color: var(--theme-surface);
+  color: var(--theme-text);
+  @apply antialiased overflow-x-hidden;
 }
 
 /* Hide scrollbar for Chrome, Safari, Opera, Edge, and Firefox */
@@ -16,11 +92,24 @@ body {
 }
 
 input, select, textarea {
-  @apply rounded-lg border border-line bg-white px-2.5 py-2 text-sm outline-none transition-colors focus:border-pine;
+  @apply rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-pine;
+}
+
+[data-theme="modern"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="modern"] select,
+[data-theme="modern"] textarea {
+  border-color: #d1d5db;
+}
+
+[data-theme="modern"] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme="modern"] select:focus,
+[data-theme="modern"] textarea:focus {
+  border-color: var(--theme-primary);
 }
 
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
-  @apply outline outline-2 outline-offset-2 outline-pine;
+  outline: 2px solid var(--theme-linkAccent);
+  outline-offset: 2px;
 }
 
 table.data {
@@ -28,11 +117,11 @@ table.data {
 }
 
 table.data th {
-  @apply border-b border-line bg-court/60 px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-ink-soft;
+  @apply border-b border-line bg-court/60 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-ink-soft;
 }
 
 table.data td {
-  @apply border-b border-line/70 px-3 py-2 align-top;
+  @apply border-b border-line/70 px-3 py-2.5 align-top;
 }
 
 table.data tbody tr:last-child td {
@@ -53,4 +142,26 @@ table.data td.text-right {
 table.data th.text-center,
 table.data td.text-center {
   text-align: center;
+}
+
+/* Modern transit-inspired card and segmented control refinements */
+[data-theme="modern"] .modern-card {
+  border-radius: 22px;
+  border-color: var(--theme-border);
+  background-color: var(--theme-cardBg);
+  box-shadow: var(--theme-shadow-card);
+}
+
+[data-theme="modern"] .modern-inset {
+  border-radius: 16px;
+  background-color: #f4f5f8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

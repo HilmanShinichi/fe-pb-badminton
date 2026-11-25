@@ -258,7 +258,7 @@ export function MatchMakerListPage() {
           aria-label={t("matchmaker.newEventTitle")}
           className="h-fit overflow-hidden rounded-2xl border border-line bg-white shadow-card"
         >
-          <div className="border-b border-paper/10 bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#102a1f] px-4 py-3.5 text-paper">
+          <div className="border-b border-paper/10 bg-gradient-to-r from-pine to-pine-deep px-4 py-3.5 text-paper">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-lime/20 text-lime">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
@@ -492,7 +492,7 @@ export function MatchMakerListPage() {
               type="button"
               disabled={createState.isLoading || !name.trim()}
               onClick={submit}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-4 text-sm font-bold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pine to-pine-deep py-2.5 px-4 text-sm font-bold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                 <path d="M12 5v14M5 12h14" />
@@ -506,7 +506,7 @@ export function MatchMakerListPage() {
             <button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-bold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pine to-pine-deep py-2.5 px-5 text-sm font-bold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                 <path d="M12 5v14M5 12h14" />
@@ -628,7 +628,7 @@ export function MatchMakerListPage() {
                   <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between">
                     <Link
                       to={`/match-maker/${ev.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#143728] to-[#1e4d3a] px-3.5 py-1.5 text-xs font-bold text-lime shadow-2xs hover:brightness-110 transition-all"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pine to-pine-deep px-3.5 py-1.5 text-xs font-bold text-lime shadow-2xs hover:brightness-110 transition-all"
                     >
                       {t("matchmaker.btnManageDraw")}
                     </Link>
@@ -713,7 +713,7 @@ function GenerationProgressModal({
     >
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-300/60 bg-white p-6 shadow-2xl">
         <div className="flex items-center gap-3.5 mb-5">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#143728] to-[#1e523b] text-lime shadow-md">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pine to-pine-deep text-lime shadow-md">
             {isDone ? (
               <IconCheck className="h-6 w-6 text-lime" />
             ) : (
@@ -1223,7 +1223,7 @@ export function MatchMakerDetailPage() {
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line/60 pb-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#143728] to-[#1e523b] text-lime shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pine to-pine-deep text-lime shadow-sm">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
                     <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
                   </svg>
@@ -1386,7 +1386,7 @@ export function MatchMakerDetailPage() {
                   disabled={genState.isLoading || genModalOpen || (!canGenerateAll && genMode !== "catchup")}
                   onClick={runGenerate}
                   title={allAtCap ? t("matchmaker.limitReached", { count: maxMatches }) : undefined}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pine to-pine-deep py-2.5 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
                 >
                   {genModalOpen ? (
                     <span className="flex items-center gap-2">
@@ -1563,7 +1563,7 @@ export function MatchMakerDetailPage() {
                         type="button"
                         disabled={manualState.isLoading || !webRaw.trim() || !webPrompt}
                         onClick={submitWebAi}
-                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#143728] via-[#1a4434] to-[#123023] py-2 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pine to-pine-deep py-2 px-5 text-sm font-extrabold text-lime shadow-md hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
                       >
                         {manualState.isLoading && (
                           <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-lime border-t-transparent" />
@@ -1836,7 +1836,7 @@ export function MatchMakerDetailPage() {
                             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-black text-ink-soft">
                               {idx + 1}
                             </span>
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-xs font-black text-lime shadow-2xs">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-xs font-black text-lime shadow-2xs">
                               {c.name.slice(0, 1).toUpperCase()}
                             </span>
                             <span className="font-extrabold text-sm text-ink truncate">
@@ -1929,7 +1929,7 @@ export function MatchMakerDetailPage() {
                             <td className="tabular-nums font-semibold text-ink-faint">{idx + 1}</td>
                             <td className="font-bold text-ink">
                               <div className="flex items-center gap-2">
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-[10px] font-black text-lime">
                                   {c.name.slice(0, 1).toUpperCase()}
                                 </span>
                                 <span>{c.name}</span>
@@ -2208,7 +2208,7 @@ export function TeamPanel({ team, align, meta }: { team: GenTeamPlayer[]; align:
             key={p.player_id}
             className={`flex items-center gap-1 sm:gap-2 w-full min-w-0 overflow-hidden ${align === "right" ? "flex-row-reverse" : "flex-row"}`}
           >
-            <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[9px] sm:text-[10px] font-black text-lime shadow-2xs">
+            <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-[9px] sm:text-[10px] font-black text-lime shadow-2xs">
               {initial}
             </span>
             <div className={`min-w-0 flex-1 overflow-hidden ${align === "right" ? "text-right" : "text-left"}`}>
@@ -2418,7 +2418,7 @@ function MatchCard({
         <div className="flex items-stretch gap-1 sm:gap-2">
           <TeamPanel team={m.team1} align="left" />
           <div className="flex shrink-0 items-center justify-center px-0.5">
-            <span className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1a4434] text-[9px] sm:text-[11px] font-black text-lime shadow-md border border-lime/30">
+            <span className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-[9px] sm:text-[11px] font-black text-lime shadow-md border border-lime/30">
               {t("matchmaker.vs")}
             </span>
           </div>
@@ -2474,7 +2474,7 @@ function MatchCard({
               className={`rounded-lg px-2.5 py-1.5 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
                 next === "PLAYING"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white"
-                  : "bg-gradient-to-r from-[#143728] to-[#1e4d3a] hover:brightness-110 text-lime"
+                  : "bg-gradient-to-r from-pine to-pine-deep hover:brightness-110 text-lime"
               }`}
             >
               {next === "PLAYING" ? t("matchmaker.btnStartPlaying") : t("matchmaker.btnFinishMatch")}

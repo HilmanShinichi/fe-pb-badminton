@@ -11,6 +11,7 @@ export {
   GenderChip,
   GradeChip,
   LanguageSwitcher,
+  ThemeSwitcher,
   Loading,
   MoneyInput,
   OpenLink,

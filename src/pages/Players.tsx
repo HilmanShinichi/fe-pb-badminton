@@ -369,7 +369,7 @@ function PlayerMobileCard({ index, player, onDelete }: { index: number; player: 
         <span className="w-6 shrink-0 text-center text-[11px] font-black tabular-nums text-ink-faint">
           {index}
         </span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-xs font-black text-lime shadow-2xs">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-xs font-black text-lime shadow-2xs">
           {initial}
         </span>
         <div className="min-w-0 flex-1">
@@ -471,7 +471,7 @@ function PlayerRow({ index, player, onDelete }: { index: number; player: Player;
           </span>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-[10px] font-black text-lime">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-[10px] font-black text-lime">
               {initial}
             </span>
             <span className="font-bold text-ink">{player.name}</span>

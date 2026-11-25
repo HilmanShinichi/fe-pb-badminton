@@ -238,7 +238,7 @@ export function ReportsPage() {
                 onClick={() => setPeriodSubMode("FULL_PERIOD")}
                 className={`rounded-md px-3 py-1 font-semibold transition-all cursor-pointer ${
                   periodSubMode === "FULL_PERIOD"
-                    ? "bg-emerald-700 text-white shadow-2xs"
+                    ? "bg-pine text-white shadow-2xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -249,7 +249,7 @@ export function ReportsPage() {
                 onClick={() => setPeriodSubMode("PER_PERIOD")}
                 className={`rounded-md px-3 py-1 font-semibold transition-all cursor-pointer ${
                   periodSubMode === "PER_PERIOD"
-                    ? "bg-emerald-700 text-white shadow-2xs"
+                    ? "bg-pine text-white shadow-2xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -290,7 +290,7 @@ export function ReportsPage() {
                 onClick={() => setDailySubMode("FULL_DAILY")}
                 className={`rounded-md px-3 py-1 font-semibold transition-all cursor-pointer ${
                   dailySubMode === "FULL_DAILY"
-                    ? "bg-emerald-700 text-white shadow-2xs"
+                    ? "bg-pine text-white shadow-2xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -301,7 +301,7 @@ export function ReportsPage() {
                 onClick={() => setDailySubMode("PER_DAILY")}
                 className={`rounded-md px-3 py-1 font-semibold transition-all cursor-pointer ${
                   dailySubMode === "PER_DAILY"
-                    ? "bg-emerald-700 text-white shadow-2xs"
+                    ? "bg-pine text-white shadow-2xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >

@@ -5,6 +5,7 @@ export { ErrorBox } from "./ErrorBox/ErrorBox";
 export { GenderChip } from "./GenderChip/GenderChip";
 export { GradeChip } from "./GradeChip/GradeChip";
 export { LanguageSwitcher } from "./LanguageSwitcher/LanguageSwitcher";
+export { ThemeSwitcher } from "./ThemeSwitcher/ThemeSwitcher";
 export { Loading } from "./Loading/Loading";
 export { MoneyInput } from "./MoneyInput/MoneyInput";
 export { ClubLogo } from "./ClubLogo";

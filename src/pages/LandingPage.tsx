@@ -5,8 +5,10 @@ import type { RootState } from "../store/store";
 import { useI18n } from "../i18n";
 import { API_BASE_URL } from "../store/baseApi";
 import { LanguageSwitcher } from "../components/atoms/LanguageSwitcher";
+import { ThemeSwitcher } from "../components/atoms/ThemeSwitcher";
 import { ClubLogo } from "../components/atoms/ClubLogo";
 import { LogoUploadModal } from "../components/molecules/LogoUploadModal";
+import { useTheme } from "../theme";
 
 interface PublicSession {
   id: string;
@@ -24,6 +26,7 @@ interface PublicSession {
 
 export function LandingPage() {
   const { t, isId } = useI18n();
+  const { theme } = useTheme();
   const token = useSelector((s: RootState) => s.auth.token);
   const [logoModalOpen, setLogoModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -87,6 +90,20 @@ export function LandingPage() {
     };
   }, []);
 
+  if (theme === "modern") {
+    return (
+      <ModernLanding
+        t={t}
+        isId={isId}
+        token={token}
+        sessions={sessions}
+        loadingSessions={loadingSessions}
+        logoModalOpen={logoModalOpen}
+        setLogoModalOpen={setLogoModalOpen}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f3f9f5] text-ink selection:bg-lime/40 selection:text-pine-deep font-sans">
       {/* 1. TOP NAVBAR (Transparent over hero, subtle frosted glass on scroll) */}
@@ -117,7 +134,7 @@ export function LandingPage() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-6 lg:gap-7 md:flex text-sm font-bold text-[#0c2f21]">
+          <nav className="hidden items-center gap-5 xl:gap-7 lg:flex text-sm font-bold text-[#0c2f21]">
             <a
               href="#hero"
               className="hover:text-emerald-700 transition-colors"
@@ -150,8 +167,11 @@ export function LandingPage() {
             </a>
           </nav>
 
-          {/* Right Action: Language Switcher (Desktop) & Login / Dashboard Button & Mobile Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Action: Theme + Language Switcher (Desktop) & Login / Dashboard Button & Mobile Toggle */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="hidden sm:block">
+              <ThemeSwitcher compact />
+            </div>
             {/* Desktop Language Switcher */}
             <div className="hidden md:block">
               <LanguageSwitcher />
@@ -185,11 +205,11 @@ export function LandingPage() {
               </Link>
             )}
 
-            {/* Mobile Hamburger Toggle */}
+            {/* Mobile & Tablet Hamburger Toggle */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-lg p-2 text-[#0c2f21] hover:bg-black/5 md:hidden transition-colors shrink-0"
+              className="rounded-lg p-2 text-[#0c2f21] hover:bg-black/5 lg:hidden transition-colors shrink-0"
               aria-label="Toggle navigation menu"
             >
               <svg
@@ -209,9 +229,9 @@ export function LandingPage() {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile & Tablet Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="border-b border-line bg-white/95 backdrop-blur-md px-5 py-4 md:hidden animate-in fade-in slide-in-from-top-2 shadow-lg">
+          <div className="border-b border-line bg-white/95 backdrop-blur-md px-5 py-4 lg:hidden animate-in fade-in slide-in-from-top-2 shadow-lg">
             <nav className="flex flex-col space-y-3 text-sm font-semibold text-ink-soft">
               <a
                 href="#hero"
@@ -249,7 +269,13 @@ export function LandingPage() {
                 {t("landing.navFinance")}
               </a>
 
-              {/* Mobile Language Switcher Row */}
+              {/* Mobile Theme & Language Switcher Rows */}
+              <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-[#0c2f21]">
+                  {isId ? "Tema" : "Theme"}
+                </span>
+                <ThemeSwitcher compact />
+              </div>
               <div className="pt-2 border-t border-line flex items-center justify-between">
                 <span className="text-xs font-bold text-[#0c2f21]">
                   {isId ? "Pilih Bahasa" : "Language"}
@@ -953,6 +979,387 @@ export function LandingPage() {
         open={logoModalOpen}
         onClose={() => setLogoModalOpen(false)}
       />
+    </div>
+  );
+}
+
+function ModernLanding({
+  t,
+  isId,
+  token,
+  sessions,
+  loadingSessions,
+  logoModalOpen,
+  setLogoModalOpen,
+}: {
+  t: (path: string, vars?: Record<string, string | number>) => string;
+  isId: boolean;
+  token: string | null;
+  sessions: PublicSession[];
+  loadingSessions: boolean;
+  logoModalOpen: boolean;
+  setLogoModalOpen: (v: boolean) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"jadwal" | "tentang" | "keuangan">("jadwal");
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-paper text-ink font-sans">
+      {/* Top App Bar matching themenew.png */}
+      <header className="border-b border-line bg-white">
+        <div className="mx-auto max-w-4xl px-4 pt-4 pb-4 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <h1 className="truncate text-xl sm:text-2xl font-bold tracking-tight text-ink">
+                PB Kecebong
+              </h1>
+              <span
+                className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                style={{ backgroundColor: "var(--theme-badgeBg)", color: "var(--theme-badgeText)" }}
+              >
+                {isId ? "Publik" : "Public"}
+              </span>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
+                <ThemeSwitcher compact />
+                <LanguageSwitcher />
+              </div>
+              <ClubLogo
+                size="md"
+                editable
+                showRing={false}
+                onEdit={() => setLogoModalOpen(true)}
+                className="border border-line shadow-2xs"
+              />
+            </div>
+          </div>
+
+          {/* Segmented Pill Bar (Jadwal | Filosofi | Keuangan) */}
+          <div className="mt-4">
+            <div
+              role="tablist"
+              aria-label={isId ? "Navigasi beranda" : "Home sections"}
+              className="grid grid-cols-3 rounded-full bg-[var(--theme-trackBg)] p-1"
+            >
+              {(
+                [
+                  { id: "jadwal", label: isId ? "Jadwal" : "Schedule" },
+                  { id: "tentang", label: isId ? "Tentang" : "About" },
+                  { id: "keuangan", label: isId ? "Kas" : "Treasury" },
+                ] as const
+              ).map((tab) => {
+                const selected = activeTab === tab.id;
+                return (
+                  <a
+                    key={tab.id}
+                    href={`#${tab.id}`}
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`min-h-[38px] flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-semibold transition-all ${
+                      selected ? "bg-white text-ink shadow-xs" : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    {tab.label}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5 Squircle Quick-Action Tiles */}
+          <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-3">
+            <a href="#jadwal" className="group flex flex-col items-center gap-1.5 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-ink leading-tight">
+                {isId ? "Jadwal" : "Schedule"}
+              </span>
+            </a>
+
+            <Link to="/live" className="group flex flex-col items-center gap-1.5 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-ink leading-tight">
+                Live Skor
+              </span>
+            </Link>
+
+            <a href="#tentang" className="group flex flex-col items-center gap-1.5 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-ink leading-tight">
+                {isId ? "Klub" : "Club"}
+              </span>
+            </a>
+
+            <Link to={token ? "/dashboard" : "/login"} className="group flex flex-col items-center gap-1.5 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pine text-white shadow-xs group-hover:bg-pine-deep transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              </span>
+              <span className="text-[11px] sm:text-xs font-semibold text-ink leading-tight">
+                {token ? "Dashboard" : isId ? "Masuk" : "Sign in"}
+              </span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMoreOpen(!moreOpen)}
+              aria-expanded={moreOpen}
+              className="group flex flex-col items-center gap-1.5 text-center"
+            >
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-colors ${
+                  moreOpen ? "border-pine bg-pine text-white" : "border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                  <rect x="4" y="4" width="7" height="7" rx="2" />
+                  <rect x="13" y="4" width="7" height="7" rx="2" />
+                  <rect x="4" y="13" width="7" height="7" rx="2" />
+                  <rect x="13" y="13" width="7" height="7" rx="2" />
+                </svg>
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-ink leading-tight">
+                {isId ? "Lainnya" : "More"}
+              </span>
+            </button>
+          </div>
+
+          {moreOpen && (
+            <div className="mt-4 rounded-[20px] border border-line bg-[#f8f9fb] p-3.5 space-y-3 sm:hidden">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-ink-soft">{isId ? "Tema" : "Theme"}</span>
+                <ThemeSwitcher compact />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-ink-soft">{isId ? "Bahasa" : "Language"}</span>
+                <LanguageSwitcher />
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl space-y-7 px-4 py-6 sm:px-6">
+        {/* Section 1: "Untukmu" Schedule Card (matching themenew.png grouped card anatomy) */}
+        <section id="jadwal" aria-labelledby="modern-schedule-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="modern-schedule-heading" className="text-lg font-bold tracking-tight text-ink">
+              {isId ? "Untukmu" : "Upcoming for you"}
+            </h2>
+            <Link to="/live" className="text-sm font-semibold hover:underline" style={{ color: "var(--theme-linkAccent)" }}>
+              {isId ? "Lihat live skor" : "Live scoreboard"}
+            </Link>
+          </div>
+
+          <div className="rounded-[24px] border border-line bg-[#f0f2f6] p-3 sm:p-4 shadow-card">
+            <div className="flex items-center justify-between gap-3 px-1 pb-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white border border-line shadow-2xs">
+                  <ClubLogo size="sm" showRing={false} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-ink truncate">{t("landing.scheduleTitle")}</span>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      style={{ backgroundColor: "var(--theme-linkSoftBg)", color: "var(--theme-linkSoftText)" }}
+                    >
+                      {isId ? "Terbuka" : "Open"}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-ink-soft">{t("landing.scheduleSubtitle")}</p>
+                </div>
+              </div>
+              <Link
+                to="/live"
+                aria-label={t("landing.scheduleLiveScore")}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-white transition-colors"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </Link>
+            </div>
+
+            <div className="overflow-hidden rounded-[18px] border border-line/80 bg-white divide-y divide-line/80">
+              {loadingSessions ? (
+                <div className="p-6 text-center text-sm text-ink-soft">
+                  {isId ? "Memuat jadwal sesi mabar…" : "Loading sessions…"}
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="p-6 text-center">
+                  <p className="text-sm font-semibold text-ink">{t("landing.scheduleEmpty")}</p>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    {isId ? "Belum ada sesi terjadwal saat ini." : "No scheduled sessions at the moment."}
+                  </p>
+                </div>
+              ) : (
+                sessions.map((sess) => {
+                  const isPeriod = sess.type === "PERIOD";
+                  return (
+                    <div key={sess.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold bg-white ${
+                            isPeriod ? "border-blue-600 text-blue-700" : "border-red-600 text-red-700"
+                          }`}
+                        >
+                          {isPeriod ? "P" : "D"}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-sm font-semibold text-ink truncate">
+                              {sess.venue_name || sess.venue_description || "GOR PB Kecebong"}
+                            </span>
+                            <span className="text-xs text-ink-faint">
+                              {isPeriod ? (sess.period_name ?? "Period") : "Open Play"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-ink-soft">
+                            {sess.date}
+                            {sess.start_time && sess.end_time ? ` · ${sess.start_time}–${sess.end_time}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right tabular-nums">
+                        <span className="block text-sm font-bold text-ink">
+                          Rp{sess.shuttlecock_price.toLocaleString("id-ID")}
+                        </span>
+                        <span className="block text-[11px] text-ink-faint">{sess.status}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between px-1 text-xs">
+              <span className="text-ink-faint">
+                {isId ? "Jadwal terbaru dari sistem klub" : "Live club schedule"}
+              </span>
+              <Link
+                to={token ? "/mabar" : "/login"}
+                className="font-semibold hover:underline"
+                style={{ color: "var(--theme-linkAccent)" }}
+              >
+                {token ? (isId ? "Kelola sesi" : "Manage sessions") : isId ? "Masuk admin" : "Admin sign in"}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Quick Portal Actions Card (matching "Dari Oyen" dual-button card) */}
+        <section aria-labelledby="modern-portal-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="modern-portal-heading" className="text-lg font-bold tracking-tight text-ink">
+              {isId ? "Akses Cepat Klub" : "Club Access"}
+            </h2>
+            <span className="text-xs text-ink-faint">PB Kecebong</span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col justify-between rounded-[22px] border border-line bg-white p-4 shadow-card">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pine text-white">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5" />
+                    <path d="M12 3.5v17M3.5 12h17" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-ink">Match Maker</h3>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      style={{ backgroundColor: "var(--theme-linkSoftBg)", color: "var(--theme-linkSoftText)" }}
+                    >
+                      Live
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    {t("landing.heroDesc")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2.5">
+                <Link
+                  to={token ? "/dashboard" : "/login"}
+                  className="flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--theme-ctaBg)] hover:bg-[var(--theme-ctaBgHover)] px-3 py-2 text-xs font-bold text-[var(--theme-ctaText)] transition-colors"
+                >
+                  {token ? t("landing.navDashboard") : t("landing.navLogin")}
+                </Link>
+                <Link
+                  to="/live"
+                  className="flex min-h-[44px] items-center justify-center rounded-xl border border-line bg-white hover:bg-court/60 px-3 py-2 text-xs font-bold text-ink transition-colors"
+                >
+                  Live Board
+                </Link>
+              </div>
+            </div>
+
+            <div id="tentang" className="flex flex-col justify-between rounded-[22px] border border-line bg-white p-4 shadow-card">
+              <div>
+                <h3 className="font-bold text-ink">{t("landing.aboutTitle")}</h3>
+                <p className="mt-1 text-xs text-ink-soft leading-relaxed">{t("landing.aboutSubtitle")}</p>
+                <ul className="mt-3 space-y-1.5 text-xs text-ink-soft">
+                  <li>• {t("landing.pillar1Title")}</li>
+                  <li>• {t("landing.pillar2Title")}</li>
+                  <li>• {t("landing.pillar3Title")}</li>
+                </ul>
+              </div>
+              <div id="keuangan" className="mt-4 border-t border-line pt-3 flex items-center justify-between text-xs">
+                <span className="text-ink-faint">{t("landing.financeTitle")}</span>
+                <Link
+                  to={token ? "/finance" : "/login"}
+                  className="font-semibold hover:underline"
+                  style={{ color: "var(--theme-linkAccent)" }}
+                >
+                  {isId ? "Buka kas" : "Open treasury"}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-line bg-white py-6 mt-8">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-soft">
+          <span>© {new Date().getFullYear()} PB Kecebong Badminton Club</span>
+          <div className="flex items-center gap-4">
+            <Link to="/live" className="font-semibold hover:underline" style={{ color: "var(--theme-linkAccent)" }}>
+              Live Board
+            </Link>
+            <Link to="/login" className="font-semibold text-ink hover:underline">
+              {t("landing.navLogin")}
+            </Link>
+          </div>
+        </div>
+      </footer>
+
+      <LogoUploadModal open={logoModalOpen} onClose={() => setLogoModalOpen(false)} />
     </div>
   );
 }

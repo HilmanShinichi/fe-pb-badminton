@@ -172,7 +172,7 @@ export function UsersPage() {
           <div className="divide-y divide-line/60">
             {list.data.map((u) => (
               <div key={u.id} className="flex flex-wrap items-center gap-2 p-3.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#143728] to-[#1e523b] text-xs font-black text-lime">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-pine to-pine-deep text-xs font-black text-lime">
                   {u.username.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">

@@ -39,6 +39,19 @@ export function ClubLogo({
         showRing ? "ring-2 ring-lime/40" : ""
       } ${sizeConfig.container} ${editable ? "cursor-pointer hover:scale-105" : ""} ${className}`}
       onClick={editable ? onEdit : undefined}
+      onKeyDown={
+        editable && onEdit
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onEdit();
+              }
+            }
+          : undefined
+      }
+      role={editable ? "button" : undefined}
+      tabIndex={editable ? 0 : undefined}
+      aria-label={editable ? "Change club logo" : undefined}
       title={editable ? "Klik untuk ganti logo klub" : alt}
     >
       <img

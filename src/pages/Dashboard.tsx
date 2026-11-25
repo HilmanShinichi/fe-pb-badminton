@@ -4,12 +4,15 @@ import { useDashboardQuery, useDeleteMabarMutation, type DashboardSession } from
 import { ApiError } from "../store/baseApi";
 import { rupiah } from "../format";
 import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Loading, OpenLink, PageHead, ProfitDetailModal } from "../ui";
 
 const RECENT_PAGE_SIZE = 5;
 
 export function DashboardPage() {
-  const { t, dateFormatted } = useI18n();
+  const { t, dateFormatted, isId } = useI18n();
+  const { theme } = useTheme();
+  const isModern = theme === "modern";
   const [pending, setPending] = useState<DashboardSession | null>(null);
   const [activeProfitSession, setActiveProfitSession] = useState<DashboardSession | null>(null);
   const [error, setError] = useState("");
@@ -114,9 +117,9 @@ export function DashboardPage() {
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
       {/* Cash flow by scope */}
-      <section aria-label="Cash flow by scope" className="rounded-xl border border-line bg-white shadow-card overflow-hidden min-w-0 w-full">
-        <div className="border-b border-line px-3.5 py-2.5">
-          <h2 className="text-sm font-semibold">{t("dashboard.cashFlowMonth", { amount: rupiah(d.month_cash_flow) })}</h2>
+      <section aria-label="Cash flow by scope" className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card overflow-hidden min-w-0 w-full`}>
+        <div className={`border-b border-line ${isModern ? "px-4 py-3.5" : "px-3.5 py-2.5"}`}>
+          <h2 className={`${isModern ? "text-base font-bold" : "text-sm font-semibold"} text-ink`}>{t("dashboard.cashFlowMonth", { amount: rupiah(d.month_cash_flow) })}</h2>
           <p className="text-xs text-ink-faint">{t("dashboard.cashFlowDesc")}</p>
         </div>
         <dl className="grid grid-cols-1 divide-y sm:divide-y-0 sm:grid-cols-3 sm:divide-x divide-line">
@@ -139,7 +142,7 @@ export function DashboardPage() {
       </section>
 
       {/* Summary KPI */}
-      <section aria-label="Summary" className="rounded-xl border border-line bg-white shadow-card overflow-hidden min-w-0 w-full">
+      <section aria-label="Summary" className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card overflow-hidden min-w-0 w-full`}>
         <dl className="grid grid-cols-1 divide-y sm:divide-y-0 sm:grid-cols-3 sm:divide-x divide-line">
           <SummaryCell
             label={t("dashboard.activePeriod")}
@@ -165,9 +168,9 @@ export function DashboardPage() {
 
       {/* By Type Breakdown */}
       <section aria-label="By type" className="grid gap-5 sm:grid-cols-2 min-w-0 w-full">
-        <div className="rounded-xl border border-line bg-white shadow-card overflow-hidden min-w-0 w-full">
-          <div className="border-b border-line px-3.5 py-2.5">
-            <h2 className="text-sm font-semibold">{t("dashboard.periodOpenPlay")}</h2>
+        <div className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card overflow-hidden min-w-0 w-full`}>
+          <div className={`border-b border-line ${isModern ? "px-4 py-3.5" : "px-3.5 py-2.5"}`}>
+            <h2 className={`${isModern ? "text-base font-bold" : "text-sm font-semibold"} text-ink`}>{t("dashboard.periodOpenPlay")}</h2>
             <p className="text-xs text-ink-faint">
               {t("dashboard.upcomingAndRecent", { up: periodStats.up, recent: periodStats.sessions })}
             </p>
@@ -177,9 +180,9 @@ export function DashboardPage() {
             <SummaryCell label={t("dashboard.members")} value={String(d.active_period.members)} sub={d.active_period.name ?? t("dashboard.noActivePeriod")} />
           </dl>
         </div>
-        <div className="rounded-xl border border-line bg-white shadow-card overflow-hidden min-w-0 w-full">
-          <div className="border-b border-line px-3.5 py-2.5">
-            <h2 className="text-sm font-semibold">{t("dashboard.dailyOpenPlay")}</h2>
+        <div className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card overflow-hidden min-w-0 w-full`}>
+          <div className={`border-b border-line ${isModern ? "px-4 py-3.5" : "px-3.5 py-2.5"}`}>
+            <h2 className={`${isModern ? "text-base font-bold" : "text-sm font-semibold"} text-ink`}>{t("dashboard.dailyOpenPlay")}</h2>
             <p className="text-xs text-ink-faint">
               {t("dashboard.upcomingAndRecent", { up: dailyStats.up, recent: dailyStats.sessions })}
             </p>
@@ -196,7 +199,15 @@ export function DashboardPage() {
       </section>
 
       {/* Filter Tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter sessions by type">
+      <div
+        className={
+          isModern
+            ? "inline-flex items-center rounded-full bg-[var(--theme-trackBg)] p-1 max-w-full overflow-x-auto no-scrollbar"
+            : "flex gap-1.5 overflow-x-auto pb-1"
+        }
+        role="tablist"
+        aria-label="Filter sessions by type"
+      >
         {(["ALL", "PERIOD", "DAILY_EVENT"] as const).map((filter) => (
           <button
             key={filter}
@@ -204,7 +215,17 @@ export function DashboardPage() {
             aria-selected={typeFilter === filter}
             type="button"
             onClick={() => setTypeFilter(filter)}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors ${typeFilter === filter ? "border-pine bg-pine text-paper" : "border-line bg-white hover:bg-court/60"}`}
+            className={
+              isModern
+                ? `rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
+                    typeFilter === filter
+                      ? "bg-white text-ink shadow-xs"
+                      : "text-ink-soft hover:text-ink"
+                  }`
+                : `rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors ${
+                    typeFilter === filter ? "border-pine bg-pine text-paper" : "border-line bg-white hover:bg-court/60"
+                  }`
+            }
           >
             {filter === "ALL" ? t("dashboard.filterAll") : filter === "PERIOD" ? t("dashboard.period") : t("dashboard.daily")}
           </button>
@@ -214,10 +235,17 @@ export function DashboardPage() {
       {/* Upcoming and Recent Sessions */}
       <div className="grid gap-5 xl:grid-cols-2 min-w-0 w-full items-start">
         {/* Upcoming Sessions */}
-        <section aria-label={t("dashboard.upcomingSessions")} className="rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
-            <h2 className="text-sm font-semibold">{t("dashboard.upcomingSessions")}</h2>
-            <span className="text-xs text-ink-faint">({upcoming.length})</span>
+        <section aria-label={t("dashboard.upcomingSessions")} className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card min-w-0 w-full overflow-hidden`}>
+          <div className={`flex items-center justify-between gap-2 border-b border-line ${isModern ? "px-4 py-3.5" : "px-3.5 py-2.5"}`}>
+            <div className="flex items-center gap-2">
+              <h2 className={`${isModern ? "text-base font-bold" : "text-sm font-semibold"} text-ink`}>{t("dashboard.upcomingSessions")}</h2>
+              <span className="text-xs text-ink-faint">({upcoming.length})</span>
+            </div>
+            {isModern && (
+              <Link to="/mabar" className="text-xs font-semibold hover:underline" style={{ color: "var(--theme-linkAccent)" }}>
+                {isId ? "Kelola mabar" : "Manage sessions"}
+              </Link>
+            )}
           </div>
           {upcoming.length === 0 ? (
             <div className="p-3">
@@ -238,15 +266,25 @@ export function DashboardPage() {
                 {upcoming.map((s) => (
                   <div key={s.id} className="p-3.5 space-y-2.5 transition-colors hover:bg-court/25">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-court text-pine shrink-0">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                        </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isModern ? (
+                          <span
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold bg-white ${
+                              s.type === "PERIOD" ? "border-blue-600 text-blue-700" : "border-red-600 text-red-700"
+                            }`}
+                          >
+                            {s.type === "PERIOD" ? "P" : "D"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-court text-pine shrink-0">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                              <line x1="16" y1="2" x2="16" y2="6" />
+                              <line x1="8" y1="2" x2="8" y2="6" />
+                              <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                          </span>
+                        )}
                         <span className="text-xs font-bold text-ink truncate">
                           {dateFormatted(s.date)}
                         </span>
@@ -254,7 +292,7 @@ export function DashboardPage() {
                       <Badge status={s.type} />
                     </div>
 
-                    <div className="rounded-lg bg-court/40 border border-line/60 p-2.5 text-xs">
+                    <div className="rounded-xl bg-court/40 border border-line/60 p-2.5 text-xs">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
                         {s.type === "PERIOD" ? t("dashboard.period") : t("dashboard.daily")}
                       </span>
@@ -266,20 +304,21 @@ export function DashboardPage() {
                     <div className="flex items-center gap-2 pt-0.5">
                       <Link
                         to={`/mabar/${s.id}`}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-pine to-pine-deep px-3 py-2 text-xs font-bold text-white shadow-2xs hover:brightness-110 active:scale-[0.99] transition-all"
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold shadow-2xs active:scale-[0.99] transition-all ${
+                          isModern
+                            ? "rounded-xl bg-[var(--theme-ctaBg)] hover:bg-[var(--theme-ctaBgHover)] text-[var(--theme-ctaText)]"
+                            : "rounded-lg bg-gradient-to-r from-pine to-pine-deep text-white hover:brightness-110"
+                        }`}
                       >
                         <span>{t("dashboard.btnOpenSession")}</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
                       </Link>
                       <button
                         type="button"
                         onClick={() => setPending(s)}
-                        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 active:scale-[0.99] transition-all shadow-2xs"
+                        className={`${isModern ? "rounded-xl" : "rounded-lg"} border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 active:scale-[0.99] transition-all shadow-2xs`}
                         aria-label="Delete session"
                       >
-                        🗑 {t("dashboard.btnDelete")}
+                        {t("dashboard.btnDelete")}
                       </button>
                     </div>
                   </div>
@@ -300,7 +339,20 @@ export function DashboardPage() {
                   <tbody>
                     {upcoming.map((s) => (
                       <tr key={s.id}>
-                        <td className="whitespace-nowrap font-medium text-ink">{dateFormatted(s.date)}</td>
+                        <td className="whitespace-nowrap font-medium text-ink">
+                          <span className="inline-flex items-center gap-2">
+                            {isModern && (
+                              <span
+                                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold bg-white ${
+                                  s.type === "PERIOD" ? "border-blue-600 text-blue-700" : "border-red-600 text-red-700"
+                                }`}
+                              >
+                                {s.type === "PERIOD" ? "P" : "D"}
+                              </span>
+                            )}
+                            <span>{dateFormatted(s.date)}</span>
+                          </span>
+                        </td>
                         <td><Badge status={s.type} /></td>
                         <td className="font-normal text-ink-soft">{s.venue_name ?? s.period_name ?? "—"}</td>
                         <td className="whitespace-nowrap text-right">
@@ -319,14 +371,14 @@ export function DashboardPage() {
         </section>
 
         {/* Recent Sessions */}
-        <section aria-label={t("dashboard.recentSessionsTitle")} className="rounded-xl border border-line bg-white shadow-card min-w-0 w-full overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b border-line px-3.5 py-2.5">
-            <h2 className="text-sm font-semibold">{t("dashboard.recentSessionsTitle")}</h2>
+        <section aria-label={t("dashboard.recentSessionsTitle")} className={`${isModern ? "rounded-[22px]" : "rounded-xl"} border border-line bg-white shadow-card min-w-0 w-full overflow-hidden`}>
+          <div className={`flex flex-wrap items-center gap-2 border-b border-line ${isModern ? "px-4 py-3.5" : "px-3.5 py-2.5"}`}>
+            <h2 className={`${isModern ? "text-base font-bold" : "text-sm font-semibold"} text-ink`}>{t("dashboard.recentSessionsTitle")}</h2>
             <span className="text-xs text-ink-faint">{t("dashboard.sessionsCount", { count: recentTotal })}</span>
             <label htmlFor="cari-sesi" className="sr-only">{t("dashboard.searchSessionsPlaceholder")}</label>
             <input
               id="cari-sesi"
-              className="ml-auto min-w-0 flex-1 basis-36 text-sm rounded-lg border border-line px-2.5 py-1.5"
+              className="ml-auto min-w-0 flex-1 basis-36 text-sm rounded-xl border border-line px-3 py-1.5"
               placeholder={t("dashboard.searchSessionsPlaceholder")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -413,20 +465,21 @@ export function DashboardPage() {
                     <div className="flex items-center gap-2 pt-0.5">
                       <Link
                         to={`/mabar/${s.id}`}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-pine to-pine-deep px-3 py-2 text-xs font-bold text-white shadow-2xs hover:brightness-110 active:scale-[0.99] transition-all"
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold shadow-2xs active:scale-[0.99] transition-all ${
+                          isModern
+                            ? "rounded-xl bg-[var(--theme-ctaBg)] hover:bg-[var(--theme-ctaBgHover)] text-[var(--theme-ctaText)]"
+                            : "rounded-lg bg-gradient-to-r from-pine to-pine-deep text-white hover:brightness-110"
+                        }`}
                       >
                         <span>{t("dashboard.btnOpenSession")}</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
                       </Link>
                       <button
                         type="button"
                         onClick={() => setPending(s)}
-                        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 active:scale-[0.99] transition-all shadow-2xs"
+                        className={`${isModern ? "rounded-xl" : "rounded-lg"} border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 active:scale-[0.99] transition-all shadow-2xs`}
                         aria-label="Delete session"
                       >
-                        🗑 {t("dashboard.btnDelete")}
+                        {t("dashboard.btnDelete")}
                       </button>
                     </div>
                   </div>

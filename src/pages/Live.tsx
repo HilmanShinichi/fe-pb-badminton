@@ -15,6 +15,8 @@ import {
 } from "../components";
 import { TeamPanel, fmtClock } from "./MatchMaker";
 import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
+import { LanguageSwitcher, ThemeSwitcher } from "../ui";
 import type { GenMatch } from "../types";
 
 function livePill(status: string) {
@@ -87,10 +89,20 @@ function LiveCard({ m, nowMs, useReferee = true }: { m: GenMatch; nowMs: number;
 
 export function LiveIndexPage() {
   const events = usePublicMatchEventsQuery(undefined, { pollingInterval: 15000 });
+  const { theme } = useTheme();
+  const isModern = theme === "modern";
   return (
     <div className="mx-auto max-w-3xl p-4">
-      <h1 className="text-xl font-black">Live matches</h1>
-      <p className="mb-4 text-sm text-ink-soft">Public view. Read-only, refreshes automatically.</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-black text-ink">Live matches</h1>
+          <p className="text-sm text-ink-soft">Public view. Read-only, refreshes automatically.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeSwitcher compact />
+          <LanguageSwitcher />
+        </div>
+      </div>
       {events.isFetching && !events.data ? (
         <Loading />
       ) : events.isError ? (
@@ -98,10 +110,16 @@ export function LiveIndexPage() {
       ) : (events.data ?? []).length === 0 ? (
         <Empty text="No public events right now." />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {(events.data ?? []).map((ev) => (
-            <Link key={ev.id} to={`/live/${ev.id}`} className="block rounded-xl border border-line bg-white p-3 shadow-card hover:border-pine/40">
-              <span className="font-bold">{ev.name}</span>
+            <Link
+              key={ev.id}
+              to={`/live/${ev.id}`}
+              className={`block border border-line bg-white p-3.5 shadow-card hover:border-pine/40 transition-colors ${
+                isModern ? "rounded-[20px]" : "rounded-xl"
+              }`}
+            >
+              <span className="font-bold text-ink">{ev.name}</span>
               <span className="block text-xs text-ink-soft">{ev.matches} matches</span>
             </Link>
           ))}
@@ -114,6 +132,8 @@ export function LiveIndexPage() {
 export function LiveEventPage() {
   const { id } = useParams<{ id: string }>();
   const { isId } = useI18n();
+  const { theme } = useTheme();
+  const isModern = theme === "modern";
   const detail = usePublicMatchEventQuery(id ?? "", { skip: !id, pollingInterval: 10000 });
   const anyPlaying = (detail.data?.matches ?? []).some((m) => m.status === "PLAYING");
   const nowMs = useTicker(anyPlaying);
@@ -141,13 +161,21 @@ export function LiveEventPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-4">
-      <p className="mb-1 text-xs uppercase tracking-wide text-ink-faint">
-        <Link className="underline" to="/live">Live</Link> · read-only
-      </p>
-      <h1 className="text-xl font-black">{detail.data?.event.name ?? "Match event"}</h1>
-      <p className="text-sm text-ink-soft">
-        {detail.data ? `${detail.data.matches.length} matches · auto-refreshes` : "Loading…"}
-      </p>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="mb-1 text-xs uppercase tracking-wide text-ink-faint">
+            <Link className="underline" to="/live">Live</Link> · read-only
+          </p>
+          <h1 className="text-xl font-black text-ink">{detail.data?.event.name ?? "Match event"}</h1>
+          <p className="text-sm text-ink-soft">
+            {detail.data ? `${detail.data.matches.length} matches · auto-refreshes` : "Loading…"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeSwitcher compact />
+          <LanguageSwitcher />
+        </div>
+      </div>
       {detail.data && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Link
@@ -183,7 +211,15 @@ export function LiveEventPage() {
         </div>
       )}
       {detail.data && (
-        <div className="mb-4 flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar w-full max-w-full" role="tablist" aria-label="Filter by status">
+        <div
+          className={`mb-4 overflow-x-auto no-scrollbar max-w-full ${
+            isModern
+              ? "inline-flex items-center rounded-full bg-[var(--theme-trackBg)] p-1"
+              : "flex items-center gap-1.5 py-1 w-full"
+          }`}
+          role="tablist"
+          aria-label="Filter by status"
+        >
           {(["ALL", "UPCOMING", "PLAYING", "ENDED"] as const).map((s) => (
             <button
               key={s}
@@ -191,11 +227,17 @@ export function LiveEventPage() {
               role="tab"
               aria-selected={statusTab === s}
               onClick={() => setStatusTab(s)}
-              className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
-                statusTab === s
-                  ? "bg-pine text-white shadow-2xs"
-                  : "border border-line bg-white text-ink-soft hover:bg-court/60"
-              }`}
+              className={
+                isModern
+                  ? `shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                      statusTab === s ? "bg-white text-ink shadow-xs" : "text-ink-soft hover:text-ink"
+                    }`
+                  : `shrink-0 rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                      statusTab === s
+                        ? "bg-pine text-white shadow-2xs"
+                        : "border border-line bg-white text-ink-soft hover:bg-court/60"
+                    }`
+              }
             >
               {s === "ALL" ? (isId ? "Semua" : "All") : s.charAt(0) + s.slice(1).toLowerCase()} ({statusCounts[s]})
             </button>

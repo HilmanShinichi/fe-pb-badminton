@@ -6,15 +6,25 @@ export default {
         sans: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
       },
       colors: {
-        pine: { DEFAULT: "#1d4d3b", deep: "#143728" },
-        court: "#eef3e4",
-        lime: { DEFAULT: "#b8d94a", deep: "#7a9a1e" },
-        paper: "#f4f2ea",
-        ink: { DEFAULT: "#1c2420", soft: "#55605a", faint: "#8a948e" },
-        line: "#ddd8c8",
+        pine: {
+          DEFAULT: "rgb(var(--rgb-pine) / <alpha-value>)",
+          deep: "rgb(var(--rgb-pine-deep) / <alpha-value>)",
+        },
+        court: "rgb(var(--rgb-court) / <alpha-value>)",
+        lime: {
+          DEFAULT: "rgb(var(--rgb-lime) / <alpha-value>)",
+          deep: "rgb(var(--rgb-lime-deep) / <alpha-value>)",
+        },
+        paper: "rgb(var(--rgb-paper) / <alpha-value>)",
+        ink: {
+          DEFAULT: "rgb(var(--rgb-ink) / <alpha-value>)",
+          soft: "rgb(var(--rgb-ink-soft) / <alpha-value>)",
+          faint: "rgb(var(--rgb-ink-faint) / <alpha-value>)",
+        },
+        line: "rgb(var(--rgb-line) / <alpha-value>)",
       },
       boxShadow: {
-        card: "0 1px 2px rgb(28 36 32 / 0.07)",
+        card: "var(--theme-shadow-card, 0 1px 2px rgb(28 36 32 / 0.07))",
       },
     },
   },

@@ -269,7 +269,7 @@ export function PeriodDetailPage() {
       {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}
 
       <section aria-label="Period projection" className="mb-5 rounded-xl border border-pine/30 bg-white shadow-card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-pine/20 bg-gradient-to-r from-[#143728] via-[#1d4d3b] to-[#153f2f] px-4 py-3 text-paper">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-pine/20 bg-gradient-to-r from-pine to-pine-deep px-4 py-3 text-paper">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
             <h2 className="text-sm font-bold tracking-tight">
