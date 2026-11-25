@@ -65,7 +65,7 @@ export function PlayersPage() {
         {/* ADD PLAYER CARD */}
         <section aria-label={t("players.newPlayer")} className="h-fit rounded-2xl border border-line bg-white shadow-card p-4">
           <div className="flex items-center gap-2 mb-3.5 pb-2.5 border-b border-line">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-pine font-black">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-paper text-pine font-black">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
                 <path d="M12 5v14M5 12h14" />
               </svg>
@@ -285,7 +285,7 @@ function PlayerMobileCard({ index, player, onDelete }: { index: number; player: 
 
   if (editing) {
     return (
-      <div className="p-3 bg-emerald-50/30 space-y-2.5">
+      <div className="p-3 bg-paper/30 space-y-2.5">
         <div className="space-y-1">
           <label className="text-[11px] font-bold text-ink">{t("players.colName")}</label>
           <input
@@ -410,7 +410,7 @@ function PlayerMobileCard({ index, player, onDelete }: { index: number; player: 
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700 shadow-2xs hover:bg-rose-100 active:scale-95 transition-all"
+          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700 shadow-2xs hover:bg-paper active:scale-95 transition-all"
           title={t("players.btnDelete")}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3 text-rose-600">
@@ -577,7 +577,7 @@ function PlayerRow({ index, player, onDelete }: { index: number; player: Player;
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 shadow-2xs hover:bg-rose-100 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 shadow-2xs hover:bg-paper active:scale-95 transition-all"
               onClick={onDelete}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3 text-rose-600">

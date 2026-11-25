@@ -100,6 +100,7 @@ export interface Period {
   shuttle_units_per_pack: number;
   shuttle_per_session: number;
   status: string;
+  is_registration_open: boolean;
   created_at: string;
 }
 

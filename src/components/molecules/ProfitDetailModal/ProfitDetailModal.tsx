@@ -85,7 +85,7 @@ export function ProfitDetailModal({
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between items-center text-ink">
                 <span>{t("dashboard.profitDetailRevenue")}</span>
-                <span className="font-semibold tabular-nums text-emerald-700">+{rupiah(session.revenue)}</span>
+                <span className="font-semibold tabular-nums text-lime">+{rupiah(session.revenue)}</span>
               </div>
               {(session.other_expense ?? 0) > 0 && (
                 <>
@@ -95,7 +95,7 @@ export function ProfitDetailModal({
                   </div>
                   <div className="flex justify-between items-center rounded bg-court/40 px-2 py-0.5 text-[11px] text-ink font-medium">
                     <span>{t("dashboard.profitDetailNetRevenue")}</span>
-                    <span className="font-semibold tabular-nums text-emerald-800">
+                    <span className="font-semibold tabular-nums text-lime-deep">
                       +{rupiah(session.revenue - (session.other_expense ?? 0))}
                     </span>
                   </div>
@@ -122,7 +122,7 @@ export function ProfitDetailModal({
                     : t("dashboard.colProfit")}
                 </span>
                 <span className={`text-base font-extrabold tabular-nums ${
-                  opProfit > 0 ? "text-emerald-700" : opProfit < 0 ? "text-rose-700" : "text-ink"
+                  opProfit > 0 ? "text-lime" : opProfit < 0 ? "text-rose-700" : "text-ink"
                 }`}>
                   {opProfit >= 0 ? "+" : ""}{rupiah(opProfit)}
                 </span>
@@ -171,11 +171,11 @@ export function ProfitDetailModal({
                 </div>
                 <div className="flex justify-between items-center">
                   <span>{t("dashboard.courtFundSessionProfitLabel")}</span>
-                  <span className="font-semibold tabular-nums text-emerald-700">+{rupiah(opProfit)}</span>
+                  <span className="font-semibold tabular-nums text-lime">+{rupiah(opProfit)}</span>
                 </div>
                 <div className="border-t border-pine/20 pt-1.5 flex justify-between items-center font-bold text-ink">
                   <span>{t("dashboard.courtFundRemainingLabel")}</span>
-                  <span className={`tabular-nums ${step && step.remainder < 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                  <span className={`tabular-nums ${step && step.remainder < 0 ? "text-rose-700" : "text-lime"}`}>
                     {step ? rupiah(step.remainder) : rupiah(courtFund.gap)}
                   </span>
                 </div>

@@ -212,7 +212,7 @@ export function InventoryPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
                         {t("inventory.colStock")}
                       </span>
-                      <div className={`font-bold text-sm tabular-nums ${p.stock < 0 ? "text-rose-700 font-extrabold" : "text-emerald-800"}`}>
+                      <div className={`font-bold text-sm tabular-nums ${p.stock < 0 ? "text-rose-700 font-extrabold" : "text-lime-deep"}`}>
                         {p.stock} {p.unit_name}
                       </div>
                     </div>
@@ -522,7 +522,7 @@ export function InventoryPage() {
 
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <span className="font-semibold text-ink truncate">{tItem.product}</span>
-                    <span className={`font-bold tabular-nums text-sm ${displayUnits(tItem) > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                    <span className={`font-bold tabular-nums text-sm ${displayUnits(tItem) > 0 ? "text-lime" : "text-rose-700"}`}>
                       {displayUnits(tItem) > 0 ? `+${displayUnits(tItem)}` : displayUnits(tItem)} pcs
                     </span>
                   </div>
@@ -554,7 +554,7 @@ export function InventoryPage() {
                       <td className="whitespace-nowrap font-medium text-ink">{dateId(tItem.occurred_at, lang)}</td>
                       <td>{tItem.product}</td>
                       <td><Badge status={tItem.type} /></td>
-                      <td className={`text-right font-bold tabular-nums ${displayUnits(tItem) > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      <td className={`text-right font-bold tabular-nums ${displayUnits(tItem) > 0 ? "text-lime" : "text-rose-700"}`}>
                         {displayUnits(tItem) > 0 ? `+${displayUnits(tItem)}` : displayUnits(tItem)}
                       </td>
                       <td className="font-normal text-ink-soft">{tItem.note ?? "—"}</td>

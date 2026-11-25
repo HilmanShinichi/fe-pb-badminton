@@ -265,6 +265,64 @@ export interface NoShowTrackerParams {
   status?: string;
 }
 
+export interface RegistrationPlayer {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
+export interface RegisteredMemberItem {
+  player_id: string;
+  name: string;
+  tier?: string;
+  joined_at: string;
+  status: string;
+}
+
+export interface PendingPaymentItem {
+  payment_id: string;
+  player_id: string;
+  name: string;
+  paid_at: string | null;
+  created_at: string;
+  status: string;
+}
+
+export interface PeriodRegistrationInfo {
+  period: Period & { is_registration_open: boolean };
+  current_members: number;
+  remaining_slots: number | null;
+  is_full: boolean;
+  can_register: boolean;
+  close_reason?: string;
+  eligible_players?: RegistrationPlayer[];
+  registered_members?: RegisteredMemberItem[];
+  pending_payments?: PendingPaymentItem[];
+}
+
+export interface MembershipPayment {
+  id: string;
+  period_id: string;
+  period_name?: string;
+  player_id: string;
+  player_name?: string;
+  player_phone?: string | null;
+  base_amount: number;
+  unique_code: number;
+  total_amount: number;
+  status: "WAITING_PAYMENT" | "PENDING" | "PAID" | "FAILED";
+  expires_at: string;
+  remaining_seconds: number;
+  paid_at: string | null;
+  proof_url: string | null;
+  note: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 function buildReportQuery(p?: ReportFilterParams | void): string {
   if (!p) return "";
   const qs = new URLSearchParams();
@@ -709,6 +767,68 @@ export const api = baseApi.injectEndpoints({
     simulateDaily: build.mutation<Record<string, number | string | Record<string, number>>, Record<string, unknown>>({
       query: (body) => ({ url: "/api/v1/simulator/daily-event", method: "POST", body }),
     }),
+
+    // --- Public registration & payment endpoints ---
+    publicRegistrationPeriods: build.query<PeriodRegistrationInfo[], void>({
+      query: () => "/api/v1/public/periods",
+      providesTags: ["Payments"],
+    }),
+    publicRegistrationInfo: build.query<PeriodRegistrationInfo, string>({
+      query: (id) => `/api/v1/public/periods/${id}/registration`,
+      providesTags: (_r, _e, id) => [
+        { type: "Payments", id },
+        { type: "RegistrationInfo", id },
+      ],
+    }),
+    initiatePayment: build.mutation<MembershipPayment, { periodId: string; player_id: string }>({
+      query: ({ periodId, ...body }) => ({ url: `/api/v1/public/periods/${periodId}/payments`, method: "POST", body }),
+      invalidatesTags: (_r, _e, { periodId }) => [{ type: "Payments", id: periodId }],
+    }),
+    getPayment: build.query<MembershipPayment, string>({
+      query: (id) => `/api/v1/public/payments/${id}`,
+      providesTags: (_r, _e, id) => [{ type: "Payments", id }],
+    }),
+    // submitPaymentProof uses FormData (multipart), so we use a raw fetch approach
+    submitPaymentProof: build.mutation<MembershipPayment, { paymentId: string; periodId: string; formData: FormData }>({
+      queryFn: async ({ paymentId, formData }, _api, _extra, baseQuery) => {
+        const result = await baseQuery({ url: `/api/v1/public/payments/${paymentId}/proof`, method: "POST", body: formData });
+        if (result.error) return { error: result.error };
+        return { data: result.data as MembershipPayment };
+      },
+      invalidatesTags: (_r, _e, { periodId }) => [{ type: "Payments", id: periodId }],
+    }),
+
+    // --- Admin payment management ---
+    adminPeriodPayments: build.query<MembershipPayment[], { periodId: string; status?: string }>({
+      query: ({ periodId, status }) => `/api/v1/periods/${periodId}/payments${status && status !== "ALL" ? `?status=${status}` : ""}`,
+      providesTags: (_r, _e, { periodId }) => [{ type: "Payments", id: periodId }],
+    }),
+    setRegistrationStatus: build.mutation<{ period_id: string; is_registration_open: boolean }, { periodId: string; is_registration_open: boolean }>({
+      query: ({ periodId, ...body }) => ({ url: `/api/v1/periods/${periodId}/registration-status`, method: "PATCH", body }),
+      invalidatesTags: (_r, _e, { periodId }) => [{ type: "Periods", id: periodId }, "Periods", { type: "Payments", id: periodId }],
+    }),
+    verifyPayment: build.mutation<MembershipPayment, { periodId: string; paymentId: string; status: "PAID" | "FAILED"; rejection_reason?: string }>({
+      query: ({ periodId, paymentId, ...body }) => ({ url: `/api/v1/periods/${periodId}/payments/${paymentId}/verify`, method: "PATCH", body }),
+      invalidatesTags: (_r, _e, { periodId }) => [
+        { type: "Payments", id: periodId },
+        { type: "Members", id: periodId },
+        { type: "RegistrationInfo", id: periodId },
+        "Finance",
+        "Dashboard",
+      ],
+    }),
+    deletePayment: build.mutation<{ ok: boolean; id: string }, { periodId: string; paymentId: string }>({
+      query: ({ periodId, paymentId }) => ({ url: `/api/v1/periods/${periodId}/payments/${paymentId}`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, { periodId }) => [
+        { type: "Payments", id: periodId },
+        { type: "Members", id: periodId },
+        { type: "RegistrationInfo", id: periodId },
+        { type: "Periods", id: periodId },
+        "Periods",
+        "Finance",
+        "Dashboard",
+      ],
+    }),
   }),
 });
 
@@ -794,4 +914,13 @@ export const {
   useReportInactiveQuery,
   useSimulatePeriodMutation,
   useSimulateDailyMutation,
+  usePublicRegistrationPeriodsQuery,
+  usePublicRegistrationInfoQuery,
+  useInitiatePaymentMutation,
+  useGetPaymentQuery,
+  useSubmitPaymentProofMutation,
+  useAdminPeriodPaymentsQuery,
+  useSetRegistrationStatusMutation,
+  useVerifyPaymentMutation,
+  useDeletePaymentMutation,
 } = api;

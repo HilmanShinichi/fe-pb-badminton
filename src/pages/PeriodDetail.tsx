@@ -16,6 +16,11 @@ import {
   useSessionBreakdownQuery,
   useShuttlecockMatrixQuery,
   useUpdatePeriodMutation,
+  useAdminPeriodPaymentsQuery,
+  useSetRegistrationStatusMutation,
+  useVerifyPaymentMutation,
+  useDeletePaymentMutation,
+  type MembershipPayment,
 } from "../store/services";
 import { dateDmy, dateId, rupiah } from "../format";
 import { useI18n } from "../i18n";
@@ -32,10 +37,452 @@ function commitmentPaid(m: Membership): boolean {
   return (m.paid?.COMMITMENT_FEE ?? 0) >= m.commitment_fee;
 }
 
+// ─── Admin Payments Panel ─────────────────────────────────────────────────────
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  WAITING_PAYMENT: "Menunggu",
+  PENDING: "Pending",
+  PAID: "Lunas",
+  FAILED: "Gagal",
+};
+
+const PAYMENT_STATUS_CLASS: Record<string, string> = {
+  WAITING_PAYMENT: "bg-amber-100 text-amber-800",
+  PENDING: "bg-blue-100 text-blue-800",
+  PAID: "bg-paper text-lime-deep",
+  FAILED: "bg-red-100 text-red-800",
+};
+
+function AdminPaymentsPanel({
+  periodId,
+  isRegistrationOpen,
+  done,
+  maxMembers,
+  currentMembers,
+}: {
+  periodId: string;
+  isRegistrationOpen: boolean;
+  done: boolean;
+  maxMembers: number | null;
+  currentMembers: number;
+}) {
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [verifyTarget, setVerifyTarget] = useState<MembershipPayment | null>(null);
+  const [verifyAction, setVerifyAction] = useState<"PAID" | "FAILED">("PAID");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [regError, setRegError] = useState("");
+  const [proofViewerOpen, setProofViewerOpen] = useState(false);
+  const [proofTarget, setProofTarget] = useState<MembershipPayment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MembershipPayment | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+
+  const payments = useAdminPeriodPaymentsQuery({ periodId, status: statusFilter }, { pollingInterval: 30_000 });
+  const [setRegStatus, regState] = useSetRegistrationStatusMutation();
+  const [verifyPayment, verifyState] = useVerifyPaymentMutation();
+  const [deletePayment, deleteState] = useDeletePaymentMutation();
+
+  const regLink = `${window.location.origin}/register-member/${periodId}`;
+  const [copied, setCopied] = useState(false);
+
+  function copyLink() {
+    navigator.clipboard.writeText(regLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  async function toggleRegistration() {
+    setRegError("");
+    try {
+      await setRegStatus({ periodId, is_registration_open: !isRegistrationOpen }).unwrap();
+    } catch (e) {
+      setRegError(e instanceof ApiError ? e.message : "Gagal mengubah status pendaftaran.");
+    }
+  }
+
+  function openProofViewer(p: MembershipPayment) {
+    setProofTarget(p);
+    setProofViewerOpen(true);
+  }
+
+  function openVerify(p: MembershipPayment, action: "PAID" | "FAILED") {
+    setProofViewerOpen(false);
+    setProofTarget(null);
+    setVerifyTarget(p);
+    setVerifyAction(action);
+    setRejectionReason("");
+    setVerifyError("");
+  }
+
+  function openDelete(p: MembershipPayment) {
+    setDeleteTarget(p);
+    setDeleteError("");
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget || deleteState.isLoading) return;
+    setDeleteError("");
+    try {
+      await deletePayment({
+        periodId,
+        paymentId: deleteTarget.id,
+      }).unwrap();
+      if (proofTarget?.id === deleteTarget.id) {
+        setProofViewerOpen(false);
+        setProofTarget(null);
+      }
+      setDeleteTarget(null);
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? e.message : "Gagal menghapus pembayaran.");
+    }
+  }
+
+  async function confirmVerify() {
+    if (!verifyTarget || verifyState.isLoading) return;
+    setVerifyError("");
+    try {
+      await verifyPayment({
+        periodId,
+        paymentId: verifyTarget.id,
+        status: verifyAction,
+        rejection_reason: rejectionReason.trim() || undefined,
+      }).unwrap();
+      setVerifyTarget(null);
+    } catch (e) {
+      setVerifyError(e instanceof ApiError ? e.message : "Gagal memverifikasi pembayaran.");
+    }
+  }
+
+  const list = payments.data ?? [];
+  const pendingCount = list.filter((p) => p.status === "PENDING").length;
+
+  return (
+    <section aria-label="Member registration payments" className="mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
+        <div>
+          <h2 className="text-sm font-bold text-ink">
+            Pendaftaran Member Online
+            {pendingCount > 0 && (
+              <span className="ml-2 inline-block rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                {pendingCount} pending
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-ink-faint mt-0.5">
+            Status:{" "}
+            <span className={`font-semibold ${isRegistrationOpen ? "text-lime" : "text-red-700"}`}>
+              {isRegistrationOpen ? "Buka" : "Tutup"}
+            </span>
+            {" · "}
+            Slot:{" "}
+            <span className={`font-semibold ${maxMembers && currentMembers >= maxMembers ? "text-red-700" : "text-ink"}`}>
+              {currentMembers}{maxMembers ? `/${maxMembers}` : ""} member
+            </span>
+            {maxMembers && currentMembers >= maxMembers && (
+              <span className="ml-1 text-[10px] font-bold text-red-600">(Penuh)</span>
+            )}
+          </p>
+        </div>
+        {!done && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={copyLink}
+              className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-court/30 transition-colors"
+            >
+              {copied ? "✓ Link disalin" : "Salin link daftar"}
+            </button>
+            <button
+              type="button"
+              disabled={regState.isLoading}
+              onClick={toggleRegistration}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50 ${
+                isRegistrationOpen
+                  ? "bg-red-100 text-red-700 hover:bg-red-200"
+                  : "bg-paper text-lime hover:bg-lime-200"
+              }`}
+            >
+              {regState.isLoading ? "…" : isRegistrationOpen ? "Tutup Pendaftaran" : "Buka Pendaftaran"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {regError && <p className="px-4 py-2 text-xs text-red-600">{regError}</p>}
+
+      {/* Filter */}
+      <div className="flex gap-1 border-b border-line px-4 py-2">
+        {["ALL", "WAITING_PAYMENT", "PENDING", "PAID", "FAILED"].map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setStatusFilter(s)}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
+              statusFilter === s ? "bg-pine text-white" : "bg-court/30 text-ink-soft hover:bg-court/60"
+            }`}
+          >
+            {s === "ALL" ? "Semua" : PAYMENT_STATUS_LABEL[s] ?? s}
+          </button>
+        ))}
+      </div>
+
+      {payments.isFetching && !payments.data ? (
+        <Loading />
+      ) : list.length === 0 ? (
+        <div className="p-4"><Empty text="Belum ada pembayaran." /></div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Pemain</th>
+                <th className="text-right">Nominal</th>
+                <th>Status</th>
+                <th>Tgl Bayar</th>
+                <th>Bukti</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <span className="font-medium">{p.player_name}</span>
+                    {p.player_phone && <span className="block text-xs text-ink-faint">{p.player_phone}</span>}
+                  </td>
+                  <td className="whitespace-nowrap text-right tabular-nums">
+                    {rupiah(p.total_amount)}
+                    <span className="block text-[10px] text-ink-faint">+{p.unique_code}</span>
+                  </td>
+                  <td>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${PAYMENT_STATUS_CLASS[p.status] ?? "bg-gray-100 text-gray-700"}`}>
+                      {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap text-xs">{p.paid_at ?? "—"}</td>
+                  <td>
+                    {p.proof_url ? (
+                      <button
+                        type="button"
+                        onClick={() => openProofViewer(p)}
+                        className="text-xs text-pine underline hover:text-pine-dark transition-colors"
+                      >
+                        Lihat
+                      </button>
+                    ) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap text-right">
+                    <span className="inline-flex items-center gap-1">
+                      {p.status === "PENDING" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openVerify(p, "PAID")}
+                            className="rounded-full bg-paper px-2.5 py-0.5 text-xs font-semibold text-lime-deep hover:bg-lime-200 transition-colors"
+                          >
+                            Lunas
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openVerify(p, "FAILED")}
+                            className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 hover:bg-red-200 transition-colors"
+                          >
+                            Tolak
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openDelete(p)}
+                        className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 hover:bg-red-100 hover:text-red-800 transition-colors"
+                        title="Hapus data pendaftaran"
+                      >
+                        Hapus
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {proofViewerOpen && proofTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
+            {/* Header */}
+            <div className="sticky top-0 border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3 flex items-center justify-between">
+              <h3 className="font-bold text-ink">Bukti Pembayaran — {proofTarget.player_name}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setProofViewerOpen(false);
+                  setProofTarget(null);
+                }}
+                className="rounded-full p-1 hover:bg-court/30 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Image */}
+              {proofTarget.proof_url ? (
+                <div className="rounded-lg border border-line bg-gray-50 overflow-hidden">
+                  <img
+                    src={proofTarget.proof_url}
+                    alt="Bukti pembayaran"
+                    className="w-full h-auto max-h-[500px] object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-line bg-gray-50 p-8 text-center text-sm text-ink-faint">
+                  Bukti tidak tersedia
+                </div>
+              )}
+
+              {/* Payment Details */}
+              <div className="rounded-lg border border-line bg-white p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-faint">Pemain</span>
+                  <span className="font-medium text-ink">{proofTarget.player_name}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-line pt-2">
+                  <span className="text-ink-faint">Nominal</span>
+                  <div className="text-right">
+                    <div className="font-bold text-ink tabular-nums">{rupiah(proofTarget.total_amount)}</div>
+                    <div className="text-xs text-ink-faint">+{String(proofTarget.unique_code).padStart(3, "0")}</div>
+                  </div>
+                </div>
+                {proofTarget.paid_at && (
+                  <div className="flex justify-between text-sm border-t border-line pt-2">
+                    <span className="text-ink-faint">Tanggal Bayar</span>
+                    <span className="font-medium text-ink">{proofTarget.paid_at}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm border-t border-line pt-2">
+                  <span className="text-ink-faint">Status</span>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${PAYMENT_STATUS_CLASS[proofTarget.status] ?? "bg-gray-100 text-gray-700"}`}>
+                    {PAYMENT_STATUS_LABEL[proofTarget.status] ?? proofTarget.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+                {proofTarget.status === "PENDING" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openVerify(proofTarget, "PAID")}
+                      className="flex-1 rounded-lg bg-paper px-4 py-2 font-semibold text-lime-deep hover:bg-lime-200 transition-colors"
+                    >
+                      ✓ Lunas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openVerify(proofTarget, "FAILED")}
+                      className="flex-1 rounded-lg bg-red-100 px-4 py-2 font-semibold text-red-800 hover:bg-red-200 transition-colors"
+                    >
+                      ✕ Tolak
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProofViewerOpen(false);
+                    openDelete(proofTarget);
+                  }}
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verifyTarget && (
+        <ConfirmModal
+          title={verifyAction === "PAID" ? `Konfirmasi Lunas — ${verifyTarget.player_name}` : `Tolak Pembayaran — ${verifyTarget.player_name}`}
+          body={
+            <>
+              <p className="text-sm">
+                {verifyAction === "PAID"
+                  ? `Tandai pembayaran ${rupiah(verifyTarget.total_amount)} sebagai LUNAS? Pemain akan otomatis terdaftar sebagai member.`
+                  : `Tolak pembayaran ${rupiah(verifyTarget.total_amount)}? Pemain dapat mendaftar ulang.`}
+              </p>
+              {verifyAction === "FAILED" && (
+                <div className="mt-3">
+                  <Field label="Alasan penolakan (opsional)">
+                    <input
+                      className="w-full"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Misal: nominal tidak sesuai"
+                    />
+                  </Field>
+                </div>
+              )}
+              {verifyError && <p className="mt-2 text-xs text-red-600">{verifyError}</p>}
+            </>
+          }
+          confirmLabel={verifyState.isLoading ? "Menyimpan…" : verifyAction === "PAID" ? "Ya, Lunas" : "Ya, Tolak"}
+          busy={verifyState.isLoading}
+          onConfirm={confirmVerify}
+          onCancel={() => setVerifyTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title={`Hapus Pendaftaran — ${deleteTarget.player_name}`}
+          body={
+            <>
+              <p className="text-sm">
+                Apakah Anda yakin ingin menghapus data pembayaran pendaftaran untuk{" "}
+                <strong className="font-semibold text-ink">{deleteTarget.player_name}</strong> sebesar{" "}
+                <strong className="font-semibold text-ink">{rupiah(deleteTarget.total_amount)}</strong>?
+              </p>
+              {deleteTarget.status === "PAID" ? (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <strong>Perhatian:</strong> Status pembayaran ini sudah <strong>LUNAS</strong>. Menghapusnya akan otomatis mencabut keanggotaan member dari periode ini dan menghapus pencatatan pemasukan commitment fee.
+                </div>
+              ) : deleteTarget.status === "PENDING" ? (
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+                  Pembayaran ini sedang menunggu verifikasi (<strong>PENDING</strong>). Menghapusnya akan membatalkan transaksi dan pemain dapat mendaftar kembali.
+                </div>
+              ) : (
+                <div className="mt-3 text-xs text-ink-faint">
+                  Data pembayaran dan bukti transfer yang diunggah akan dihapus secara permanen.
+                </div>
+              )}
+              {deleteError && <p className="mt-2 text-xs text-red-600 font-semibold">{deleteError}</p>}
+            </>
+          }
+          confirmLabel={deleteState.isLoading ? "Menghapus…" : "Ya, Hapus"}
+          confirmVariant="danger"
+          busy={deleteState.isLoading}
+          onConfirm={confirmDelete}
+          onCancel={() => {
+            setDeleteTarget(null);
+            setDeleteError("");
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
 export function PeriodDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [error, setError] = useState("");
   const [pick, setPick] = useState("");
   const [newName, setNewName] = useState("");
@@ -87,6 +534,8 @@ export function PeriodDetailPage() {
     shuttle_pack_price: 125000,
     shuttle_units_per_pack: 12,
     shuttle_per_session: 24,
+    status: "DRAFT",
+    max_members: null as number | null,
   });
 
   useEffect(() => {
@@ -104,6 +553,8 @@ export function PeriodDetailPage() {
         shuttle_pack_price: p.shuttle_pack_price ?? 125000,
         shuttle_units_per_pack: p.shuttle_units_per_pack ?? 12,
         shuttle_per_session: p.shuttle_per_session ?? 24,
+        status: p.status || "DRAFT",
+        max_members: p.max_members ?? null,
       });
     }
   }, [summary.data]);
@@ -253,7 +704,35 @@ export function PeriodDetailPage() {
         right={
           <>
             <Badge status={s.period.status} />
-            {!done && (
+            {s.period.status === "DRAFT" && (
+              <Btn
+                disabled={updateState.isLoading}
+                onClick={async () => {
+                  try {
+                    await update({
+                      id,
+                      body: {
+                        ...form,
+                        name: form.name.trim(),
+                        status: "ACTIVE",
+                      },
+                    }).unwrap();
+                    setError("");
+                  } catch (e) {
+                    setError(e instanceof ApiError ? e.message : "Could not activate period.");
+                  }
+                }}
+              >
+                {updateState.isLoading
+                  ? lang === "id"
+                    ? "Mengaktifkan…"
+                    : "Activating…"
+                  : lang === "id"
+                  ? "Aktifkan Periode"
+                  : "Activate period"}
+              </Btn>
+            )}
+            {!done && s.period.status !== "DRAFT" && (
               <Btn
                 variant="plain"
                 disabled={completeState.isLoading}
@@ -286,22 +765,49 @@ export function PeriodDetailPage() {
             </button>
           )}
         </div>
-        <dl className="grid grid-cols-2 divide-x divide-line/70 sm:grid-cols-4 bg-gradient-to-b from-emerald-50/25 to-white">
-          <Cell label="Profit full" value={rupiah(proj.profit_full)} sub={`${proj.status_full} · full attendance`} highlight={proj.profit_full >= 0 ? "emerald" : "rose"} />
+        <dl className="grid grid-cols-2 divide-x divide-line/70 sm:grid-cols-4 bg-gradient-to-b from-lime-50/25 to-white">
+          <Cell label="Profit full" value={rupiah(proj.profit_full)} sub={`${proj.status_full} · full attendance`} highlight={proj.profit_full >= 0 ? "lime" : "rose"} />
           <Cell label="Revenue full" value={rupiah(proj.revenue_full)} sub={`Member price ${rupiah(s.commitment_total)}`} />
           <Cell label="Projected cost" value={rupiah(proj.operating_cost)} sub={`Courts ${rupiah(proj.venue_total)} · Shuttles ${rupiah(proj.shuttle_cost)}`} />
           <Cell label="Projected shuttles" value={`${proj.shuttle_units} pcs`} sub={`${proj.shuttle_per_session}/session · ${s.shuttlecock_used} used`} />
         </dl>
         <dl className="grid grid-cols-2 divide-x divide-line/70 border-t border-line/70 sm:grid-cols-4 bg-white">
           <Cell label="Billed so far" value={rupiah(proj.revenue_billed)} sub={`${s.member_present} member visits · ${s.non_member_present} non-member`} />
-          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed (incl. iuran) − court total − shuttles" highlight={proj.profit_billed >= 0 ? "emerald" : "rose"} />
+          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed (incl. iuran) − court total − shuttles" highlight={proj.profit_billed >= 0 ? "lime" : "rose"} />
           <Cell label="Actual cash" value={rupiah(s.cash_flow)} sub={`In ${rupiah(s.cash_in)} · Out ${rupiah(s.cash_out)}`} />
-          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Iuran ${rupiah(s.total_revenue)} · cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
+          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Iuran ${rupiah(s.total_revenue)} · cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "lime" : "rose"} />
         </dl>
         {editing && !done && (
           <div className="grid gap-2 border-t border-line p-3 sm:grid-cols-4">
             <Field label="Name">
               <input id="edit-nama" className="w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </Field>
+            <Field label="Status">
+              <select
+                id="edit-status"
+                className="w-full"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+              >
+                <option value="DRAFT">DRAFT (Konsep)</option>
+                <option value="ACTIVE">ACTIVE (Aktif)</option>
+              </select>
+            </Field>
+            <Field label="Quota (Max members)" hint="Leave blank or 0 for unlimited">
+              <input
+                id="edit-max-members"
+                type="number"
+                min={0}
+                className="w-full"
+                value={form.max_members ?? ""}
+                placeholder="Unlimited"
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    max_members: e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
             </Field>
             <Field label="Start">
               <input id="edit-mulai" type="date" className="w-full" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
@@ -337,8 +843,20 @@ export function PeriodDetailPage() {
               <Btn
                 disabled={updateState.isLoading || !form.name.trim() || !form.start_date || !form.end_date}
                 onClick={() => {
-                  update({ id, body: { ...form, name: form.name.trim() } })
-                    .unwrap().then(() => { setEditing(false); setError(""); }).catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not save settings."));
+                  update({
+                    id,
+                    body: {
+                      ...form,
+                      name: form.name.trim(),
+                      max_members: form.max_members ? Number(form.max_members) : 0,
+                    },
+                  })
+                    .unwrap()
+                    .then(() => {
+                      setEditing(false);
+                      setError("");
+                    })
+                    .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not save settings."));
                 }}
               >
                 {updateState.isLoading ? "Saving…" : "Save settings"}
@@ -353,7 +871,7 @@ export function PeriodDetailPage() {
           <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Period Finances & Cash Balance</h2>
         </div>
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4 bg-white">
-          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · iuran − kok`} highlight={s.operating_profit >= 0 ? "emerald" : "rose"} />
+          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · iuran − kok`} highlight={s.operating_profit >= 0 ? "lime" : "rose"} />
           <Cell label="Commitment fees (iuran)" value={rupiah(s.total_revenue)} sub="Money in from memberships · session dues below" />
           <Cell
             label="Operating cost"
@@ -366,7 +884,7 @@ export function PeriodDetailPage() {
           />
           <Cell label="Cash flow" value={rupiah(s.cash_flow)} sub={`Out ${rupiah(s.cash_out)} · stock ${s.shuttlecock_stock} pcs`} />
         </dl>
-        <p className="border-t border-line/70 bg-emerald-50/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
+        <p className="border-t border-line/70 bg-paper/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
           {t("periods.detailFinancesNote")}
         </p>
       </section>
@@ -401,7 +919,7 @@ export function PeriodDetailPage() {
               aria-valuemax={plannedSessions}
               aria-label="Sessions held"
             >
-              <div className="h-full rounded-full bg-gradient-to-r from-pine via-emerald-600 to-lime transition-all duration-500" style={{ width: `${progressPct}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-pine via-lime-600 to-lime transition-all duration-500" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
           {breakdown.isFetching && !breakdown.data ? (
@@ -431,7 +949,7 @@ export function PeriodDetailPage() {
                       <td className="text-right tabular-nums">{row.players_present}</td>
                       <td className="whitespace-nowrap text-right tabular-nums">{rupiah(row.revenue)}</td>
                       <td className="whitespace-nowrap text-right tabular-nums">{rupiah(sCost)}</td>
-                      <td className={`whitespace-nowrap text-right font-semibold tabular-nums ${sProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                      <td className={`whitespace-nowrap text-right font-semibold tabular-nums ${sProfit < 0 ? "text-red-700" : "text-lime"}`}>
                         {sProfit >= 0 ? "+" : ""}{rupiah(sProfit)}
                       </td>
                       <td className="text-right"><OpenLink to={`/mabar/${row.session_id}`} /></td>
@@ -453,7 +971,7 @@ export function PeriodDetailPage() {
                   <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums">
                     {rupiah(sumShuttleCost)}
                   </td>
-                  <td className={`whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums ${sumSessionProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                  <td className={`whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums ${sumSessionProfit < 0 ? "text-red-700" : "text-lime"}`}>
                     {sumSessionProfit >= 0 ? "+" : ""}{rupiah(sumSessionProfit)}
                   </td>
                   <td />
@@ -466,7 +984,7 @@ export function PeriodDetailPage() {
                     {rupiah(s.total_revenue)}
                   </td>
                   <td />
-                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums text-green-700">
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold tabular-nums text-lime">
                     +{rupiah(s.total_revenue)}
                   </td>
                   <td />
@@ -495,14 +1013,14 @@ export function PeriodDetailPage() {
                     <td />
                   </tr>
                 )}
-                <tr className="border-t-2 border-line bg-emerald-50/50">
+                <tr className="border-t-2 border-line bg-paper/50">
                   <td className="px-3 py-2.5 text-xs font-bold text-ink" colSpan={4}>
                     {t("periods.detailNetRow")}
                     <span className="block text-[11px] font-normal text-ink-faint tabular-nums">
                       {t("periods.detailNetFormula", { in: rupiah(totalIn), out: rupiah(totalOut) })}
                     </span>
                   </td>
-                  <td className={`whitespace-nowrap px-3 py-2.5 text-right text-sm font-extrabold tabular-nums ${netProfit < 0 ? "text-red-700" : "text-green-700"}`}>
+                  <td className={`whitespace-nowrap px-3 py-2.5 text-right text-sm font-extrabold tabular-nums ${netProfit < 0 ? "text-red-700" : "text-lime"}`}>
                     {netProfit >= 0 ? "+" : ""}{rupiah(netProfit)}
                   </td>
                   <td />
@@ -512,7 +1030,7 @@ export function PeriodDetailPage() {
             </div>
           )}
           {(breakdown.data ?? []).length > 0 && (
-            <p className="border-t border-line/70 bg-emerald-50/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
+            <p className="border-t border-line/70 bg-paper/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
               {t("periods.detailNetNote", {
                 budget: rupiah(courtBudget),
                 planned: plannedSessions,
@@ -528,7 +1046,7 @@ export function PeriodDetailPage() {
             <h2 className="text-sm font-bold text-ink">
               Members · {memberRows.length}
               {memberRows.length > 0 && (
-                <span className="font-normal text-ink-soft"> · collected <strong className="text-emerald-800 font-semibold">{rupiah(collectedTotal)}</strong> of {rupiah(billedTotal)}</span>
+                <span className="font-normal text-ink-soft"> · collected <strong className="text-lime-deep font-semibold">{rupiah(collectedTotal)}</strong> of {rupiah(billedTotal)}</span>
               )}
             </h2>
           </div>
@@ -550,7 +1068,7 @@ export function PeriodDetailPage() {
                     <tr key={m.id}>
                       <td>
                         <span className="font-medium">{m.player_name}</span>
-                        <span className={`block text-xs ${commitDone ? "text-green-700" : "text-amber-700"}`}>
+                        <span className={`block text-xs ${commitDone ? "text-lime" : "text-amber-700"}`}>
                           {m.commitment_fee
                             ? (commitDone ? "Member price paid" : `Member price unpaid (${rupiah(m.commitment_fee)})`)
                             : "No member price"}
@@ -658,6 +1176,14 @@ export function PeriodDetailPage() {
         </section>
       </div>
 
+      <AdminPaymentsPanel
+        periodId={id}
+        isRegistrationOpen={s.period.is_registration_open ?? false}
+        done={done}
+        maxMembers={s.period.max_members}
+        currentMembers={memberRows.length}
+      />
+
       <MemberAttendanceMatrixSection periodId={id} periodName={s.period.name} />
 
       {(matrix.data?.rows.length ?? 0) > 0 && (
@@ -753,15 +1279,15 @@ function Cell({
   label: string;
   value: string;
   sub?: string;
-  highlight?: "emerald" | "rose";
+  highlight?: "lime" | "rose";
 }) {
   return (
     <div className="px-3.5 py-3">
       <dt className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</dt>
       <dd
         className={`mt-1 text-base font-bold tabular-nums ${
-          highlight === "emerald"
-            ? "text-emerald-800"
+          highlight === "lime"
+            ? "text-lime-deep"
             : highlight === "rose"
             ? "text-rose-700"
             : "text-ink"
@@ -1207,7 +1733,7 @@ async function copyNonMemberTableImage(
     ctx.fillStyle = nm.carry_over ? "#fee2e2" : idx % 2 === 0 ? "#ffffff" : "#f8fafc";
     ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
 
-    // Fee cell background: green when settled, red while still unpaid
+    // Fee cell background: lime when settled, red while still unpaid
     ctx.fillStyle = nm.paid ? "#00e600" : "#ef4444";
     ctx.fillRect(colXs[2], curY, feeColWidth, rowHeight);
 
@@ -1637,11 +2163,11 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 variant="plain"
                 onClick={handleCopyNonMemberImage}
                 disabled={copyingImage || filteredNonMembers.length === 0}
-                className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white text-emerald-950 hover:from-emerald-100 hover:to-emerald-50 font-semibold shadow-2xs"
+                className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
                 title="Salin gambar tabel non-member ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
               >
                 <span className="inline-flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                     <path d="M21 15l-5-5L5 21" strokeWidth="2" />
@@ -1751,11 +2277,11 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
               variant="plain"
               onClick={handleCopyMemberImage}
               disabled={copyingImage}
-              className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white text-emerald-950 hover:from-emerald-100 hover:to-emerald-50 font-semibold shadow-2xs"
+              className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
               title="Salin gambar tabel ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
             >
               <span className="inline-flex items-center gap-1.5">
-                <svg className="h-3.5 w-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
                   <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" />
@@ -1814,7 +2340,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                     </td>
                     <td className="py-2 px-3 border border-neutral-400">
                       {r.commitment_paid ? (
-                        <span className="inline-block w-full py-1 font-bold text-xs bg-emerald-600 text-white rounded shadow-sm">
+                        <span className="inline-block w-full py-1 font-bold text-xs bg-lime text-white rounded shadow-sm">
                           LUNAS
                         </span>
                       ) : (
@@ -1831,7 +2357,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                       return isPresent ? (
                         <td
                           key={s.id}
-                          className="py-2 px-3 border border-neutral-400 bg-emerald-600 text-white font-bold text-sm"
+                          className="py-2 px-3 border border-neutral-400 bg-lime text-white font-bold text-sm"
                           title={`${r.player_name}: Hadir`}
                         >
                           ✓

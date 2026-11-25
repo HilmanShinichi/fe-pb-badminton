@@ -1,10 +1,10 @@
-// GradeChip: skill grade tag. Main A = strongest (emerald), B = mid (sky),
+// GradeChip: skill grade tag. Main A = strongest (lime), B = mid (sky),
 // C = developing (amber).
 export function GradeChip({ grade }: { grade: string }) {
   const main = grade.charAt(0).toUpperCase();
   const cls =
     main === "A"
-      ? "border-emerald-300 bg-emerald-100 text-emerald-900"
+      ? "border-line bg-paper text-lime-deep"
       : main === "B"
         ? "border-sky-300 bg-sky-100 text-sky-900"
         : "border-amber-300 bg-amber-100 text-amber-900";

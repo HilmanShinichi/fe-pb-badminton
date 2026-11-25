@@ -97,12 +97,12 @@ export function statusClass(s: string): string {
     case "PAID":
     case "SETTLED":
     case "ACTIVE":
-      return "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border-emerald-300";
+      return "bg-gradient-to-r from-lime-50 to-lime-50 text-lime-deep border-line";
     case "LOSS":
     case "NO_SHOW":
     case "ABSENT":
     case "CANCELLED":
-      return "bg-gradient-to-r from-rose-50 to-red-50 text-rose-800 border-rose-300";
+      return "bg-gradient-to-r from-rose-50 to-red-50 text-rose border-rose-300";
     case "BREAK_EVEN":
     case "LISTED":
     case "CONFIRMED":

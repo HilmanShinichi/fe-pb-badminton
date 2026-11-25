@@ -21,6 +21,7 @@ export function PeriodListPage() {
     shuttle_pack_price: 125000,
     shuttle_units_per_pack: 12,
     shuttle_per_session: 24,
+    max_members: "" as string | number,
   });
   const [error, setError] = useState("");
 
@@ -39,6 +40,7 @@ export function PeriodListPage() {
       await create({
         ...form,
         number_of_sessions: Math.max(1, Math.floor(Number(form.number_of_sessions)) || 1),
+        max_members: form.max_members ? Number(form.max_members) : null,
       }).unwrap();
       setError("");
       setForm({ ...form, name: "" });
@@ -98,16 +100,29 @@ export function PeriodListPage() {
               </Field>
             </div>
 
-            <Field label={t("periods.fieldSessions")}>
-              <input
-                id="jumlah-sesi"
-                type="number"
-                min={1}
-                className="w-full"
-                value={form.number_of_sessions}
-                onChange={(e) => setForm({ ...form, number_of_sessions: e.target.value })}
-              />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Field label={t("periods.fieldSessions")}>
+                <input
+                  id="jumlah-sesi"
+                  type="number"
+                  min={1}
+                  className="w-full"
+                  value={form.number_of_sessions}
+                  onChange={(e) => setForm({ ...form, number_of_sessions: e.target.value })}
+                />
+              </Field>
+              <Field label={lang === "id" ? "Kuota (Maks member)" : "Quota (Max members)"} hint={lang === "id" ? "Kosongkan jika tak terbatas" : "Blank = unlimited"}>
+                <input
+                  id="kuota-member"
+                  type="number"
+                  min={1}
+                  className="w-full"
+                  value={form.max_members}
+                  placeholder={lang === "id" ? "Tak terbatas" : "Unlimited"}
+                  onChange={(e) => setForm({ ...form, max_members: e.target.value })}
+                />
+              </Field>
+            </div>
 
             <Field label={t("periods.fieldMemberPrice")}>
               <MoneyInput id="commitment-fee-rp" value={form.commitment_fee} onChange={(n) => setForm({ ...form, commitment_fee: n })} />

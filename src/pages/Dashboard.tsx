@@ -448,7 +448,7 @@ export function DashboardPage() {
                         <span className="text-[11px] text-pine font-bold">ⓘ</span>
                       </span>
                       <span className={`text-sm font-bold tabular-nums ${
-                        disp.profit > 0 ? "text-emerald-700" : disp.profit < 0 ? "text-rose-700" : "text-ink"
+                        disp.profit > 0 ? "text-lime" : disp.profit < 0 ? "text-rose-700" : "text-ink"
                       }`}>
                         {disp.profit > 0 ? "+" : ""}{rupiah(disp.profit)}
                       </span>
@@ -528,7 +528,7 @@ export function DashboardPage() {
                             className="group/tip relative inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 hover:bg-pine/10 active:scale-95 transition-all text-right"
                             title={t("dashboard.clickForDetails")}
                           >
-                            <span className={disp.profit > 0 ? "text-emerald-700" : disp.profit < 0 ? "text-rose-700" : "text-ink"}>
+                            <span className={disp.profit > 0 ? "text-lime" : disp.profit < 0 ? "text-rose-700" : "text-ink"}>
                               {disp.profit > 0 ? "+" : ""}{rupiah(disp.profit)}
                             </span>
                             <span aria-hidden className="text-[11px] text-pine font-bold">ⓘ</span>

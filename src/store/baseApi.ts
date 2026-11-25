@@ -5,10 +5,12 @@ import { clearCredentials } from "./authSlice";
 export class ApiError extends Error {
   code: string;
   status: number;
-  constructor(status: number, code: string, message: string) {
+  payload?: unknown;
+  constructor(status: number, code: string, message: string, payload?: unknown) {
     super(message);
     this.status = status;
     this.code = code;
+    this.payload = payload;
   }
 }
 
@@ -20,9 +22,9 @@ export function toApiError(err: unknown): ApiError {
     // envelope — unwrap it back to the original ApiError.
     if (e.status === "CUSTOM_ERROR" && e.data !== undefined) return toApiError(e.data);
     if ("status" in err) {
-      const d = e.data as { error?: { code?: string; message?: string } } | undefined;
+      const d = e.data as { error?: { code?: string; message?: string; payment?: unknown } } | undefined;
       const status = typeof e.status === "number" ? e.status : 0;
-      return new ApiError(status, d?.error?.code ?? "UNKNOWN", d?.error?.message ?? `HTTP ${status}`);
+      return new ApiError(status, d?.error?.code ?? "UNKNOWN", d?.error?.message ?? `HTTP ${status}`, d?.error?.payment);
     }
   }
   return new ApiError(0, "UNKNOWN", "Network error.");
@@ -90,6 +92,6 @@ const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = as
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: envelopeBaseQuery,
-  tagTypes: ["Dashboard", "Players", "Periods", "Members", "Mabar", "Attendance", "Matches", "SimpleStats", "Billing", "Inventory", "Finance", "Reports", "MatchMaker", "AdminUsers"],
+  tagTypes: ["Dashboard", "Players", "Periods", "Members", "Mabar", "Attendance", "Matches", "SimpleStats", "Billing", "Inventory", "Finance", "Reports", "MatchMaker", "AdminUsers", "Payments", "RegistrationInfo"],
   endpoints: () => ({}),
 });

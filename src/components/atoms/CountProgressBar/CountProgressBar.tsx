@@ -41,7 +41,7 @@ export function CountProgressBar({
         <span
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-colors ${
             isPlayed
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+              ? "bg-paper text-lime border border-line/60"
               : "bg-amber-50 text-amber-700 border border-amber-200/60"
           }`}
         >
@@ -69,7 +69,7 @@ export function CountProgressBar({
         <div
           className={`h-full rounded-full transition-all duration-300 ease-out ${
             isPlayed
-              ? "bg-gradient-to-r from-pine via-emerald-500 to-emerald-400"
+              ? "bg-gradient-to-r from-pine via-lime-500 to-lime-400"
               : "bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-400"
           }`}
           style={{ width: `${pct}%` }}
@@ -82,7 +82,7 @@ export function CountProgressBar({
           className={
             isMaxReached
               ? isPlayed
-                ? "text-emerald-700 font-black"
+                ? "text-lime font-black"
                 : "text-amber-700 font-black"
               : "text-ink font-extrabold"
           }

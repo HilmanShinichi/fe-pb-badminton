@@ -97,7 +97,7 @@ export function FinancePage() {
               label={t("finance.operatingProfit")}
               value={rupiah(s.operating_profit)}
               sub={t("finance.costSub", { cost: rupiah(s.operating_cost) })}
-              valueClass={s.operating_profit >= 0 ? "text-emerald-700" : "text-rose-700"}
+              valueClass={s.operating_profit >= 0 ? "text-lime" : "text-rose-700"}
             />
             <Cell
               label={t("finance.totalRevenue")}
@@ -108,7 +108,7 @@ export function FinancePage() {
               label={t("finance.cashFlow")}
               value={rupiah(s.cash_flow)}
               sub={t("finance.cashOutSub", { out: rupiah(s.cash_out) })}
-              valueClass={s.cash_flow >= 0 ? "text-emerald-700" : "text-rose-700"}
+              valueClass={s.cash_flow >= 0 ? "text-lime" : "text-rose-700"}
             />
             <Cell
               label={t("finance.shuttleUsage")}
@@ -228,7 +228,7 @@ export function FinancePage() {
                     <span className="font-semibold text-ink truncate">
                       {tItem.category}{tItem.player_name ? ` · ${tItem.player_name}` : ""}
                     </span>
-                    <span className={`font-bold tabular-nums text-sm ${tItem.kind === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                    <span className={`font-bold tabular-nums text-sm ${tItem.kind === "IN" ? "text-lime" : "text-rose-700"}`}>
                       {tItem.kind === "IN" ? `+${rupiah(tItem.amount)}` : `−${rupiah(tItem.amount)}`}
                     </span>
                   </div>
@@ -260,7 +260,7 @@ export function FinancePage() {
                       <td className="whitespace-nowrap font-medium text-ink">{dateId(tItem.occurred_at, lang)}</td>
                       <td><Badge status={tItem.kind} /></td>
                       <td className="font-normal text-ink">{tItem.category}{tItem.player_name ? ` · ${tItem.player_name}` : ""}</td>
-                      <td className={`text-right font-bold tabular-nums ${tItem.kind === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                      <td className={`text-right font-bold tabular-nums ${tItem.kind === "IN" ? "text-lime" : "text-rose-700"}`}>
                         {tItem.kind === "IN" ? `+${rupiah(tItem.amount)}` : `−${rupiah(tItem.amount)}`}
                       </td>
                       <td className="font-normal text-ink-soft">{tItem.note ?? "—"}</td>

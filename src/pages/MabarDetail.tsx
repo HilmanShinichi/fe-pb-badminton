@@ -628,7 +628,7 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
         </div>
       )}
       {error && <p role="alert" className="px-3 pt-2 text-sm text-red-700">{error}</p>}
-      {notice && <p role="status" className="px-3 pt-2 text-sm text-green-700">{notice}</p>}
+      {notice && <p role="status" className="px-3 pt-2 text-sm text-lime">{notice}</p>}
       {attendance.isFetching && !attendance.data ? (
         <Loading />
       ) : rows.length === 0 ? (
@@ -671,7 +671,7 @@ function AttendancePanel({ sessionId, sessionType, periodId }: { sessionId: stri
                     title={r.is_member ? "Member rate — click to switch to non-member rate" : "Non-member rate — click to switch to member rate"}
                     disabled={saveState.isLoading}
                     onClick={() => flipMember(r.player_id)}
-                    className={`rounded border px-1.5 py-0.5 text-xs font-medium disabled:opacity-50 ${r.is_member ? "border-green-300 bg-green-100 text-green-800" : "border-amber-300 bg-amber-100 text-amber-900"}`}
+                    className={`rounded border px-1.5 py-0.5 text-xs font-medium disabled:opacity-50 ${r.is_member ? "border-line bg-paper text-lime-deep" : "border-amber-300 bg-amber-100 text-amber-900"}`}
                   >
                     {r.is_member ? "Member" : "Non-member"}
                   </button>
@@ -1150,7 +1150,7 @@ function ShuttleSources({ sessionId, usageTotal, purpose }: { sessionId: string;
       <h3 className="mb-2 text-sm font-semibold">
         Shuttle sources · {allocated}/{usageTotal} pcs
         {allocated === usageTotal ? (
-          <span className="ml-2 font-normal text-green-700">covered</span>
+          <span className="ml-2 font-normal text-lime">covered</span>
         ) : (
           <span className="ml-2 font-normal text-amber-700">not fully allocated</span>
         )}
@@ -1420,7 +1420,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
               {expenseList.length > 0 && (
                 <>
                   {expenseList.map((exp) => (
-                    <tr key={exp.id} className="bg-rose-50/50 text-rose-800">
+                    <tr key={exp.id} className="bg-rose-50/50 text-rose">
                       <td className="px-3 py-1.5 text-xs font-medium" colSpan={5}>
                         <span className="inline-flex items-center gap-1.5">
                           <span className="text-rose-600 font-bold">−</span>
@@ -1437,7 +1437,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                     <td className="px-3 py-2 text-xs font-bold text-ink uppercase tracking-wide" colSpan={5}>
                       {t("mabar.finalNetTotal")}
                     </td>
-                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-lime" : "text-rose-700"}`}>
                       {rupiah(netTotal)}
                     </td>
                     <td colSpan={2} />
@@ -1508,7 +1508,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
               {expenseList.length > 0 && (
                 <>
                   {expenseList.map((exp) => (
-                    <tr key={exp.id} className="bg-rose-50/50 text-rose-800">
+                    <tr key={exp.id} className="bg-rose-50/50 text-rose">
                       <td className="px-3 py-1.5 text-xs font-medium" colSpan={3}>
                         <span className="inline-flex items-center gap-1.5">
                           <span className="text-rose-600 font-bold">−</span>
@@ -1525,7 +1525,7 @@ function BillingPanel({ sessionId, sessionType, periodId }: { sessionId: string;
                     <td className="px-3 py-2 text-xs font-bold text-ink uppercase tracking-wide" colSpan={3}>
                       {t("mabar.finalNetTotal")}
                     </td>
-                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                    <td className={`whitespace-nowrap px-3 py-2 text-right text-sm font-extrabold tabular-nums ${netTotal >= 0 ? "text-lime" : "text-rose-700"}`}>
                       {rupiah(netTotal)}
                     </td>
                     <td colSpan={3} />

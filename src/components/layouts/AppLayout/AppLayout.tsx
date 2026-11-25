@@ -277,7 +277,7 @@ export function Layout({ children }: { children: ReactNode }) {
           />
         </div>
         {pwError && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{pwError}</p>}
-        {pwDone && <p className="mt-2 text-xs font-semibold text-emerald-700">✓</p>}
+        {pwDone && <p className="mt-2 text-xs font-semibold text-lime">✓</p>}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
@@ -402,7 +402,7 @@ export function Layout({ children }: { children: ReactNode }) {
               >
                 <span className="block whitespace-nowrap text-base font-extrabold tracking-tight">
                   PB{" "}
-                  <span className={isLightSidebar ? "text-pine" : "bg-gradient-to-r from-lime via-emerald-300 to-lime bg-clip-text text-transparent"}>
+                  <span className={isLightSidebar ? "text-pine" : "bg-gradient-to-r from-lime via-lime-300 to-lime bg-clip-text text-transparent"}>
                     KECEBONG
                   </span>
                 </span>
@@ -558,7 +558,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </div>
               <div className="hidden items-center gap-2 md:flex">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink border border-line shadow-2xs">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-lime" />
                   {auth?.username ?? "Admin"}
                 </span>
               </div>
@@ -700,7 +700,7 @@ function ModernShell({
                   aria-expanded={accountOpen}
                   aria-haspopup="menu"
                   aria-label={isId ? "Menu akun" : "Account menu"}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[#f5f6f8] text-ink-soft hover:bg-court hover:text-ink transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-paper text-ink-soft hover:bg-court hover:text-ink transition-colors"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
                     <path d="M6 9l6 6 6-6" />
@@ -812,7 +812,7 @@ function ModernShell({
                           className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border transition-all ${
                             isActive
                               ? "border-pine bg-pine text-white shadow-xs"
-                              : "border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court"
+                              : "border-line/80 bg-paper text-ink group-hover:bg-court"
                           }`}
                         >
                           {item.icon}
@@ -845,7 +845,7 @@ function ModernShell({
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all ${
                     moreOpen
                       ? "border-pine bg-pine text-white shadow-xs"
-                      : "border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court"
+                      : "border-line/80 bg-paper text-ink group-hover:bg-court"
                   }`}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
@@ -864,7 +864,7 @@ function ModernShell({
             {moreOpen && (
               <div
                 id="modern-more-nav"
-                className="mt-4 rounded-[22px] border border-line bg-[#f8f9fb] p-3.5 shadow-card"
+                className="mt-4 rounded-[22px] border border-line bg-paper p-3.5 shadow-card"
               >
                 <div className="mb-2.5 flex items-center justify-between">
                   <p className="text-xs font-bold uppercase tracking-wider text-ink-faint">
@@ -990,7 +990,7 @@ function NavItem({
                     {badge && (
                       <span
                         className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider shadow-2xs ${
-                          lightSidebar ? "bg-pine text-white" : "bg-gradient-to-r from-lime to-emerald-400 text-pine-deep"
+                          lightSidebar ? "bg-pine text-white" : "bg-gradient-to-r from-lime to-lime-400 text-pine-deep"
                         }`}
                       >
                         {badge}

@@ -105,7 +105,7 @@ export function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f9f5] text-ink selection:bg-lime/40 selection:text-pine-deep font-sans">
+    <div className="min-h-screen bg-paper text-ink selection:bg-lime/40 selection:text-pine-deep font-sans">
       {/* 1. TOP NAVBAR (Transparent over hero, subtle frosted glass on scroll) */}
       <header
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
@@ -124,8 +124,8 @@ export function LandingPage() {
               className="cursor-pointer transition-transform hover:scale-105 shrink-0"
             />
             <div className="flex flex-col min-w-0">
-              <span className="text-sm sm:text-base font-black tracking-tight text-[#0c2f21] whitespace-nowrap">
-                PB <span className="text-emerald-700">KECEBONG</span>
+              <span className="text-sm sm:text-base font-black tracking-tight text-lime whitespace-nowrap">
+                PB <span className="text-lime">KECEBONG</span>
               </span>
               <span className="hidden sm:block text-[10px] font-bold tracking-wider text-[#194532]/90 uppercase whitespace-nowrap">
                 Badminton Club
@@ -134,34 +134,34 @@ export function LandingPage() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-5 xl:gap-7 lg:flex text-sm font-bold text-[#0c2f21]">
+          <nav className="hidden items-center gap-5 xl:gap-7 lg:flex text-sm font-bold text-lime">
             <a
               href="#hero"
-              className="hover:text-emerald-700 transition-colors"
+              className="hover:text-lime transition-colors"
             >
               {t("landing.navHome")}
             </a>
             <a
               href="#tentang"
-              className="hover:text-emerald-700 transition-colors"
+              className="hover:text-lime transition-colors"
             >
               {t("landing.navAbout")}
             </a>
             <a
               href="#jadwal"
-              className="hover:text-emerald-700 transition-colors"
+              className="hover:text-lime transition-colors"
             >
               {t("landing.navSchedule")}
             </a>
             <a
               href="#member"
-              className="hover:text-emerald-700 transition-colors"
+              className="hover:text-lime transition-colors"
             >
               {t("landing.navMember")}
             </a>
             <a
               href="#keuangan"
-              className="hover:text-emerald-700 transition-colors"
+              className="hover:text-lime transition-colors"
             >
               {t("landing.navFinance")}
             </a>
@@ -180,7 +180,7 @@ export function LandingPage() {
             {token ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-[#0c2f21] hover:bg-[#164332] px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-lime text-pine-deep hover:bg-lime/90 px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all whitespace-nowrap"
               >
                 <span>{t("landing.navDashboard")}</span>
                 <svg
@@ -196,7 +196,7 @@ export function LandingPage() {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-[#0c2f21] hover:bg-[#164332] px-3.5 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-lime text-pine-deep hover:bg-lime/90 px-3.5 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all whitespace-nowrap"
               >
                 <span>{t("landing.navLogin")}</span>
                 <span className="text-lime text-xs sm:text-base font-bold">
@@ -209,7 +209,7 @@ export function LandingPage() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-lg p-2 text-[#0c2f21] hover:bg-black/5 lg:hidden transition-colors shrink-0"
+              className="rounded-lg p-2 text-lime hover:bg-black/5 lg:hidden transition-colors shrink-0"
               aria-label="Toggle navigation menu"
             >
               <svg
@@ -271,13 +271,13 @@ export function LandingPage() {
 
               {/* Mobile Theme & Language Switcher Rows */}
               <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-[#0c2f21]">
+                <span className="text-xs font-bold text-lime">
                   {isId ? "Tema" : "Theme"}
                 </span>
                 <ThemeSwitcher compact />
               </div>
               <div className="pt-2 border-t border-line flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0c2f21]">
+                <span className="text-xs font-bold text-lime">
                   {isId ? "Pilih Bahasa" : "Language"}
                 </span>
                 <LanguageSwitcher />
@@ -343,21 +343,21 @@ export function LandingPage() {
               </div>
 
               {/* Main Display Headline */}
-              <h1 className="text-6xl lg:text-7xl font-black tracking-tight text-[#0c2f21] leading-none drop-shadow-xs">
+              <h1 className="text-6xl lg:text-7xl font-black tracking-tight text-lime leading-none drop-shadow-xs">
                 PB KECEBONG
               </h1>
 
               {/* Sub-headline */}
-              <p className="text-3xl lg:text-4xl font-black tracking-tight text-[#0c2f21]">
+              <p className="text-3xl lg:text-4xl font-black tracking-tight text-lime">
                 {isId ? (
                   <>
                     Mabar Rutin,{" "}
-                    <span className="text-emerald-700">Solid Terus!</span>
+                    <span className="text-lime">Solid Terus!</span>
                   </>
                 ) : (
                   <>
                     Play Together,{" "}
-                    <span className="text-emerald-700">Stay Solid!</span>
+                    <span className="text-lime">Stay Solid!</span>
                   </>
                 )}
               </p>
@@ -371,14 +371,14 @@ export function LandingPage() {
               <div className="pt-2 flex flex-wrap items-center gap-4">
                 <a
                   href="#jadwal"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#0c2f21] hover:bg-[#164332] px-8 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
+                  className="inline-flex items-center gap-2 rounded-full bg-lime hover:bg-lime/90 px-8 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
                 >
                   <span>{t("landing.btnStart")}</span>
                   <span className="text-lime text-base font-bold">→</span>
                 </a>
                 <a
                   href="#tentang"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-[#0c2f21]/70 hover:border-[#0c2f21] hover:bg-[#0c2f21]/10 bg-transparent px-7 py-3 text-sm font-bold text-[#0c2f21] transition-all"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-lime/70 hover:border-lime hover:bg-lime/10 bg-transparent px-7 py-3 text-sm font-bold text-lime transition-all"
                 >
                   {t("landing.btnFeatures")}
                 </a>
@@ -402,19 +402,19 @@ export function LandingPage() {
             <div className="inline-block text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-[#143728] bg-white/40 px-3 py-1 rounded-full border border-white/60">
               BADMINTON CLUB MANAGEMENT
             </div>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#0c2f21] leading-none">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-lime leading-none">
               PB KECEBONG
             </h1>
-            <p className="text-xl sm:text-2xl font-black tracking-tight text-[#0c2f21]">
+            <p className="text-xl sm:text-2xl font-black tracking-tight text-lime">
               {isId ? (
                 <>
                   Mabar Rutin,{" "}
-                  <span className="text-emerald-700">Solid Terus!</span>
+                  <span className="text-lime">Solid Terus!</span>
                 </>
               ) : (
                 <>
                   Play Together,{" "}
-                  <span className="text-emerald-700">Stay Solid!</span>
+                  <span className="text-lime">Stay Solid!</span>
                 </>
               )}
             </p>
@@ -447,14 +447,14 @@ export function LandingPage() {
             <div className="flex items-center justify-center gap-3">
               <a
                 href="#jadwal"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#0c2f21] hover:bg-[#164332] px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center gap-1.5 rounded-full bg-lime hover:bg-lime/90 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
               >
                 <span>{t("landing.btnStart")}</span>
                 <span className="text-lime text-sm font-bold">→</span>
               </a>
               <a
                 href="#tentang"
-                className="inline-flex items-center justify-center rounded-full border-2 border-[#0c2f21]/70 hover:border-[#0c2f21] hover:bg-[#0c2f21]/10 bg-white/40 px-5 py-2.5 text-xs sm:text-sm font-bold text-[#0c2f21] transition-all"
+                className="inline-flex items-center justify-center rounded-full border-2 border-lime/70 hover:border-lime hover:bg-lime/10 bg-white/40 px-5 py-2.5 text-xs sm:text-sm font-bold text-lime transition-all"
               >
                 {t("landing.btnFeatures")}
               </a>
@@ -473,7 +473,7 @@ export function LandingPage() {
               href="#member"
               className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl bg-white/50 backdrop-blur-md p-2.5 sm:p-3.5 border border-white/70 shadow-xs sm:shadow-md hover:bg-white/80 hover:shadow-lg transition-all"
             >
-              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-[#0c2f21] text-lime group-hover:bg-[#164332] transition-colors shadow-xs">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-lime text-lime group-hover:bg-lime/90 transition-colors shadow-xs">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -485,7 +485,7 @@ export function LandingPage() {
                   <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-black text-[#0c2f21] leading-tight">
+              <span className="text-xs sm:text-sm font-black text-lime leading-tight">
                 {t("landing.pillMembers")}
               </span>
             </a>
@@ -494,7 +494,7 @@ export function LandingPage() {
               href="#jadwal"
               className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl bg-white/50 backdrop-blur-md p-2.5 sm:p-3.5 border border-white/70 shadow-xs sm:shadow-md hover:bg-white/80 hover:shadow-lg transition-all"
             >
-              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-[#0c2f21] text-lime group-hover:bg-[#164332] transition-colors shadow-xs">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-lime text-lime group-hover:bg-lime/90 transition-colors shadow-xs">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -506,7 +506,7 @@ export function LandingPage() {
                   <path d="M16 2v4M8 2v4M3 10h18" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-black text-[#0c2f21] leading-tight">
+              <span className="text-xs sm:text-sm font-black text-lime leading-tight">
                 {t("landing.pillSchedule")}
               </span>
             </a>
@@ -515,7 +515,7 @@ export function LandingPage() {
               href="#tentang"
               className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl bg-white/50 backdrop-blur-md p-2.5 sm:p-3.5 border border-white/70 shadow-xs sm:shadow-md hover:bg-white/80 hover:shadow-lg transition-all"
             >
-              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-[#0c2f21] text-lime group-hover:bg-[#164332] transition-colors shadow-xs">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-lime text-lime group-hover:bg-lime/90 transition-colors shadow-xs">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -526,7 +526,7 @@ export function LandingPage() {
                   <path d="M12 3 4 6.8v10.4L12 21l8-3.8V6.8L12 3Z" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-black text-[#0c2f21] leading-tight">
+              <span className="text-xs sm:text-sm font-black text-lime leading-tight">
                 {t("landing.pillShuttle")}
               </span>
             </a>
@@ -535,7 +535,7 @@ export function LandingPage() {
               href="#keuangan"
               className="group flex items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl bg-white/50 backdrop-blur-md p-2.5 sm:p-3.5 border border-white/70 shadow-xs sm:shadow-md hover:bg-white/80 hover:shadow-lg transition-all"
             >
-              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-[#0c2f21] text-lime group-hover:bg-[#164332] transition-colors shadow-xs">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-lime text-lime group-hover:bg-lime/90 transition-colors shadow-xs">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -546,16 +546,16 @@ export function LandingPage() {
                   <path d="M18 20V10M12 20V4M6 20v-6" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm font-black text-[#0c2f21] leading-tight">
+              <span className="text-xs sm:text-sm font-black text-lime leading-tight">
                 {t("landing.pillFinance")}
               </span>
             </a>
           </div>
 
           {/* Centered Scroll Indicator */}
-          <div className="mt-5 sm:mt-8 flex flex-col items-center justify-center text-[#0c2f21]/80">
-            <div className="h-5 w-3.5 rounded-full border-2 border-[#0c2f21]/60 flex items-start justify-center p-0.5 mb-1">
-              <div className="h-1 w-1 rounded-full bg-[#0c2f21] animate-bounce" />
+          <div className="mt-5 sm:mt-8 flex flex-col items-center justify-center text-lime/80">
+            <div className="h-5 w-3.5 rounded-full border-2 border-lime/60 flex items-start justify-center p-0.5 mb-1">
+              <div className="h-1 w-1 rounded-full bg-lime animate-bounce" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.18em]">
               {t("landing.scrollExplore")}
@@ -577,7 +577,7 @@ export function LandingPage() {
       <section id="tentang" className="py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800">
+            <span className="rounded-full bg-paper px-3 py-1 text-xs font-bold uppercase tracking-wider text-lime-deep">
               {isId ? "Filosofi Klub" : "Club Philosophy"}
             </span>
             <h2 className="mt-3 text-3xl sm:text-4xl font-black tracking-tight text-pine">
@@ -592,7 +592,7 @@ export function LandingPage() {
           <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
             {/* Pillar 1 */}
             <div className="rounded-2xl border border-line bg-court/30 p-7 shadow-xs hover:border-lime hover:shadow-md transition-all">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-pine text-white shadow-md">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-lime-500 to-pine text-white shadow-md">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -615,7 +615,7 @@ export function LandingPage() {
 
             {/* Pillar 2 */}
             <div className="rounded-2xl border border-line bg-court/30 p-7 shadow-xs hover:border-lime hover:shadow-md transition-all">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-pine text-white shadow-md">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-lime-500 to-pine text-white shadow-md">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -637,7 +637,7 @@ export function LandingPage() {
 
             {/* Pillar 3 */}
             <div className="rounded-2xl border border-line bg-court/30 p-7 shadow-xs hover:border-lime hover:shadow-md transition-all">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-lime to-emerald-600 text-pine-deep shadow-md font-bold">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-lime to-lime-600 text-pine-deep shadow-md font-bold">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -665,7 +665,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
             <div>
-              <span className="rounded-full bg-emerald-200/70 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-900">
+              <span className="rounded-full bg-lime-200/70 px-3 py-1 text-xs font-bold uppercase tracking-wider text-lime-deep">
                 {isId ? "Jadwal Terbuka" : "Public Schedule"}
               </span>
               <h2 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-pine">
@@ -680,7 +680,7 @@ export function LandingPage() {
                 to="/live"
                 className="inline-flex items-center gap-2 rounded-xl bg-white border border-line px-4 py-2.5 text-xs font-bold text-pine shadow-xs hover:bg-court hover:border-lime transition-all"
               >
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-paper0 animate-pulse" />
                 <span>{t("landing.scheduleLiveScore")}</span>
                 <span>→</span>
               </Link>
@@ -724,7 +724,7 @@ export function LandingPage() {
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 border border-emerald-200">
+                      <span className="rounded-md bg-paper px-2.5 py-1 text-[11px] font-bold text-lime-deep border border-line">
                         {sess.type === "PERIOD"
                           ? (sess.period_name ?? "Member Period")
                           : "Open Play / Tamu"}
@@ -733,7 +733,7 @@ export function LandingPage() {
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
                           sess.status === "COMPLETED"
                             ? "bg-neutral-100 text-neutral-600"
-                            : "bg-emerald-500 text-white"
+                            : "bg-paper0 text-white"
                         }`}
                       >
                         {sess.status}
@@ -836,7 +836,7 @@ export function LandingPage() {
                 {token ? (
                   <Link
                     to="/players"
-                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-lime px-5 py-2 text-xs font-extrabold text-pine-deep shadow-md hover:bg-emerald-300 transition-colors"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-lime px-5 py-2 text-xs font-extrabold text-pine-deep shadow-md hover:bg-lime-300 transition-colors"
                   >
                     <span>
                       {isId ? "Buka Daftar Member" : "View Member Roster"}
@@ -846,7 +846,7 @@ export function LandingPage() {
                 ) : (
                   <Link
                     to="/login"
-                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-lime px-5 py-2 text-xs font-extrabold text-pine-deep shadow-md hover:bg-emerald-300 transition-colors"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-lime px-5 py-2 text-xs font-extrabold text-pine-deep shadow-md hover:bg-lime-300 transition-colors"
                   >
                     <span>
                       {isId ? "Masuk ke Sistem" : "Sign In to Portal"}
@@ -864,7 +864,7 @@ export function LandingPage() {
       <section id="keuangan" className="py-20 bg-court/30 border-t border-line">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800">
+            <span className="rounded-full bg-paper px-3 py-1 text-xs font-bold uppercase tracking-wider text-lime-deep">
               {isId ? "Keuangan Terbuka" : "Transparent Treasury"}
             </span>
             <h2 className="mt-3 text-3xl sm:text-4xl font-black tracking-tight text-pine">
@@ -877,7 +877,7 @@ export function LandingPage() {
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
-              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 font-bold">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-paper text-lime font-bold">
                 1
               </div>
               <h4 className="mt-4 text-base font-bold text-pine">
@@ -891,7 +891,7 @@ export function LandingPage() {
             </div>
 
             <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
-              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 font-bold">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-paper text-lime font-bold">
                 2
               </div>
               <h4 className="mt-4 text-base font-bold text-pine">
@@ -905,7 +905,7 @@ export function LandingPage() {
             </div>
 
             <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
-              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 font-bold">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-paper text-lime font-bold">
                 3
               </div>
               <h4 className="mt-4 text-base font-bold text-pine">
@@ -955,7 +955,7 @@ export function LandingPage() {
               </a>
               <Link
                 to="/live"
-                className="text-emerald-700 hover:text-emerald-800 font-bold"
+                className="text-lime hover:text-lime-deep font-bold"
               >
                 Live Board
               </Link>
@@ -1072,7 +1072,7 @@ function ModernLanding({
           {/* 5 Squircle Quick-Action Tiles */}
           <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-3">
             <a href="#jadwal" className="group flex flex-col items-center gap-1.5 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-paper text-ink group-hover:bg-court transition-colors">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
                   <path d="M16 2v4M8 2v4M3 10h18" />
@@ -1084,7 +1084,7 @@ function ModernLanding({
             </a>
 
             <Link to="/live" className="group flex flex-col items-center gap-1.5 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-paper text-ink group-hover:bg-court transition-colors">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" />
                   <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
@@ -1096,7 +1096,7 @@ function ModernLanding({
             </Link>
 
             <a href="#tentang" className="group flex flex-col items-center gap-1.5 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court transition-colors">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line/80 bg-paper text-ink group-hover:bg-court transition-colors">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
@@ -1129,7 +1129,7 @@ function ModernLanding({
             >
               <span
                 className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-colors ${
-                  moreOpen ? "border-pine bg-pine text-white" : "border-line/80 bg-[#f3f5f8] text-ink group-hover:bg-court"
+                  moreOpen ? "border-pine bg-pine text-white" : "border-line/80 bg-paper text-ink group-hover:bg-court"
                 }`}
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
@@ -1146,7 +1146,7 @@ function ModernLanding({
           </div>
 
           {moreOpen && (
-            <div className="mt-4 rounded-[20px] border border-line bg-[#f8f9fb] p-3.5 space-y-3 sm:hidden">
+            <div className="mt-4 rounded-[20px] border border-line bg-paper p-3.5 space-y-3 sm:hidden">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-ink-soft">{isId ? "Tema" : "Theme"}</span>
                 <ThemeSwitcher compact />
@@ -1172,7 +1172,7 @@ function ModernLanding({
             </Link>
           </div>
 
-          <div className="rounded-[24px] border border-line bg-[#f0f2f6] p-3 sm:p-4 shadow-card">
+          <div className="rounded-[24px] border border-line bg-paper p-3 sm:p-4 shadow-card">
             <div className="flex items-center justify-between gap-3 px-1 pb-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white border border-line shadow-2xs">

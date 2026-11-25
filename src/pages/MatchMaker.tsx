@@ -406,7 +406,7 @@ export function MatchMakerListPage() {
                             <label
                               key={a.player_id}
                               className={`flex items-center gap-2 rounded-md p-1.5 text-xs transition-colors cursor-pointer ${
-                                isPicked ? "bg-white shadow-2xs border border-emerald-200" : "hover:bg-white/80"
+                                isPicked ? "bg-white shadow-2xs border border-line" : "hover:bg-white/80"
                               }`}
                             >
                               <input
@@ -416,12 +416,12 @@ export function MatchMakerListPage() {
                                 onChange={() => toggleCustom(a.player_id)}
                               />
                               {isPicked && (
-                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-pine to-emerald-700 text-[10px] font-black text-lime shadow-2xs">
+                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-pine to-lime-700 text-[10px] font-black text-lime shadow-2xs">
                                   {arrival + 1}
                                 </span>
                               )}
                               <span className="font-semibold text-ink flex-1 truncate">{info?.name ?? a.player_name}</span>
-                              <span className={`rounded px-1 py-0.5 text-[10px] font-bold ${a.status === "PRESENT" ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
+                              <span className={`rounded px-1 py-0.5 text-[10px] font-bold ${a.status === "PRESENT" ? "bg-paper text-lime-deep" : "bg-slate-100 text-slate-600"}`}>
                                 {a.status}
                               </span>
                               {info?.grade && <GradeChip grade={info.grade} />}
@@ -455,7 +455,7 @@ export function MatchMakerListPage() {
                         <label
                           key={p.id}
                           className={`flex items-center gap-2 rounded-md p-1.5 text-xs transition-colors cursor-pointer ${
-                            isPicked ? "bg-white shadow-2xs border border-emerald-200" : "hover:bg-white/80"
+                            isPicked ? "bg-white shadow-2xs border border-line" : "hover:bg-white/80"
                           }`}
                         >
                           <input
@@ -465,7 +465,7 @@ export function MatchMakerListPage() {
                             onChange={() => toggleCustom(p.id)}
                           />
                           {isPicked && (
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-pine to-emerald-700 text-[10px] font-black text-lime shadow-2xs">
+                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-pine to-lime-700 text-[10px] font-black text-lime shadow-2xs">
                               {arrival + 1}
                             </span>
                           )}
@@ -480,7 +480,7 @@ export function MatchMakerListPage() {
             )}
 
             {poolCount !== null && (
-              <div className="flex items-center justify-between rounded-lg bg-emerald-50/60 border border-emerald-200/60 px-3 py-1.5 text-xs font-semibold text-emerald-900">
+              <div className="flex items-center justify-between rounded-lg bg-paper/60 border border-line/60 px-3 py-1.5 text-xs font-semibold text-lime-deep">
                 <span>{t("matchmaker.poolCountText", { count: poolCount })}</span>
                 {poolCount < 4 && <span className="text-red-700 font-bold">{t("matchmaker.poolNeedMin")}</span>}
               </div>
@@ -521,7 +521,7 @@ export function MatchMakerListPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="text-base font-bold text-ink">{t("matchmaker.eventsSectionTitle")}</h2>
-              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-court via-emerald-50 to-court px-2.5 py-0.5 text-xs font-bold text-pine border border-pine/15">
+              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-court via-lime-50 to-court px-2.5 py-0.5 text-xs font-bold text-pine border border-pine/15">
                 {t("matchmaker.totalEventsStats", { count: eventList.length })}
               </span>
             </div>
@@ -565,7 +565,7 @@ export function MatchMakerListPage() {
             <ErrorBox message={t("matchmaker.errorCreateEvent")} onRetry={() => events.refetch()} />
           ) : eventList.length === 0 ? (
             <div className="rounded-2xl border border-line bg-white p-8 shadow-card text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-pine">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-paper text-pine">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
                   <circle cx="12" cy="12" r="8.5" />
                   <path d="M12 3.5v17M3.5 12h17" />
@@ -603,8 +603,8 @@ export function MatchMakerListPage() {
 
                     {/* STATS CHIPS WITH GRADIENTS */}
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-xs font-bold text-emerald-900">
-                        <IconCourt className="h-3.5 w-3.5 text-emerald-700" />
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-paper border border-line/80 px-2.5 py-1 text-xs font-bold text-lime-deep">
+                        <IconCourt className="h-3.5 w-3.5 text-lime" />
                         {ev.court_count > 0 ? t("matchmaker.cardCourts", { count: ev.court_count }) : t("matchmaker.cardUnlimitedCourts")}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200/80 px-2.5 py-1 text-xs font-bold text-sky-900">
@@ -711,7 +711,7 @@ function GenerationProgressModal({
       aria-label="AI Matchmaker Generation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
     >
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-300/60 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line/60 bg-white p-6 shadow-2xl">
         <div className="flex items-center gap-3.5 mb-5">
           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pine to-pine-deep text-lime shadow-md">
             {isDone ? (
@@ -747,7 +747,7 @@ function GenerationProgressModal({
         {/* High-Tech Animated Progress Track */}
         <div className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-pine via-emerald-500 to-lime transition-all duration-150 ease-out shadow-xs"
+            className="h-full rounded-full bg-gradient-to-r from-pine via-lime-500 to-lime transition-all duration-150 ease-out shadow-xs"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -1219,7 +1219,7 @@ export function MatchMakerDetailPage() {
           {/* GENERATOR HERO CARD */}
           <section
             aria-label={t("matchmaker.generatorTitle")}
-            className="overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/25 to-court/40 p-4 sm:p-5 shadow-card"
+            className="overflow-hidden rounded-2xl border border-line/80 bg-gradient-to-br from-white via-lime-50/25 to-court/40 p-4 sm:p-5 shadow-card"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line/60 pb-4">
               <div className="flex items-center gap-3">
@@ -1465,7 +1465,7 @@ export function MatchMakerDetailPage() {
               aria-label={t("matchmaker.webAiTitle")}
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
             >
-              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-emerald-300/60 bg-white p-5 shadow-2xl">
+              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-line/60 bg-white p-5 shadow-2xl">
                 <div className="flex items-start justify-between gap-3 mb-1">
                   <div>
                     <h3 className="text-base font-black text-ink">{t("matchmaker.webAiTitle")}</h3>
@@ -1859,7 +1859,7 @@ export function MatchMakerDetailPage() {
                           {/* Bermain */}
                           <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/90 border border-slate-200/60 px-3 py-2">
                             <span className="flex items-center gap-1.5 text-xs font-bold text-ink-soft shrink-0">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-paper text-lime">
                                 <IconPlay className="h-2.5 w-2.5" />
                               </span>
                               <span>{t("matchmaker.colPlayed")}</span>
@@ -2053,7 +2053,7 @@ export function PublicLiveSection({ eventId, isPublic, showGrades }: { eventId: 
               className="flex-1 sm:flex-initial inline-flex items-center justify-center rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-bold hover:bg-court/60 transition-colors"
             >
               {copied ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700">
+                <span className="inline-flex items-center gap-1 text-lime">
                   <IconCheck className="h-3.5 w-3.5" /> Copied
                 </span>
               ) : (
@@ -2196,7 +2196,7 @@ export function LateArrivalsSection({ eventId, poolIds, sourceSessionId }: { eve
 export function TeamPanel({ team, align, meta }: { team: GenTeamPlayer[]; align: "left" | "right"; meta?: Record<string, { arrival?: number | null; played?: number | null }> }) {
   return (
     <div
-      className={`flex-1 min-w-0 rounded-xl border border-emerald-900/10 bg-white/95 p-1.5 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1 sm:space-y-2 overflow-hidden ${
+      className={`flex-1 min-w-0 rounded-xl border border-lime-900/10 bg-white/95 p-1.5 sm:p-2.5 shadow-2xs flex flex-col justify-center space-y-1 sm:space-y-2 overflow-hidden ${
         align === "right" ? "text-right items-end" : "text-left items-start"
       }`}
     >
@@ -2227,7 +2227,7 @@ export function TeamPanel({ team, align, meta }: { team: GenTeamPlayer[]; align:
                   </span>
                 )}
                 {info && info.played != null && (
-                  <span title="Matches played" className="rounded bg-emerald-50 px-1 py-px text-[10px] font-black tabular-nums text-emerald-700">
+                  <span title="Matches played" className="rounded bg-paper px-1 py-px text-[10px] font-black tabular-nums text-lime">
                     {info.played}×
                   </span>
                 )}
@@ -2394,7 +2394,7 @@ function MatchCard({
           )}
           {/* STATUS PILL WITH RADIANT GRADIENTS */}
           {m.status === "PLAYING" ? (
-            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black text-white shadow-sm">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-lime-600 via-lime-600 to-lime-700 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black text-white shadow-sm">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-lime" />
@@ -2473,7 +2473,7 @@ function MatchCard({
               onClick={() => advance(next)}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-extrabold transition-all shadow-2xs active:scale-95 ${
                 next === "PLAYING"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white"
+                  ? "bg-gradient-to-r from-lime-600 to-lime-700 hover:from-lime-500 hover:to-lime-600 text-white"
                   : "bg-gradient-to-r from-pine to-pine-deep hover:brightness-110 text-lime"
               }`}
             >
@@ -2495,7 +2495,7 @@ function MatchCard({
         <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
           <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg bg-court/40 border border-line/60 px-1 py-0.5" title="Shuttlecocks used">
             <span className="inline-flex items-center text-xs font-extrabold text-ink-soft">
-              <IconShuttlecock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-700 shrink-0" />
+              <IconShuttlecock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-lime shrink-0" />
             </span>
             {!locked ? (
               <>
@@ -2600,8 +2600,8 @@ function EditTeamsModal({
         <div className="space-y-3">
           <p className="text-xs text-ink-faint">{t("matchmaker.editTeamsModalHint")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 p-2.5 space-y-2">
-              <p className="text-xs font-extrabold text-emerald-950">{t("matchmaker.team1")}</p>
+            <div className="rounded-xl border border-line/80 bg-paper/30 p-2.5 space-y-2">
+              <p className="text-xs font-extrabold text-lime-950">{t("matchmaker.team1")}</p>
               <PlayerPicker pool={pool} value={t1[0] ?? ""} onChange={(v) => setSide(setT1, t1, 0, v)} />
               <PlayerPicker pool={pool} value={t1[1] ?? ""} onChange={(v) => setSide(setT1, t1, 1, v)} />
             </div>

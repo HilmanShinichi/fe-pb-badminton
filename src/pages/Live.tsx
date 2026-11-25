@@ -20,7 +20,7 @@ import { LanguageSwitcher, ThemeSwitcher } from "../ui";
 import type { GenMatch } from "../types";
 
 function livePill(status: string) {
-  if (status === "PLAYING") return "bg-emerald-600 text-white";
+  if (status === "PLAYING") return "bg-lime text-white";
   if (status === "ENDED") return "bg-slate-200 text-slate-700";
   return "bg-amber-100 text-amber-900";
 }
@@ -71,7 +71,7 @@ function LiveCard({ m, nowMs, useReferee = true }: { m: GenMatch; nowMs: number;
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-3.5 py-1.5 text-xs text-ink-faint">
         <span className="inline-flex items-center gap-1.5">
-          <IconShuttlecock className="h-3.5 w-3.5 text-emerald-700" />
+          <IconShuttlecock className="h-3.5 w-3.5 text-lime" />
           <span>{m.shuttlecock_used ?? 0} shuttlecocks</span>
         </span>
         {m.referee && useReferee && (
@@ -182,7 +182,7 @@ export function LiveEventPage() {
             to={`/live/${id}/played`}
             className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold shadow-card hover:border-pine/40 transition-colors"
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-paper text-lime">
               <IconPlay className="h-2.5 w-2.5" />
             </span>
             <span>Played: {(detail.data.matches ?? []).filter((m) => m.status === "PLAYING" || m.status === "ENDED").length}</span>
@@ -292,7 +292,7 @@ function LiveCountsPage({ kind }: { kind: "played" | "refereed" }) {
       <h1 className="flex items-center gap-2 text-xl font-black">
         <span
           className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-            isPlayed ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+            isPlayed ? "bg-paper text-lime" : "bg-amber-50 text-amber-700"
           }`}
         >
           {isPlayed ? <IconPlay className="h-3.5 w-3.5" /> : <IconWhistle className="h-4 w-4" />}
@@ -680,7 +680,7 @@ export function LiveArrivalPage() {
                     <h3 className="text-sm font-bold text-rose-950">
                       {isId ? "Pemain Terlambat (Urutan 10 Ke Atas)" : "Late Arrivals (Order 10+)"}
                     </h3>
-                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800">
+                    <span className="rounded-full bg-paper px-2 py-0.5 text-xs font-bold text-rose">
                       {late.length} {isId ? "orang" : "players"}
                     </span>
                   </div>
@@ -694,7 +694,7 @@ export function LiveArrivalPage() {
                   <button
                     type="button"
                     onClick={() => setFilterTab("LATE")}
-                    className="self-start sm:self-auto rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose-800 hover:bg-rose-50 cursor-pointer transition-colors"
+                    className="self-start sm:self-auto rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose hover:bg-rose-50 cursor-pointer transition-colors"
                   >
                     {isId ? "Tampilkan yang terlambat" : "Show late players"}
                   </button>
@@ -859,11 +859,11 @@ export function LiveArrivalPage() {
                               <span>{isId ? "3 Terawal (Urutan 3)" : "First 3 (Order 3)"}</span>
                             </span>
                           ) : isOnTime ? (
-                            <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                            <span className="inline-flex items-center rounded-md border border-line bg-paper px-2 py-0.5 text-xs font-semibold text-lime-deep">
                               {isId ? "Tepat Waktu" : "On Time"}
                             </span>
                           ) : isLatePlayer ? (
-                            <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-800">
+                            <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose">
                               {isId ? `Terlambat (Urutan ${arrivalNum})` : `Late (Order ${arrivalNum})`}
                             </span>
                           ) : (
@@ -883,7 +883,7 @@ export function LiveArrivalPage() {
                                     : isTop3
                                       ? "bg-orange-100/70 text-amber-900 border border-amber-300"
                                       : isLatePlayer
-                                    ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                    ? "bg-paper text-rose border border-rose-200"
                                     : "bg-slate-100 text-ink"
                               }`}
                             >

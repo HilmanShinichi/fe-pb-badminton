@@ -223,7 +223,7 @@ export function ReportsPage() {
           </div>
 
           <div className="inline-flex items-center gap-1.5 rounded-full border border-pine/20 bg-court/50 px-3 py-1 text-xs font-medium text-pine">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-paper0 animate-pulse" />
             <span className="font-semibold text-ink-soft">{t("reports.activeFilterPrefix")}</span>
             <span className="font-bold text-pine">{scopeSummaryText}</span>
           </div>
@@ -351,7 +351,7 @@ export function ReportsPage() {
                   : "border border-line/80 bg-white text-ink-soft hover:bg-court/60 hover:text-ink"
               }`}
             >
-              <span className={active ? "text-emerald-300" : "text-ink-faint"}>{icon}</span>
+              <span className={active ? "text-lime" : "text-ink-faint"}>{icon}</span>
               {label}
             </button>
           );
@@ -418,12 +418,12 @@ function MetricCard({
   title: string;
   value: ReactNode;
   sub?: string;
-  highlight?: "emerald" | "rose" | "pine";
+  highlight?: "lime" | "rose" | "pine";
   badge?: ReactNode;
 }) {
   const borderTone =
-    highlight === "emerald"
-      ? "border-emerald-200 bg-gradient-to-br from-white via-emerald-50/20 to-emerald-50/40"
+    highlight === "lime"
+      ? "border-line bg-gradient-to-br from-white via-lime-50/20 to-lime-50/40"
       : highlight === "rose"
       ? "border-rose-200 bg-gradient-to-br from-white via-rose-50/20 to-rose-50/40"
       : highlight === "pine"
@@ -431,8 +431,8 @@ function MetricCard({
       : "border-line bg-white";
 
   const valColor =
-    highlight === "emerald"
-      ? "text-emerald-700"
+    highlight === "lime"
+      ? "text-lime"
       : highlight === "rose"
       ? "text-rose-700"
       : "text-ink";
@@ -810,9 +810,9 @@ function AttendanceReport({
               title={t("reports.kpiOverallAttendance")}
               value={overallRate}
               sub={isId ? `${num(totalPresent)} dari ${num(totalListed)} hadir` : `${num(totalPresent)} of ${num(totalListed)} attended`}
-              highlight="emerald"
+              highlight="lime"
               badge={
-                <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="rounded-md bg-paper px-1.5 py-0.5 text-[10px] font-bold text-lime-deep">
                   {t("status.PRESENT")}
                 </span>
               }
@@ -840,7 +840,7 @@ function AttendanceReport({
               highlight={totalNoShow > 0 ? "rose" : undefined}
               badge={
                 totalNoShow > 0 ? (
-                  <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                  <span className="rounded-md bg-paper px-1.5 py-0.5 text-[10px] font-bold text-rose">
                     {t("status.NO_SHOW")}
                   </span>
                 ) : undefined
@@ -910,7 +910,7 @@ function AttendanceReport({
                           )}
                         </td>
                         <td className="text-right tabular-nums">{num(listed)}</td>
-                        <td className="text-right font-medium text-emerald-700 tabular-nums">{num(present)}</td>
+                        <td className="text-right font-medium text-lime tabular-nums">{num(present)}</td>
                         <td className="text-right tabular-nums">
                           {fastest > 0 ? (
                             <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-50 border border-amber-300/80 px-1.5 py-0.5 text-xs font-bold text-amber-900">
@@ -929,7 +929,7 @@ function AttendanceReport({
                             <div
                               style={{ width: `${pPct}%` }}
                               title={`Present: ${present} (${pPct.toFixed(0)}%)`}
-                              className="bg-emerald-500 transition-all"
+                              className="bg-paper0 transition-all"
                             />
                             <div
                               style={{ width: `${cPct}%` }}
@@ -970,14 +970,14 @@ function NoShowReport({ filter }: { filter: ReportFilterParams }) {
   if (q.isError || !q.data) return <ErrorBox message={isId ? "Gagal memuat laporan no-show." : "Could not load report."} onRetry={() => q.refetch()} />;
   if (q.data.length === 0) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 text-center shadow-card">
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+      <div className="rounded-xl border border-line bg-gradient-to-r from-lime-50 to-lime-50 p-6 text-center shadow-card">
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-paper text-lime">
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="mt-2 text-sm font-bold text-emerald-900">{t("reports.noShowCleanTitle")}</h3>
-        <p className="mt-1 text-xs text-emerald-700">{t("reports.noShowCleanDesc")}</p>
+        <h3 className="mt-2 text-sm font-bold text-lime-deep">{t("reports.noShowCleanTitle")}</h3>
+        <p className="mt-1 text-xs text-lime">{t("reports.noShowCleanDesc")}</p>
       </div>
     );
   }
@@ -1038,7 +1038,7 @@ function NoShowReport({ filter }: { filter: ReportFilterParams }) {
                           i === 0
                             ? "bg-rose-600 text-white"
                             : i === 1
-                            ? "bg-rose-100 text-rose-800"
+                            ? "bg-paper text-rose"
                             : "bg-court text-ink"
                         }`}
                       >
@@ -1054,7 +1054,7 @@ function NoShowReport({ filter }: { filter: ReportFilterParams }) {
                         <div style={{ width: `${pct}%` }} className="h-full bg-rose-500 rounded-full" />
                       </div>
                     </td>
-                    <td className="text-right font-mono text-xs tabular-nums text-rose-800">
+                    <td className="text-right font-mono text-xs tabular-nums text-rose">
                       {rateBp(Number(r.no_show_rate_bp))}
                     </td>
                   </tr>
@@ -1114,7 +1114,7 @@ function ShuttlecockReport({ filter }: { filter: ReportFilterParams }) {
           title={t("reports.kpiAvgCocksPerMatch")}
           value={avgPerMatch}
           sub={isId ? "Intensitas pemakaian kok rata-rata" : "Overall consumption intensity"}
-          highlight="emerald"
+          highlight="lime"
         />
         <MetricCard
           title={t("reports.kpiTopCockConsumer")}
@@ -1172,7 +1172,7 @@ function ShuttlecockReport({ filter }: { filter: ReportFilterParams }) {
                         <div className="h-2 w-full overflow-hidden rounded-full bg-line/60">
                           <div
                             style={{ width: `${pct}%` }}
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-pine"
+                            className="h-full rounded-full bg-gradient-to-r from-lime-500 to-pine"
                           />
                         </div>
                         <span className="w-8 text-right font-mono text-[10px] text-ink-faint">{pct.toFixed(0)}%</span>
@@ -1222,7 +1222,7 @@ function UsageReport({ filter }: { filter: ReportFilterParams }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard title={t("reports.kpiActivePlayers")} value={data.length} sub={isId ? "Pemain dengan riwayat aktivitas tercatat" : "Players with recorded activity"} highlight="pine" />
         <MetricCard title={t("reports.kpiTotalAttendances")} value={num(totalPresent)} sub={isId ? "Total kedatangan sesi" : "Sum of session check-ins"} />
-        <MetricCard title={t("reports.kpiTotalMatches")} value={num(totalMatches)} sub={isId ? "Total game dimainkan" : "Total games played"} highlight="emerald" />
+        <MetricCard title={t("reports.kpiTotalMatches")} value={num(totalMatches)} sub={isId ? "Total game dimainkan" : "Total games played"} highlight="lime" />
         <MetricCard title={t("reports.kpiTotalShuttlecocks")} value={num(totalShuttles)} sub={isId ? "Kok yang terpakai" : "Shuttlecocks used"} />
       </div>
 
@@ -1253,7 +1253,7 @@ function UsageReport({ filter }: { filter: ReportFilterParams }) {
                 return (
                   <tr key={String(r.player)} className="hover:bg-court/30">
                     <td className="font-semibold text-ink">{String(r.player)}</td>
-                    <td className="text-right tabular-nums text-emerald-700 font-medium">{num(Number(r.present))}</td>
+                    <td className="text-right tabular-nums text-lime font-medium">{num(Number(r.present))}</td>
                     <td className="text-right tabular-nums font-semibold">{num(matches)}</td>
                     <td>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-line/60">
@@ -1303,7 +1303,7 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
           title={t("reports.kpiTotalRevenue")}
           value={rupiah(total_revenue)}
           sub={isId ? "Semua pemasukan kas diterima" : "All inflows received"}
-          highlight="emerald"
+          highlight="lime"
         />
         <MetricCard
           title={t("reports.kpiTotalExpense")}
@@ -1315,11 +1315,11 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
           title={t("reports.kpiNetCashFlow")}
           value={rupiah(cash_flow)}
           sub={isNetPositive ? (isId ? "Surplus kas operasional" : "Surplus operational fund") : (isId ? "Defisit kas operasional" : "Operating deficit")}
-          highlight={isNetPositive ? "emerald" : "rose"}
+          highlight={isNetPositive ? "lime" : "rose"}
           badge={
             <span
               className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
-                isNetPositive ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                isNetPositive ? "bg-paper text-lime-deep" : "bg-paper text-rose"
               }`}
             >
               {isNetPositive ? (isId ? "SURPLUS (UNTUNG)" : "SURPLUS") : (isId ? "DEFISIT (RUGI)" : "DEFICIT")}
@@ -1330,17 +1330,17 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
           title={t("reports.kpiOperatingMargin")}
           value={marginPct}
           sub={isId ? "Margin bersih terhadap omzet" : "Net margin on revenue"}
-          highlight={isNetPositive ? "emerald" : "rose"}
+          highlight={isNetPositive ? "lime" : "rose"}
         />
       </div>
 
       {/* Visual Proportion Breakdown */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Revenue Breakdown Card */}
-        <div className="rounded-xl border border-emerald-200/80 bg-white p-4 shadow-card">
+        <div className="rounded-xl border border-line/80 bg-white p-4 shadow-card">
           <div className="flex items-center justify-between border-b border-line pb-2.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800">{t("reports.revenueBreakdownTitle")}</h3>
-            <span className="font-mono text-xs font-bold text-emerald-700">{rupiah(total_revenue)}</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-lime-deep">{t("reports.revenueBreakdownTitle")}</h3>
+            <span className="font-mono text-xs font-bold text-lime">{rupiah(total_revenue)}</span>
           </div>
           <div className="mt-3 space-y-3">
             {revEntries.length === 0 ? (
@@ -1357,10 +1357,10 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
                         <span className="text-[10px] font-normal text-ink-faint">({pct.toFixed(0)}%)</span>
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-50">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-paper">
                       <div
                         style={{ width: `${pct}%` }}
-                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        className="h-full rounded-full bg-paper0 transition-all"
                       />
                     </div>
                   </div>
@@ -1373,7 +1373,7 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
         {/* Expense Breakdown Card */}
         <div className="rounded-xl border border-rose-200/80 bg-white p-4 shadow-card">
           <div className="flex items-center justify-between border-b border-line pb-2.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-800">{t("reports.expenseBreakdownTitle")}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose">{t("reports.expenseBreakdownTitle")}</h3>
             <span className="font-mono text-xs font-bold text-rose-700">{rupiah(total_expense)}</span>
           </div>
           <div className="mt-3 space-y-3">
@@ -1430,7 +1430,7 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
                     <td>
                       <span
                         className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                          kind === "Revenue" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                          kind === "Revenue" ? "bg-paper text-lime-deep" : "bg-paper text-rose"
                         }`}
                       >
                         {kind === "Revenue" ? (isId ? "Pemasukan" : "Inflow") : (isId ? "Pengeluaran" : "Outflow")}
@@ -1439,7 +1439,7 @@ function FinancialReport({ filter }: { filter: ReportFilterParams }) {
                     <td className="font-medium text-ink">{cat.replace(/_/g, " ")}</td>
                     <td
                       className={`text-right font-semibold tabular-nums ${
-                        kind === "Revenue" ? "text-emerald-700" : "text-rose-700"
+                        kind === "Revenue" ? "text-lime" : "text-rose-700"
                       }`}
                     >
                       {rupiah(amt)}
@@ -1519,7 +1519,7 @@ function InactiveReport({
           title={t("reports.kpiInactiveMembers")}
           value={totalInactive}
           sub={isId ? `Tidak hadir dalam > ${months} bulan` : `No attendance in > ${months} months`}
-          highlight={totalInactive > 0 ? "rose" : "emerald"}
+          highlight={totalInactive > 0 ? "rose" : "lime"}
         />
         <MetricCard
           title={t("reports.kpiAvgDaysAbsent")}
@@ -1572,7 +1572,7 @@ function InactiveReport({
                       <td className="text-right">
                         <span
                           className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold tabular-nums ${
-                            days > 180 ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-900"
+                            days > 180 ? "bg-paper text-rose" : "bg-amber-100 text-amber-900"
                           }`}
                         >
                           {num(days)} {isId ? "hari" : "days"}
