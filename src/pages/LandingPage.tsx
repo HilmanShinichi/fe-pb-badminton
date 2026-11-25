@@ -104,6 +104,20 @@ export function LandingPage() {
     );
   }
 
+  if (theme === "green") {
+    return (
+      <GreenLanding
+        t={t}
+        isId={isId}
+        token={token}
+        sessions={sessions}
+        loadingSessions={loadingSessions}
+        logoModalOpen={logoModalOpen}
+        setLogoModalOpen={setLogoModalOpen}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-paper text-ink selection:bg-lime/40 selection:text-pine-deep font-sans">
       {/* 1. TOP NAVBAR (Transparent over hero, subtle frosted glass on scroll) */}
@@ -975,6 +989,924 @@ export function LandingPage() {
       </footer>
 
       {/* 8. MODAL KUSTOM LOGO */}
+      <LogoUploadModal
+        open={logoModalOpen}
+        onClose={() => setLogoModalOpen(false)}
+      />
+    </div>
+  );
+}
+
+interface GreenLandingProps {
+  t: (key: string) => string;
+  isId: boolean;
+  token: string | null;
+  sessions: PublicSession[];
+  loadingSessions: boolean;
+  logoModalOpen: boolean;
+  setLogoModalOpen: (open: boolean) => void;
+}
+
+function GreenLanding({
+  t,
+  isId,
+  token,
+  sessions,
+  loadingSessions,
+  logoModalOpen,
+  setLogoModalOpen,
+}: GreenLandingProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    function handleScroll() {
+      setIsScrolled(window.scrollY > 30);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!heroRef.current) return;
+      const rect = heroRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      setMousePos({ x, y });
+    }
+
+    const heroEl = heroRef.current;
+    if (heroEl) {
+      heroEl.addEventListener("mousemove", handleMouseMove);
+    }
+    return () => {
+      if (heroEl) heroEl.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#f4f7f5] text-[#244B3B] selection:bg-[#b8d94a]/40 selection:text-[#064E35] font-inter">
+      {/* 1. TOP NAVBAR (Transparent over hero with dark green text, frosted white on scroll) */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+          isScrolled
+            ? "bg-white/95 backdrop-blur-md border-b border-[#064E35]/10 shadow-sm py-0"
+            : "bg-transparent border-transparent py-1 sm:py-2"
+        }`}
+      >
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <ClubLogo
+              size="md"
+              editable
+              onEdit={() => setLogoModalOpen(true)}
+              className="cursor-pointer transition-transform hover:scale-105 shrink-0"
+            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#064E35] whitespace-nowrap font-jakarta">
+                PB KECEBONG
+              </span>
+              <span className="hidden sm:block text-[10px] font-bold tracking-wider text-[#166534]/85 uppercase whitespace-nowrap">
+                Badminton Club
+              </span>
+            </div>
+          </div>
+
+          {/* Desktop Navigation Links */}
+          <nav className="hidden items-center gap-4 xl:gap-6 lg:flex text-sm font-bold text-[#064E35] font-jakarta">
+            <a
+              href="#hero"
+              className="rounded-full bg-[#064E35] px-4 py-1.5 text-white shadow-xs hover:bg-[#166534] transition-colors"
+            >
+              {t("landing.navHome")}
+            </a>
+            <a href="#tentang" className="hover:text-[#16803C] transition-colors px-2 py-1">
+              {t("landing.navAbout")}
+            </a>
+            <a href="#jadwal" className="hover:text-[#16803C] transition-colors px-2 py-1">
+              {t("landing.navSchedule")}
+            </a>
+            <a href="#member" className="hover:text-[#16803C] transition-colors px-2 py-1">
+              {t("landing.navMember")}
+            </a>
+            <a href="#keuangan" className="hover:text-[#16803C] transition-colors px-2 py-1">
+              {t("landing.navFinance")}
+            </a>
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="hidden sm:block">
+              <ThemeSwitcher compact />
+            </div>
+            <div className="hidden md:block">
+              <LanguageSwitcher />
+            </div>
+
+            {token ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-gradient-to-r from-[#16803C] to-[#064E35] text-white hover:opacity-95 px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all whitespace-nowrap font-jakarta"
+              >
+                <span>{t("landing.navDashboard")}</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  className="h-3.5 w-3.5"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-gradient-to-r from-[#16803C] to-[#064E35] text-white hover:opacity-95 px-3.5 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all whitespace-nowrap font-jakarta"
+              >
+                <span>{t("landing.navLogin")}</span>
+                <span className="text-xs sm:text-sm font-bold">→</span>
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="rounded-lg p-2 text-[#064E35] hover:bg-[#064E35]/10 lg:hidden transition-colors shrink-0"
+              aria-label="Toggle navigation menu"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-5 w-5"
+              >
+                {mobileMenuOpen ? (
+                  <path d="M18 6 6 18M6 6l12 12" />
+                ) : (
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile & Tablet Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="border-b border-[#064E35]/10 bg-white/95 backdrop-blur-md px-5 py-4 lg:hidden animate-in fade-in slide-in-from-top-2 shadow-lg">
+            <nav className="flex flex-col space-y-3 text-sm font-bold text-[#064E35] font-jakarta">
+              <a
+                href="#hero"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#16803C]"
+              >
+                {t("landing.navHome")}
+              </a>
+              <a
+                href="#tentang"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#16803C]"
+              >
+                {t("landing.navAbout")}
+              </a>
+              <a
+                href="#jadwal"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#16803C]"
+              >
+                {t("landing.navSchedule")}
+              </a>
+              <a
+                href="#member"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#16803C]"
+              >
+                {t("landing.navMember")}
+              </a>
+              <a
+                href="#keuangan"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-[#16803C]"
+              >
+                {t("landing.navFinance")}
+              </a>
+              <div className="pt-2 border-t border-[#064E35]/10 flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-[#166534]">
+                  {isId ? "Tema" : "Theme"}
+                </span>
+                <ThemeSwitcher compact />
+              </div>
+              <div className="pt-2 border-t border-[#064E35]/10 flex items-center justify-between">
+                <span className="text-xs font-bold text-[#166534]">
+                  {isId ? "Pilih Bahasa" : "Language"}
+                </span>
+                <LanguageSwitcher />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setLogoModalOpen(true);
+                }}
+                className="text-left text-xs text-[#064E35] font-bold pt-2 border-t border-[#064E35]/10 flex items-center gap-1.5"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-3.5 w-3.5"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>
+                  {isId ? "Kustomisasi Logo Klub" : "Customize Club Logo"}
+                </span>
+              </button>
+            </nav>
+          </div>
+        )}
+      </header>
+
+      {/* 2. HERO SECTION WITH ORIGINAL ARTWORK & PARALLAX */}
+      <section
+        id="hero"
+        ref={heroRef}
+        className="relative overflow-hidden min-h-[600px] lg:min-h-[720px] flex flex-col justify-between pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12 bg-gradient-to-b from-[#e3f4ea] via-[#d6eee0] to-[#c7e5d3]"
+      >
+        {/* Desktop Background Artwork with Parallax */}
+        <div
+          className="hidden lg:block absolute inset-0 pointer-events-none transition-transform duration-300 ease-out"
+          style={{
+            backgroundImage: "url('/landing-hero-bg.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "center right",
+            transform: `translate3d(${mousePos.x * -10}px, ${mousePos.y * -10}px, 0) scale(1.01)`,
+          }}
+        />
+
+        {/* Subtle left gradient scrim on desktop so typography stays crisp over the artwork */}
+        <div className="hidden lg:block absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-[#e3f4ea]/75 via-[#dff2e7]/40 to-transparent pointer-events-none" />
+
+        {/* A. DESKTOP HERO CONTENT */}
+        <div className="hidden lg:block relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 my-auto">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
+            <div
+              className="lg:col-span-6 z-10 transition-transform duration-200 ease-out space-y-4"
+              style={{
+                transform: `translate3d(${mousePos.x * 10}px, ${mousePos.y * 10}px, 0)`,
+              }}
+            >
+              {/* Eyebrow Badge */}
+              <div className="flex items-center gap-3">
+                <span className="h-[2.5px] w-7 bg-[#064E35] rounded-full" />
+                <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#064E35] font-jakarta">
+                  BADMINTON CLUB MANAGEMENT
+                </span>
+              </div>
+
+              {/* Main Display Heading (Deep Forest #064E35 with Lime accent swoosh) */}
+              <div className="inline-block">
+                <h1 className="text-6xl lg:text-[4.25rem] font-extrabold italic tracking-tight text-[#064E35] leading-none font-jakarta">
+                  PB KECEBONG
+                </h1>
+                <svg
+                  viewBox="0 0 320 14"
+                  fill="none"
+                  className="mt-1.5 h-3 w-56 text-[#b8d94a]"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 10C85 3 210 2 317 7"
+                    stroke="currentColor"
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+
+              {/* Subheading (Forest Green #166534) */}
+              <p className="text-3xl lg:text-4xl font-extrabold italic tracking-tight text-[#166534] font-jakarta">
+                {isId ? "Mabar Rutin, Solid Terus!" : "Play Together, Stay Solid!"}
+              </p>
+
+              {/* Body Text (#244B3B) */}
+              <p className="text-sm md:text-base text-[#244B3B] font-medium leading-relaxed max-w-lg font-inter">
+                {t("landing.heroDesc")}
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="pt-2 flex flex-wrap items-center gap-4">
+                <a
+                  href="#jadwal"
+                  className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-[#16803C] to-[#064E35] hover:brightness-105 px-7 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all font-jakarta"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
+                    <polygon points="6 4 20 12 6 20" />
+                  </svg>
+                  <span>{t("landing.btnStart")}</span>
+                  <span className="text-sm font-bold">→</span>
+                </a>
+                <a
+                  href="#tentang"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[#166534]/35 hover:border-[#166534] bg-white/75 backdrop-blur-sm hover:bg-white/95 px-6 py-3 text-sm font-bold text-[#064E35] shadow-xs transition-all font-jakarta"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-4 w-4 text-[#166534]"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                  </svg>
+                  <span>{t("landing.btnFeatures")}</span>
+                </a>
+              </div>
+
+              {/* Quote */}
+              <div className="pt-2 flex items-center gap-3 text-sm font-semibold italic text-[#166534] font-inter">
+                <span className="w-[3px] h-5 bg-[#166534] rounded-full shrink-0" />
+                <span>"PB Kecebong — More Than Just a Game"</span>
+              </div>
+            </div>
+
+            {/* Right column kept open so frog mascot artwork remains 100% visible */}
+            <div className="lg:col-span-6 min-h-[360px]" />
+          </div>
+        </div>
+
+        {/* B. MOBILE & TABLET HERO CONTENT */}
+        <div className="block lg:hidden relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 pt-2 pb-4 space-y-4">
+          <div className="text-center space-y-1.5">
+            <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs font-extrabold uppercase tracking-[0.2em] text-[#064E35] bg-white/75 backdrop-blur-xs px-3 py-1 rounded-full border border-[#166534]/20 font-jakarta">
+              BADMINTON CLUB MANAGEMENT
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-extrabold italic tracking-tight text-[#064E35] leading-none font-jakarta">
+              PB KECEBONG
+            </h1>
+            <div className="mx-auto h-1 w-28 rounded-full bg-[#b8d94a]" />
+            <p className="text-xl sm:text-2xl font-extrabold italic tracking-tight text-[#166534] font-jakarta">
+              {isId ? "Mabar Rutin, Solid Terus!" : "Play Together, Stay Solid!"}
+            </p>
+          </div>
+
+          {/* Mascot Card */}
+          <div className="relative mx-auto w-full aspect-[16/10] rounded-2xl overflow-hidden shadow-xl border-2 border-white/80 group">
+            <img
+              src="/landing-hero-bg.webp"
+              alt="PB Kecebong Mascot Artwork"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white text-[11px] font-bold">
+              <span className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30">
+                🏸 PB Kecebong Club
+              </span>
+              <span className="text-[#b8d94a] text-xs font-extrabold drop-shadow">
+                #SolidTerus
+              </span>
+            </div>
+          </div>
+
+          {/* Description & Buttons */}
+          <div className="text-center space-y-3 pt-1">
+            <p className="text-xs sm:text-sm text-[#244B3B] font-medium leading-relaxed max-w-md mx-auto font-inter">
+              {t("landing.heroDesc")}
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <a
+                href="#jadwal"
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#16803C] to-[#064E35] px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all font-jakarta"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3">
+                  <polygon points="6 4 20 12 6 20" />
+                </svg>
+                <span>{t("landing.btnStart")}</span>
+                <span className="text-xs sm:text-sm font-bold">→</span>
+              </a>
+              <a
+                href="#tentang"
+                className="inline-flex items-center justify-center rounded-full border border-[#166534]/35 bg-white/75 backdrop-blur-sm px-5 py-2.5 text-xs sm:text-sm font-bold text-[#064E35] transition-all hover:border-[#166534] hover:bg-white/95 font-jakarta"
+              >
+                {t("landing.btnFeatures")}
+              </a>
+            </div>
+
+            <div className="text-xs font-semibold italic text-[#166534]">
+              "PB Kecebong — More Than Just a Game"
+            </div>
+          </div>
+        </div>
+
+        {/* C. BOTTOM 4 GLASSMORPHIC FEATURE CARDS + SCROLL INDICATOR */}
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 mt-2 sm:mt-6 lg:mt-10">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:gap-4 max-w-5xl mx-auto">
+            {[
+              { key: "pillMembers", href: "#member", icon: "users" },
+              { key: "pillSchedule", href: "#jadwal", icon: "calendar" },
+              { key: "pillShuttle", href: "#tentang", icon: "badminton" },
+              { key: "pillFinance", href: "#keuangan", icon: "chart" },
+            ].map((item) => (
+              <a
+                key={item.key}
+                href={item.href}
+                className="group flex items-center justify-between gap-2 rounded-xl sm:rounded-2xl bg-white/75 backdrop-blur-md p-2.5 sm:p-3.5 border border-white/80 shadow-md hover:bg-white/90 hover:shadow-lg transition-all"
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#16803C] to-[#064E35] text-white shadow-xs group-hover:scale-105 transition-transform">
+                    {item.icon === "users" && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                      </svg>
+                    )}
+                    {item.icon === "calendar" && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
+                      >
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                    )}
+                    {item.icon === "badminton" && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
+                      >
+                        <path d="M12 3 4 6.8v10.4L12 21l8-3.8V6.8L12 3Z" />
+                      </svg>
+                    )}
+                    {item.icon === "chart" && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
+                      >
+                        <path d="M18 20V10M12 20V4M6 20v-6" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-[#064E35] leading-tight font-jakarta">
+                    {t(`landing.${item.key}`)}
+                  </span>
+                </div>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="hidden sm:block h-4 w-4 shrink-0 text-[#166534]/50 group-hover:text-[#064E35] group-hover:translate-x-0.5 transition-all"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </a>
+            ))}
+          </div>
+
+          {/* Centered Scroll Indicator */}
+          <div className="mt-5 sm:mt-8 flex flex-col items-center justify-center text-[#064E35]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#064E35]/30 bg-white/60 backdrop-blur-xs mb-1.5 shadow-2xs">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="h-3.5 w-3.5 animate-bounce"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] font-jakarta">
+              {t("landing.scrollExplore")}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. TENTANG SECTION */}
+      <section id="tentang" className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="rounded-full bg-[#e8f5e9] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#166534] font-jakarta">
+              {isId ? "Filosofi Klub" : "Club Philosophy"}
+            </span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#064E35] font-jakarta">
+              {t("landing.aboutTitle")}
+            </h2>
+            <p className="mt-3 text-base sm:text-lg text-[#244B3B]">
+              {t("landing.aboutSubtitle")}
+            </p>
+          </div>
+
+          {/* 3 Pillars Grid */}
+          <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
+            {/* Pillar 1 */}
+            <div className="rounded-2xl border border-[#064E35]/10 bg-[#f4f9f6] p-7 shadow-xs hover:border-[#16803C]/40 hover:shadow-md transition-all">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#16803C] to-[#064E35] text-white shadow-md">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-6 w-6"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3 className="mt-5 text-lg font-bold text-[#064E35] font-jakarta">
+                {t("landing.pillar1Title")}
+              </h3>
+              <p className="mt-2 text-sm text-[#244B3B] leading-relaxed">
+                {t("landing.pillar1Desc")}
+              </p>
+            </div>
+
+            {/* Pillar 2 */}
+            <div className="rounded-2xl border border-[#064E35]/10 bg-[#f4f9f6] p-7 shadow-xs hover:border-[#16803C]/40 hover:shadow-md transition-all">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#16803C] to-[#064E35] text-white shadow-md">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-6 w-6"
+                >
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </div>
+              <h3 className="mt-5 text-lg font-bold text-[#064E35] font-jakarta">
+                {t("landing.pillar2Title")}
+              </h3>
+              <p className="mt-2 text-sm text-[#244B3B] leading-relaxed">
+                {t("landing.pillar2Desc")}
+              </p>
+            </div>
+
+            {/* Pillar 3 */}
+            <div className="rounded-2xl border border-[#064E35]/10 bg-[#f4f9f6] p-7 shadow-xs hover:border-[#16803C]/40 hover:shadow-md transition-all">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#b8d94a] text-[#064E35] shadow-md font-bold">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-6 w-6"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v18M3 12h18" />
+                </svg>
+              </div>
+              <h3 className="mt-5 text-lg font-bold text-[#064E35] font-jakarta">
+                {t("landing.pillar3Title")}
+              </h3>
+              <p className="mt-2 text-sm text-[#244B3B] leading-relaxed">
+                {t("landing.pillar3Desc")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. JADWAL MABAR SECTION */}
+      <section id="jadwal" className="py-20 bg-[#f4f9f6] border-y border-[#064E35]/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
+            <div>
+              <span className="rounded-full bg-[#b8d94a]/40 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#064E35] font-jakarta">
+                {isId ? "Jadwal Terbuka" : "Public Schedule"}
+              </span>
+              <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#064E35] font-jakarta">
+                {t("landing.scheduleTitle")}
+              </h2>
+              <p className="mt-1 text-sm text-[#244B3B]">
+                {t("landing.scheduleSubtitle")}
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0 flex gap-3">
+              <Link
+                to="/live"
+                className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#166534]/20 px-4 py-2.5 text-xs font-bold text-[#064E35] shadow-xs hover:bg-[#e8f5e9] hover:border-[#166534]/50 transition-all font-jakarta"
+              >
+                <span className="h-2 w-2 rounded-full bg-[#16803C] animate-pulse" />
+                <span>{t("landing.scheduleLiveScore")}</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </div>
+
+          {loadingSessions ? (
+            <div className="py-12 text-center text-sm text-[#244B3B]">
+              {isId ? "Memuat jadwal sesi mabar..." : "Loading sessions..."}
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#166534]/30 bg-white p-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f5e9] text-[#064E35]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-7 w-7"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#064E35] font-jakarta">
+                {t("landing.scheduleEmpty")}
+              </p>
+              <p className="mt-1 text-xs text-[#244B3B]">
+                {isId
+                  ? "Jadwal rutin: Setiap Rabu malam & Minggu pagi di GOR PB Kecebong."
+                  : "Regular schedule: Wednesday evenings & Sunday mornings."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {sessions.map((sess) => (
+                <div
+                  key={sess.id}
+                  className="flex flex-col justify-between rounded-2xl border border-[#064E35]/10 bg-white p-5 shadow-xs hover:border-[#16803C]/40 hover:shadow-md transition-all"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="rounded-md bg-[#e8f5e9] px-2.5 py-1 text-[11px] font-bold text-[#166534] border border-[#166534]/15 font-jakarta">
+                        {sess.type === "PERIOD"
+                          ? (sess.period_name ?? "Member Period")
+                          : "Open Play / Tamu"}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
+                          sess.status === "COMPLETED"
+                            ? "bg-neutral-100 text-neutral-600"
+                            : "bg-[#064E35] text-white"
+                        }`}
+                      >
+                        {sess.status}
+                      </span>
+                    </div>
+
+                    <h4 className="mt-4 text-lg font-bold text-[#064E35] font-jakarta">
+                      {sess.date}
+                    </h4>
+                    <p className="mt-0.5 text-xs text-[#244B3B]">
+                      {sess.start_time && sess.end_time
+                        ? `${sess.start_time} - ${sess.end_time} WIB`
+                        : "Waktu mabar rutin"}
+                    </p>
+
+                    <div className="mt-4 flex items-start gap-2 text-xs text-[#244B3B]">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[#166534]"
+                      >
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span className="font-medium">
+                        {sess.venue_name ||
+                          sess.venue_description ||
+                          "GOR Badminton PB Kecebong"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between border-t border-[#064E35]/10 pt-3 text-xs">
+                    <span className="text-[#244B3B]">Biaya Kok / Match:</span>
+                    <span className="font-bold text-[#064E35] font-jakarta">
+                      Rp {sess.shuttlecock_price.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 5. MEMBER & KOMUNITAS SECTION */}
+      <section id="member" className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl bg-gradient-to-br from-[#064E35] via-[#0d5c3f] to-[#043927] p-8 sm:p-14 text-white shadow-xl">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center">
+              <div className="lg:col-span-7">
+                <span className="rounded-full bg-[#b8d94a]/20 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-[#b8d94a] border border-[#b8d94a]/30 font-jakarta">
+                  {isId ? "Komunitas Solid" : "Strong Community"}
+                </span>
+                <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-jakarta">
+                  {t("landing.memberTitle")}
+                </h2>
+                <p className="mt-3 text-sm sm:text-base text-white/85 leading-relaxed">
+                  {t("landing.memberSubtitle")}
+                </p>
+                <p className="mt-2 text-xs sm:text-sm text-white/70">
+                  {t("landing.memberDesc")}
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <div className="rounded-2xl bg-white/10 p-4 border border-white/15">
+                    <p className="text-2xl font-extrabold text-[#b8d94a] font-jakarta">50+</p>
+                    <p className="text-xs text-white/75 font-medium">
+                      Member Aktif
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-4 border border-white/15">
+                    <p className="text-2xl font-extrabold text-[#b8d94a] font-jakarta">95%</p>
+                    <p className="text-xs text-white/75 font-medium">
+                      Tingkat Kehadiran
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-4 border border-white/15">
+                    <p className="text-2xl font-extrabold text-[#b8d94a] font-jakarta">4 Level</p>
+                    <p className="text-xs text-white/75 font-medium">
+                      Grade Roster (A/B/C/D)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 flex flex-col items-center justify-center text-center p-6 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs">
+                <ClubLogo size="xl" className="mb-4" />
+                <h4 className="text-lg font-bold text-white font-jakarta">PB KECEBONG</h4>
+                <p className="text-xs text-[#b8d94a] font-bold mt-1">
+                  "PLAY, IMPROVE, FRIENDSHIP, HEALTHY LIFE"
+                </p>
+                <p className="text-xs text-white/75 mt-3 max-w-xs">
+                  {isId
+                    ? "Tertarik mabar bareng atau gabung roster? Hubungi koordinator lapangan atau pantau jadwal kami."
+                    : "Interested in playing together? Contact the match coordinator or follow our schedule."}
+                </p>
+                {token ? (
+                  <Link
+                    to="/players"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#b8d94a] px-5 py-2 text-xs font-extrabold text-[#064E35] shadow-md hover:bg-[#c8e662] transition-colors font-jakarta"
+                  >
+                    <span>
+                      {isId ? "Buka Daftar Member" : "View Member Roster"}
+                    </span>
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#b8d94a] px-5 py-2 text-xs font-extrabold text-[#064E35] shadow-md hover:bg-[#c8e662] transition-colors font-jakarta"
+                  >
+                    <span>
+                      {isId ? "Masuk ke Sistem" : "Sign In to Portal"}
+                    </span>
+                    <span>→</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. KEUANGAN & TRANSPARANSI SECTION */}
+      <section id="keuangan" className="py-20 bg-[#f4f9f6] border-t border-[#064E35]/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="rounded-full bg-[#e8f5e9] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#166534] font-jakarta">
+              {isId ? "Keuangan Terbuka" : "Transparent Treasury"}
+            </span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#064E35] font-jakarta">
+              {t("landing.financeTitle")}
+            </h2>
+            <p className="mt-3 text-base text-[#244B3B]">
+              {t("landing.financeSubtitle")}
+            </p>
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-[#064E35]/10 bg-white p-6 shadow-xs">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#16803C] to-[#064E35] text-white font-bold font-jakarta">
+                1
+              </div>
+              <h4 className="mt-4 text-base font-bold text-[#064E35] font-jakarta">
+                {isId ? "Sewa Lapangan Terbagi Rata" : "Court Rental Split"}
+              </h4>
+              <p className="mt-2 text-xs text-[#244B3B] leading-relaxed">
+                {isId
+                  ? "Biaya lapangan dibayar secara kolektif per periode atau per pertemuan, tanpa mark-up sepihak."
+                  : "Court fees are shared fairly per session with zero hidden margins."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#064E35]/10 bg-white p-6 shadow-xs">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#16803C] to-[#064E35] text-white font-bold font-jakarta">
+                2
+              </div>
+              <h4 className="mt-4 text-base font-bold text-[#064E35] font-jakarta">
+                {isId ? "Pencatatan Kok Presisi" : "Exact Shuttle Tracking"}
+              </h4>
+              <p className="mt-2 text-xs text-[#244B3B] leading-relaxed">
+                {isId
+                  ? "Setiap tabung dan butir kok yang terpakai di lapangan diinput secara real-time pada papan pertandingan."
+                  : "Every shuttlecock opened is tracked live during the matches."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#064E35]/10 bg-white p-6 shadow-xs">
+              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#16803C] to-[#064E35] text-white font-bold font-jakarta">
+                3
+              </div>
+              <h4 className="mt-4 text-base font-bold text-[#064E35] font-jakarta">
+                {isId ? "Laporan Kas Digital" : "Digital Cash Reports"}
+              </h4>
+              <p className="mt-2 text-xs text-[#244B3B] leading-relaxed">
+                {isId
+                  ? "Kas masuk dan kas keluar dapat diekspor langsung dalam format spreadsheet CSV atau tabel visual."
+                  : "All inflows and outflows are exportable to CSV spreadsheets anytime."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. FOOTER */}
+      <footer className="border-t border-[#064E35]/15 bg-white py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <ClubLogo size="sm" />
+              <div>
+                <p className="text-sm font-extrabold text-[#064E35] font-jakarta">
+                  PB KECEBONG BADMINTON CLUB
+                </p>
+                <p className="text-xs text-[#244B3B] italic">
+                  "{t("landing.footerTagline")}"
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-6 text-xs font-semibold text-[#244B3B]">
+              <a href="#hero" className="hover:text-[#064E35]">
+                {t("landing.navHome")}
+              </a>
+              <a href="#tentang" className="hover:text-[#064E35]">
+                {t("landing.navAbout")}
+              </a>
+              <a href="#jadwal" className="hover:text-[#064E35]">
+                {t("landing.navSchedule")}
+              </a>
+              <a href="#member" className="hover:text-[#064E35]">
+                {t("landing.navMember")}
+              </a>
+              <a href="#keuangan" className="hover:text-[#064E35]">
+                {t("landing.navFinance")}
+              </a>
+              <Link
+                to="/live"
+                className="text-[#166534] hover:text-[#064E35] font-bold"
+              >
+                Live Board
+              </Link>
+              <Link to="/login" className="text-[#064E35] font-bold hover:underline">
+                {t("landing.navLogin")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 border-t border-[#064E35]/10 pt-6 text-center text-xs text-[#244B3B]/80">
+            <p>
+              © {new Date().getFullYear()} PB Kecebong Badminton Club. All
+              rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+
       <LogoUploadModal
         open={logoModalOpen}
         onClose={() => setLogoModalOpen(false)}

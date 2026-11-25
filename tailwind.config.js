@@ -4,6 +4,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+        jakarta: ["Plus Jakarta Sans", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
       },
       colors: {
         pine: {
