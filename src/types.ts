@@ -101,6 +101,8 @@ export interface Period {
   shuttle_per_session: number;
   status: string;
   is_registration_open: boolean;
+  registration_notes?: string | null;
+  registration_expires_at?: string | null;
   created_at: string;
 }
 

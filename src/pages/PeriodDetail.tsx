@@ -18,14 +18,15 @@ import {
   useUpdatePeriodMutation,
   useAdminPeriodPaymentsQuery,
   useSetRegistrationStatusMutation,
+  useUpdateRegistrationNotesMutation,
   useVerifyPaymentMutation,
   useDeletePaymentMutation,
   type MembershipPayment,
 } from "../store/services";
-import { dateDmy, dateId, rupiah } from "../format";
+import { buildRegistrationNotesTemplate, dateDmy, formatGmt7DateTime, gmt7InputToUtcIso, rupiah, utcIsoToGmt7Input } from "../format";
 import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Field, Loading, MoneyInput, OpenLink, PageHead } from "../ui";
-import type { Membership, PeriodAttendanceMatrixNonMember, PeriodAttendanceMatrixResponse } from "../types";
+import type { Membership, Period, PeriodAttendanceMatrixNonMember, PeriodAttendanceMatrixResponse } from "../types";
 
 function paidOf(m: Membership): number {
   const p = m.paid ?? {};
@@ -39,13 +40,6 @@ function commitmentPaid(m: Membership): boolean {
 
 // ─── Admin Payments Panel ─────────────────────────────────────────────────────
 
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  WAITING_PAYMENT: "Menunggu",
-  PENDING: "Pending",
-  PAID: "Lunas",
-  FAILED: "Gagal",
-};
-
 const PAYMENT_STATUS_CLASS: Record<string, string> = {
   WAITING_PAYMENT: "bg-amber-100 text-amber-800",
   PENDING: "bg-blue-100 text-blue-800",
@@ -55,23 +49,41 @@ const PAYMENT_STATUS_CLASS: Record<string, string> = {
 
 function AdminPaymentsPanel({
   periodId,
+  period,
   isRegistrationOpen,
   done,
   maxMembers,
   currentMembers,
 }: {
   periodId: string;
+  period: Period;
   isRegistrationOpen: boolean;
   done: boolean;
   maxMembers: number | null;
   currentMembers: number;
 }) {
+  const { t, lang } = useI18n();
+  const paymentStatusLabel: Record<string, string> = {
+    WAITING_PAYMENT: t("periods.regStatusWaiting"),
+    PENDING: t("periods.regStatusPending"),
+    PAID: t("periods.regStatusPaid"),
+    FAILED: t("periods.regStatusFailed"),
+  };
+
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [verifyTarget, setVerifyTarget] = useState<MembershipPayment | null>(null);
   const [verifyAction, setVerifyAction] = useState<"PAID" | "FAILED">("PAID");
   const [rejectionReason, setRejectionReason] = useState("");
   const [verifyError, setVerifyError] = useState("");
   const [regError, setRegError] = useState("");
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(period.registration_notes ?? "");
+  const [notesError, setNotesError] = useState("");
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
+  const [deadlineDraft, setDeadlineDraft] = useState(() => utcIsoToGmt7Input(period.registration_expires_at));
+  const [deadlineError, setDeadlineError] = useState("");
+  const [deadlineSaved, setDeadlineSaved] = useState(false);
   const [proofViewerOpen, setProofViewerOpen] = useState(false);
   const [proofTarget, setProofTarget] = useState<MembershipPayment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MembershipPayment | null>(null);
@@ -79,8 +91,62 @@ function AdminPaymentsPanel({
 
   const payments = useAdminPeriodPaymentsQuery({ periodId, status: statusFilter }, { pollingInterval: 30_000 });
   const [setRegStatus, regState] = useSetRegistrationStatusMutation();
+  const [updateNotes, notesState] = useUpdateRegistrationNotesMutation();
   const [verifyPayment, verifyState] = useVerifyPaymentMutation();
   const [deletePayment, deleteState] = useDeletePaymentMutation();
+
+  useEffect(() => {
+    setNotesDraft(period.registration_notes ?? "");
+  }, [period.registration_notes]);
+
+  useEffect(() => {
+    setDeadlineDraft(utcIsoToGmt7Input(period.registration_expires_at));
+  }, [period.registration_expires_at]);
+
+  const savedNotes = period.registration_notes ?? "";
+  const notesDirty = notesDraft.trim() !== savedNotes.trim();
+  const savedDeadlineInput = utcIsoToGmt7Input(period.registration_expires_at);
+  const deadlineDirty = deadlineDraft !== savedDeadlineInput;
+  const isDeadlineExpired = Boolean(
+    period.registration_expires_at && Date.parse(period.registration_expires_at) <= Date.now()
+  );
+
+  async function saveDeadline(nextDraft: string) {
+    if (regState.isLoading) return;
+    setDeadlineError("");
+    setDeadlineSaved(false);
+    const utcPayload = nextDraft ? gmt7InputToUtcIso(nextDraft) : "";
+    if (nextDraft && !utcPayload) {
+      setDeadlineError(t("periods.regErrSaveDeadline"));
+      return;
+    }
+    try {
+      await setRegStatus({
+        periodId,
+        registration_expires_at: utcPayload ?? "",
+      }).unwrap();
+      setDeadlineSaved(true);
+      setTimeout(() => setDeadlineSaved(false), 2500);
+    } catch (e) {
+      setDeadlineError(e instanceof ApiError ? e.message : t("periods.regErrSaveDeadline"));
+    }
+  }
+
+  async function saveNotes() {
+    if (notesState.isLoading) return;
+    setNotesError("");
+    setNotesSaved(false);
+    try {
+      await updateNotes({
+        periodId,
+        registration_notes: notesDraft.trim() || null,
+      }).unwrap();
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2500);
+    } catch (e) {
+      setNotesError(e instanceof ApiError ? e.message : t("periods.regErrSaveNotes"));
+    }
+  }
 
   const regLink = `${window.location.origin}/register-member/${periodId}`;
   const [copied, setCopied] = useState(false);
@@ -97,7 +163,7 @@ function AdminPaymentsPanel({
     try {
       await setRegStatus({ periodId, is_registration_open: !isRegistrationOpen }).unwrap();
     } catch (e) {
-      setRegError(e instanceof ApiError ? e.message : "Gagal mengubah status pendaftaran.");
+      setRegError(e instanceof ApiError ? e.message : t("periods.regErrToggle"));
     }
   }
 
@@ -134,7 +200,7 @@ function AdminPaymentsPanel({
       }
       setDeleteTarget(null);
     } catch (e) {
-      setDeleteError(e instanceof ApiError ? e.message : "Gagal menghapus pembayaran.");
+      setDeleteError(e instanceof ApiError ? e.message : t("periods.regErrDelete"));
     }
   }
 
@@ -150,7 +216,7 @@ function AdminPaymentsPanel({
       }).unwrap();
       setVerifyTarget(null);
     } catch (e) {
-      setVerifyError(e instanceof ApiError ? e.message : "Gagal memverifikasi pembayaran.");
+      setVerifyError(e instanceof ApiError ? e.message : t("periods.regErrVerify"));
     }
   }
 
@@ -162,25 +228,25 @@ function AdminPaymentsPanel({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
         <div>
           <h2 className="text-sm font-bold text-ink">
-            Pendaftaran Member Online
+            {t("periods.regPanelTitle")}
             {pendingCount > 0 && (
               <span className="ml-2 inline-block rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                {pendingCount} pending
+                {t("periods.regPendingBadge", { count: pendingCount })}
               </span>
             )}
           </h2>
           <p className="text-xs text-ink-faint mt-0.5">
-            Status:{" "}
+            {t("periods.regStatusLabel")}{" "}
             <span className={`font-semibold ${isRegistrationOpen ? "text-lime" : "text-red-700"}`}>
-              {isRegistrationOpen ? "Buka" : "Tutup"}
+              {isRegistrationOpen ? t("periods.regStatusOpen") : t("periods.regStatusClosed")}
             </span>
             {" · "}
-            Slot:{" "}
+            {t("periods.regSlotLabel")}{" "}
             <span className={`font-semibold ${maxMembers && currentMembers >= maxMembers ? "text-red-700" : "text-ink"}`}>
-              {currentMembers}{maxMembers ? `/${maxMembers}` : ""} member
+              {currentMembers}{maxMembers ? `/${maxMembers}` : ""} {t("periods.regSlotUnit")}
             </span>
             {maxMembers && currentMembers >= maxMembers && (
-              <span className="ml-1 text-[10px] font-bold text-red-600">(Penuh)</span>
+              <span className="ml-1 text-[10px] font-bold text-red-600">{t("periods.regSlotFull")}</span>
             )}
           </p>
         </div>
@@ -191,7 +257,7 @@ function AdminPaymentsPanel({
               onClick={copyLink}
               className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-court/30 transition-colors"
             >
-              {copied ? "✓ Link disalin" : "Salin link daftar"}
+              {copied ? t("periods.regLinkCopied") : t("periods.regCopyLink")}
             </button>
             <button
               type="button"
@@ -203,13 +269,208 @@ function AdminPaymentsPanel({
                   : "bg-paper text-lime hover:bg-lime-200"
               }`}
             >
-              {regState.isLoading ? "…" : isRegistrationOpen ? "Tutup Pendaftaran" : "Buka Pendaftaran"}
+              {regState.isLoading ? "…" : isRegistrationOpen ? t("periods.regCloseBtn") : t("periods.regOpenBtn")}
             </button>
           </div>
         )}
       </div>
 
       {regError && <p className="px-4 py-2 text-xs text-red-600">{regError}</p>}
+
+      {/* Registration Expiration Deadline (GMT+7 / WIB) */}
+      <div className="border-b border-line bg-court/10 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-ink">{t("periods.regDeadlineLabel")}:</span>
+            {period.registration_expires_at ? (
+              <>
+                <span className="text-xs font-semibold text-ink">
+                  {formatGmt7DateTime(period.registration_expires_at, lang)}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    isDeadlineExpired ? "bg-red-100 text-red-800" : "bg-paper text-lime-deep"
+                  }`}
+                >
+                  {isDeadlineExpired ? t("periods.regDeadlineExpiredBadge") : t("periods.regDeadlineActiveBadge")}
+                </span>
+              </>
+            ) : (
+              <span className="text-xs text-ink-faint">{t("periods.regDeadlineNone")}</span>
+            )}
+            {deadlineSaved && (
+              <span className="text-[11px] font-semibold text-lime-deep">✓ {t("periods.regDeadlineSaved")}</span>
+            )}
+          </div>
+          {!done && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeadlineOpen((v) => !v);
+                setDeadlineError("");
+              }}
+              className="rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink-soft hover:bg-court/30 transition-colors"
+            >
+              {deadlineOpen ? t("periods.regDeadlineCloseEditor") : t("periods.regDeadlineEditBtn")}
+            </button>
+          )}
+        </div>
+
+        {deadlineOpen && !done && (
+          <div className="mt-3 flex flex-wrap items-end gap-2.5">
+            <div className="min-w-[230px] flex-1 max-w-xs">
+              <label htmlFor="reg-deadline-input" className="block text-[11px] font-semibold text-ink-soft mb-1">
+                {t("periods.regDeadlineInputLabel")}
+              </label>
+              <input
+                id="reg-deadline-input"
+                type="datetime-local"
+                className="w-full rounded-lg border border-line bg-white px-3 py-1.5 text-xs text-ink focus:border-pine focus:outline-none"
+                value={deadlineDraft}
+                onChange={(e) => {
+                  setDeadlineDraft(e.target.value);
+                  setDeadlineError("");
+                  setDeadlineSaved(false);
+                }}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {period.registration_expires_at && (
+                <button
+                  type="button"
+                  disabled={regState.isLoading}
+                  onClick={() => {
+                    setDeadlineDraft("");
+                    saveDeadline("");
+                  }}
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {t("periods.regDeadlineClearBtn")}
+                </button>
+              )}
+              <Btn disabled={regState.isLoading || !deadlineDirty} onClick={() => saveDeadline(deadlineDraft)}>
+                {regState.isLoading ? t("periods.btnSavingSettings") : t("periods.regDeadlineSaveBtn")}
+              </Btn>
+            </div>
+            <p className="w-full text-[11px] text-ink-faint">{t("periods.hintRegExpiresAt")}</p>
+            {deadlineError && <p className="w-full text-xs text-red-600">{deadlineError}</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Custom Member Registration Notes / S&K */}
+      <div className="border-b border-line bg-court/15 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-ink">{t("periods.regNotesTitle")}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                savedNotes.trim() ? "bg-paper text-lime-deep" : "bg-gray-100 text-ink-faint"
+              }`}
+            >
+              {savedNotes.trim() ? t("periods.regNotesActive") : t("periods.regNotesEmpty")}
+            </span>
+          </div>
+          {!done && (
+            <button
+              type="button"
+              onClick={() => {
+                setNotesOpen((v) => !v);
+                setNotesError("");
+              }}
+              className="rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink-soft hover:bg-court/30 transition-colors"
+            >
+              {notesOpen
+                ? t("periods.regNotesCloseEditor")
+                : savedNotes.trim()
+                ? t("periods.regNotesEditBtn")
+                : t("periods.regNotesAddBtn")}
+            </button>
+          )}
+        </div>
+
+        {!notesOpen && savedNotes.trim() && (
+          <div className="mt-2 rounded-lg border border-line/80 bg-white px-3 py-2 text-xs leading-relaxed text-ink-soft whitespace-pre-line">
+            {savedNotes}
+          </div>
+        )}
+
+        {notesOpen && !done && (
+          <div className="mt-3 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] text-ink-faint">
+                {t("periods.regNotesEditorHint")}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotesDraft(
+                      buildRegistrationNotesTemplate({
+                        start_date: period.start_date,
+                        end_date: period.end_date,
+                        number_of_sessions: period.number_of_sessions,
+                        max_members: period.max_members,
+                        member_contribution: period.member_contribution,
+                        non_member_fee: period.non_member_fee,
+                      })
+                    );
+                    setNotesSaved(false);
+                  }}
+                  className="text-xs font-semibold text-pine hover:underline"
+                >
+                  {t("periods.btnFillTemplate")}
+                </button>
+                {notesDraft.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotesDraft("");
+                      setNotesSaved(false);
+                    }}
+                    className="text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    {t("periods.regNotesClear")}
+                  </button>
+                )}
+              </div>
+            </div>
+            <textarea
+              rows={8}
+              value={notesDraft}
+              onChange={(e) => {
+                setNotesDraft(e.target.value);
+                setNotesSaved(false);
+              }}
+              placeholder={t("periods.regNotesPlaceholder")}
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs leading-relaxed text-ink focus:border-pine focus:outline-none"
+            />
+            {notesError && <p className="text-xs text-red-600">{notesError}</p>}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-ink-faint">
+                {notesSaved ? t("periods.regNotesSaved") : notesDirty ? t("periods.regNotesDirty") : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                {notesDirty && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotesDraft(savedNotes);
+                      setNotesError("");
+                    }}
+                    className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-court/30 transition-colors"
+                  >
+                    {t("periods.btnCancel")}
+                  </button>
+                )}
+                <Btn disabled={notesState.isLoading || !notesDirty} onClick={saveNotes}>
+                  {notesState.isLoading ? t("periods.btnSavingSettings") : t("periods.regNotesSaveBtn")}
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Filter */}
       <div className="flex gap-1 border-b border-line px-4 py-2">
@@ -222,7 +483,7 @@ function AdminPaymentsPanel({
               statusFilter === s ? "bg-pine text-white" : "bg-court/30 text-ink-soft hover:bg-court/60"
             }`}
           >
-            {s === "ALL" ? "Semua" : PAYMENT_STATUS_LABEL[s] ?? s}
+            {s === "ALL" ? t("periods.regFilterAll") : paymentStatusLabel[s] ?? s}
           </button>
         ))}
       </div>
@@ -230,17 +491,17 @@ function AdminPaymentsPanel({
       {payments.isFetching && !payments.data ? (
         <Loading />
       ) : list.length === 0 ? (
-        <div className="p-4"><Empty text="Belum ada pembayaran." /></div>
+        <div className="p-4"><Empty text={t("periods.regEmptyPayments")} /></div>
       ) : (
         <div className="overflow-x-auto">
           <table className="data">
             <thead>
               <tr>
-                <th>Pemain</th>
-                <th className="text-right">Nominal</th>
-                <th>Status</th>
-                <th>Tgl Bayar</th>
-                <th>Bukti</th>
+                <th>{t("periods.regColPlayer")}</th>
+                <th className="text-right">{t("periods.regColAmount")}</th>
+                <th>{t("periods.regColStatus")}</th>
+                <th>{t("periods.regColPaidAt")}</th>
+                <th>{t("periods.regColProof")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -257,7 +518,7 @@ function AdminPaymentsPanel({
                   </td>
                   <td>
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${PAYMENT_STATUS_CLASS[p.status] ?? "bg-gray-100 text-gray-700"}`}>
-                      {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                      {paymentStatusLabel[p.status] ?? p.status}
                     </span>
                   </td>
                   <td className="whitespace-nowrap text-xs">{p.paid_at ?? "—"}</td>
@@ -268,7 +529,7 @@ function AdminPaymentsPanel({
                         onClick={() => openProofViewer(p)}
                         className="text-xs text-pine underline hover:text-pine-dark transition-colors"
                       >
-                        Lihat
+                        {t("periods.regViewProof")}
                       </button>
                     ) : "—"}
                   </td>
@@ -281,14 +542,14 @@ function AdminPaymentsPanel({
                             onClick={() => openVerify(p, "PAID")}
                             className="rounded-full bg-paper px-2.5 py-0.5 text-xs font-semibold text-lime-deep hover:bg-lime-200 transition-colors"
                           >
-                            Lunas
+                            {t("periods.regActionPaid")}
                           </button>
                           <button
                             type="button"
                             onClick={() => openVerify(p, "FAILED")}
                             className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 hover:bg-red-200 transition-colors"
                           >
-                            Tolak
+                            {t("periods.regActionReject")}
                           </button>
                         </>
                       )}
@@ -296,9 +557,9 @@ function AdminPaymentsPanel({
                         type="button"
                         onClick={() => openDelete(p)}
                         className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 hover:bg-red-100 hover:text-red-800 transition-colors"
-                        title="Hapus data pendaftaran"
+                        title={t("periods.regDeleteBtnTitle")}
                       >
-                        Hapus
+                        {t("periods.regActionDelete")}
                       </button>
                     </span>
                   </td>
@@ -314,7 +575,7 @@ function AdminPaymentsPanel({
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
             {/* Header */}
             <div className="sticky top-0 border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3 flex items-center justify-between">
-              <h3 className="font-bold text-ink">Bukti Pembayaran — {proofTarget.player_name}</h3>
+              <h3 className="font-bold text-ink">{t("periods.regProofTitle", { name: proofTarget.player_name ?? "" })}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -334,24 +595,24 @@ function AdminPaymentsPanel({
                 <div className="rounded-lg border border-line bg-gray-50 overflow-hidden">
                   <img
                     src={proofTarget.proof_url}
-                    alt="Bukti pembayaran"
+                    alt={t("periods.regColProof")}
                     className="w-full h-auto max-h-[500px] object-contain"
                   />
                 </div>
               ) : (
                 <div className="rounded-lg border border-line bg-gray-50 p-8 text-center text-sm text-ink-faint">
-                  Bukti tidak tersedia
+                  {t("periods.regProofUnavailable")}
                 </div>
               )}
 
               {/* Payment Details */}
               <div className="rounded-lg border border-line bg-white p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-ink-faint">Pemain</span>
+                  <span className="text-ink-faint">{t("periods.regColPlayer")}</span>
                   <span className="font-medium text-ink">{proofTarget.player_name}</span>
                 </div>
                 <div className="flex justify-between text-sm border-t border-line pt-2">
-                  <span className="text-ink-faint">Nominal</span>
+                  <span className="text-ink-faint">{t("periods.regColAmount")}</span>
                   <div className="text-right">
                     <div className="font-bold text-ink tabular-nums">{rupiah(proofTarget.total_amount)}</div>
                     <div className="text-xs text-ink-faint">+{String(proofTarget.unique_code).padStart(3, "0")}</div>
@@ -359,14 +620,14 @@ function AdminPaymentsPanel({
                 </div>
                 {proofTarget.paid_at && (
                   <div className="flex justify-between text-sm border-t border-line pt-2">
-                    <span className="text-ink-faint">Tanggal Bayar</span>
+                    <span className="text-ink-faint">{t("periods.regColPaidAt")}</span>
                     <span className="font-medium text-ink">{proofTarget.paid_at}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm border-t border-line pt-2">
-                  <span className="text-ink-faint">Status</span>
+                  <span className="text-ink-faint">{t("periods.regColStatus")}</span>
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${PAYMENT_STATUS_CLASS[proofTarget.status] ?? "bg-gray-100 text-gray-700"}`}>
-                    {PAYMENT_STATUS_LABEL[proofTarget.status] ?? proofTarget.status}
+                    {paymentStatusLabel[proofTarget.status] ?? proofTarget.status}
                   </span>
                 </div>
               </div>
@@ -380,14 +641,14 @@ function AdminPaymentsPanel({
                       onClick={() => openVerify(proofTarget, "PAID")}
                       className="flex-1 rounded-lg bg-paper px-4 py-2 font-semibold text-lime-deep hover:bg-lime-200 transition-colors"
                     >
-                      ✓ Lunas
+                      ✓ {t("periods.regActionPaid")}
                     </button>
                     <button
                       type="button"
                       onClick={() => openVerify(proofTarget, "FAILED")}
                       className="flex-1 rounded-lg bg-red-100 px-4 py-2 font-semibold text-red-800 hover:bg-red-200 transition-colors"
                     >
-                      ✕ Tolak
+                      ✕ {t("periods.regActionReject")}
                     </button>
                   </>
                 )}
@@ -399,7 +660,7 @@ function AdminPaymentsPanel({
                   }}
                   className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-semibold text-red-700 hover:bg-red-100 transition-colors"
                 >
-                  Hapus
+                  {t("periods.regActionDelete")}
                 </button>
               </div>
             </div>
@@ -409,22 +670,29 @@ function AdminPaymentsPanel({
 
       {verifyTarget && (
         <ConfirmModal
-          title={verifyAction === "PAID" ? `Konfirmasi Lunas — ${verifyTarget.player_name}` : `Tolak Pembayaran — ${verifyTarget.player_name}`}
+          title={
+            verifyAction === "PAID"
+              ? `${t("periods.regVerifyPaidTitle")} — ${verifyTarget.player_name}`
+              : `${t("periods.regVerifyRejectTitle")} — ${verifyTarget.player_name}`
+          }
           body={
             <>
               <p className="text-sm">
                 {verifyAction === "PAID"
-                  ? `Tandai pembayaran ${rupiah(verifyTarget.total_amount)} sebagai LUNAS? Pemain akan otomatis terdaftar sebagai member.`
-                  : `Tolak pembayaran ${rupiah(verifyTarget.total_amount)}? Pemain dapat mendaftar ulang.`}
+                  ? t("periods.regVerifyPaidBody", {
+                      name: verifyTarget.player_name ?? "",
+                      amount: rupiah(verifyTarget.total_amount),
+                    })
+                  : t("periods.regVerifyRejectBody", { name: verifyTarget.player_name ?? "" })}
               </p>
               {verifyAction === "FAILED" && (
                 <div className="mt-3">
-                  <Field label="Alasan penolakan (opsional)">
+                  <Field label={t("periods.regRejectReasonLabel")}>
                     <input
                       className="w-full"
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      placeholder="Misal: nominal tidak sesuai"
+                      placeholder={t("periods.regRejectReasonPlaceholder")}
                     />
                   </Field>
                 </div>
@@ -432,7 +700,13 @@ function AdminPaymentsPanel({
               {verifyError && <p className="mt-2 text-xs text-red-600">{verifyError}</p>}
             </>
           }
-          confirmLabel={verifyState.isLoading ? "Menyimpan…" : verifyAction === "PAID" ? "Ya, Lunas" : "Ya, Tolak"}
+          confirmLabel={
+            verifyState.isLoading
+              ? t("periods.btnSavingSettings")
+              : verifyAction === "PAID"
+              ? t("periods.regConfirmPaidBtn")
+              : t("periods.regConfirmRejectBtn")
+          }
           busy={verifyState.isLoading}
           onConfirm={confirmVerify}
           onCancel={() => setVerifyTarget(null)}
@@ -441,31 +715,29 @@ function AdminPaymentsPanel({
 
       {deleteTarget && (
         <ConfirmModal
-          title={`Hapus Pendaftaran — ${deleteTarget.player_name}`}
+          title={`${t("periods.regDeleteTitle")} — ${deleteTarget.player_name}`}
           body={
             <>
               <p className="text-sm">
-                Apakah Anda yakin ingin menghapus data pembayaran pendaftaran untuk{" "}
-                <strong className="font-semibold text-ink">{deleteTarget.player_name}</strong> sebesar{" "}
-                <strong className="font-semibold text-ink">{rupiah(deleteTarget.total_amount)}</strong>?
+                {t("periods.regDeleteBody", { name: deleteTarget.player_name ?? "" })}
               </p>
               {deleteTarget.status === "PAID" ? (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                  <strong>Perhatian:</strong> Status pembayaran ini sudah <strong>LUNAS</strong>. Menghapusnya akan otomatis mencabut keanggotaan member dari periode ini dan menghapus pencatatan pemasukan commitment fee.
+                  {t("periods.regDeleteWarnPaid")}
                 </div>
               ) : deleteTarget.status === "PENDING" ? (
                 <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
-                  Pembayaran ini sedang menunggu verifikasi (<strong>PENDING</strong>). Menghapusnya akan membatalkan transaksi dan pemain dapat mendaftar kembali.
+                  {t("periods.regDeleteWarnPending")}
                 </div>
               ) : (
                 <div className="mt-3 text-xs text-ink-faint">
-                  Data pembayaran dan bukti transfer yang diunggah akan dihapus secara permanen.
+                  {t("periods.regDeleteWarnDefault")}
                 </div>
               )}
               {deleteError && <p className="mt-2 text-xs text-red-600 font-semibold">{deleteError}</p>}
             </>
           }
-          confirmLabel={deleteState.isLoading ? "Menghapus…" : "Ya, Hapus"}
+          confirmLabel={deleteState.isLoading ? t("periods.btnDeleting") : t("periods.regConfirmDeleteBtn")}
           confirmVariant="danger"
           busy={deleteState.isLoading}
           onConfirm={confirmDelete}
@@ -482,7 +754,7 @@ function AdminPaymentsPanel({
 export function PeriodDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const [error, setError] = useState("");
   const [pick, setPick] = useState("");
   const [newName, setNewName] = useState("");
@@ -509,7 +781,7 @@ export function PeriodDetailPage() {
       setWithdrawFor(null);
       setWithdrawError("");
     } catch (e) {
-      setWithdrawError(e instanceof ApiError ? e.message : "Could not withdraw member.");
+      setWithdrawError(e instanceof ApiError ? e.message : t("periods.errorWithdrawMember"));
     }
   }
   const [createPlayer, createState] = useCreatePlayerMutation();
@@ -536,6 +808,8 @@ export function PeriodDetailPage() {
     shuttle_per_session: 24,
     status: "DRAFT",
     max_members: null as number | null,
+    registration_notes: "",
+    registration_expires_at: "",
   });
 
   useEffect(() => {
@@ -555,12 +829,14 @@ export function PeriodDetailPage() {
         shuttle_per_session: p.shuttle_per_session ?? 24,
         status: p.status || "DRAFT",
         max_members: p.max_members ?? null,
+        registration_notes: p.registration_notes ?? "",
+        registration_expires_at: utcIsoToGmt7Input(p.registration_expires_at),
       });
     }
   }, [summary.data]);
 
   if (summary.isFetching && !summary.data) return <Loading />;
-  if (summary.isError || !summary.data) return <ErrorBox message="Could not load period." onRetry={() => summary.refetch()} />;
+  if (summary.isError || !summary.data) return <ErrorBox message={t("periods.errorLoadPeriod")} onRetry={() => summary.refetch()} />;
 
   const s = summary.data;
   const proj = s.projection;
@@ -604,7 +880,7 @@ export function PeriodDetailPage() {
       setPick("");
       setError("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not add member.");
+      setError(e instanceof ApiError ? e.message : t("periods.errorAddMember"));
     }
   }
 
@@ -638,7 +914,7 @@ export function PeriodDetailPage() {
       setPayNote("");
       setPayError("");
     } catch (e) {
-      setPayError(e instanceof ApiError ? e.message : "Could not record payment.");
+      setPayError(e instanceof ApiError ? e.message : t("periods.errorRecordPayment"));
     }
   }
 
@@ -649,7 +925,7 @@ export function PeriodDetailPage() {
       (m) => m.player_name.toLowerCase() === name.toLowerCase(),
     );
     if (alreadyMember) {
-      setError(`"${alreadyMember.player_name}" is already registered as a member.`);
+      setError(t("periods.errorAlreadyMember", { name: alreadyMember.player_name }));
       return;
     }
     try {
@@ -666,7 +942,7 @@ export function PeriodDetailPage() {
       setNewName("");
       setError("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not add new member.");
+      setError(e instanceof ApiError ? e.message : t("periods.errorAddNewMember"));
     }
   }
 
@@ -676,7 +952,7 @@ export function PeriodDetailPage() {
       setPendingComplete(false);
       setError("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not complete period.");
+      setError(e instanceof ApiError ? e.message : t("periods.errorCompletePeriod"));
       setPendingComplete(false);
     }
   }
@@ -689,7 +965,7 @@ export function PeriodDetailPage() {
       if (e instanceof ApiError && e.code === "PERIOD_HAS_HISTORY" && !forceArmed) {
         setForceArmed(true);
       } else {
-        setError(e instanceof ApiError ? e.message : "Could not delete period.");
+        setError(e instanceof ApiError ? e.message : t("periods.errorDeletePeriod"));
         setPendingDelete(false);
         setForceArmed(false);
       }
@@ -700,7 +976,10 @@ export function PeriodDetailPage() {
     <div>
       <PageHead
         title={s.period.name}
-        sub={`${dateId(s.period.start_date)} – ${dateId(s.period.end_date)} · ${s.sessions} sessions`}
+        sub={t("periods.subSessionsCount", {
+          dates: `${dateFormatted(s.period.start_date)} – ${dateFormatted(s.period.end_date)}`,
+          count: s.sessions,
+        })}
         right={
           <>
             <Badge status={s.period.status} />
@@ -715,21 +994,18 @@ export function PeriodDetailPage() {
                         ...form,
                         name: form.name.trim(),
                         status: "ACTIVE",
+                        registration_expires_at: form.registration_expires_at
+                          ? (gmt7InputToUtcIso(form.registration_expires_at) ?? "")
+                          : "",
                       },
                     }).unwrap();
                     setError("");
                   } catch (e) {
-                    setError(e instanceof ApiError ? e.message : "Could not activate period.");
+                    setError(e instanceof ApiError ? e.message : t("periods.errorActivatePeriod"));
                   }
                 }}
               >
-                {updateState.isLoading
-                  ? lang === "id"
-                    ? "Mengaktifkan…"
-                    : "Activating…"
-                  : lang === "id"
-                  ? "Aktifkan Periode"
-                  : "Activate period"}
+                {updateState.isLoading ? t("periods.btnActivating") : t("periods.btnActivatePeriod")}
               </Btn>
             )}
             {!done && s.period.status !== "DRAFT" && (
@@ -738,7 +1014,7 @@ export function PeriodDetailPage() {
                 disabled={completeState.isLoading}
                 onClick={() => setPendingComplete(true)}
               >
-                Complete period
+                {t("periods.btnCompletePeriod")}
               </Btn>
             )}
             <DeleteRowButton onClick={() => { setPendingDelete(true); setForceArmed(false); }} />
@@ -747,12 +1023,12 @@ export function PeriodDetailPage() {
       />
       {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}
 
-      <section aria-label="Period projection" className="mb-5 rounded-xl border border-pine/30 bg-white shadow-card overflow-hidden">
+      <section aria-label={t("periods.projTitle", { members: s.member_count, sessions: proj.sessions })} className="mb-5 rounded-xl border border-pine/30 bg-white shadow-card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-pine/20 bg-gradient-to-r from-pine to-pine-deep px-4 py-3 text-paper">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
             <h2 className="text-sm font-bold tracking-tight">
-              Period projection · {s.member_count} members · {proj.sessions} sessions
+              {t("periods.projTitle", { members: s.member_count, sessions: proj.sessions })}
             </h2>
           </div>
           {!done && (
@@ -761,46 +1037,81 @@ export function PeriodDetailPage() {
               className="rounded-lg border border-paper/25 bg-white/10 px-3 py-1 text-xs font-semibold text-paper hover:bg-white/20 transition-colors"
               onClick={() => setEditing((v) => !v)}
             >
-              {editing ? "Close settings" : "Edit period"}
+              {editing ? t("periods.btnCloseSettings") : t("periods.btnEditPeriod")}
             </button>
           )}
         </div>
         <dl className="grid grid-cols-2 divide-x divide-line/70 sm:grid-cols-4 bg-gradient-to-b from-lime-50/25 to-white">
-          <Cell label="Profit full" value={rupiah(proj.profit_full)} sub={`${proj.status_full} · full attendance`} highlight={proj.profit_full >= 0 ? "lime" : "rose"} />
-          <Cell label="Revenue full" value={rupiah(proj.revenue_full)} sub={`Member price ${rupiah(s.commitment_total)}`} />
-          <Cell label="Projected cost" value={rupiah(proj.operating_cost)} sub={`Courts ${rupiah(proj.venue_total)} · Shuttles ${rupiah(proj.shuttle_cost)}`} />
-          <Cell label="Projected shuttles" value={`${proj.shuttle_units} pcs`} sub={`${proj.shuttle_per_session}/session · ${s.shuttlecock_used} used`} />
+          <Cell
+            label={t("periods.projProfitFull")}
+            value={rupiah(proj.profit_full)}
+            sub={t("periods.projFullAttendanceSub", { status: t(`status.${proj.status_full}`) })}
+            highlight={proj.profit_full >= 0 ? "lime" : "rose"}
+          />
+          <Cell
+            label={t("periods.projRevenueFull")}
+            value={rupiah(proj.revenue_full)}
+            sub={t("periods.projMemberPriceSub", { amount: rupiah(s.commitment_total) })}
+          />
+          <Cell
+            label={t("periods.projProjectedCost")}
+            value={rupiah(proj.operating_cost)}
+            sub={t("periods.projCostSub", { courts: rupiah(proj.venue_total), shuttles: rupiah(proj.shuttle_cost) })}
+          />
+          <Cell
+            label={t("periods.projProjectedShuttles")}
+            value={`${proj.shuttle_units} pcs`}
+            sub={t("periods.projShuttlesSub", { perSession: proj.shuttle_per_session, used: s.shuttlecock_used })}
+          />
         </dl>
         <dl className="grid grid-cols-2 divide-x divide-line/70 border-t border-line/70 sm:grid-cols-4 bg-white">
-          <Cell label="Billed so far" value={rupiah(proj.revenue_billed)} sub={`${s.member_present} member visits · ${s.non_member_present} non-member`} />
-          <Cell label="Running profit" value={rupiah(proj.profit_billed)} sub="Billed (incl. iuran) − court total − shuttles" highlight={proj.profit_billed >= 0 ? "lime" : "rose"} />
-          <Cell label="Actual cash" value={rupiah(s.cash_flow)} sub={`In ${rupiah(s.cash_in)} · Out ${rupiah(s.cash_out)}`} />
-          <Cell label="Actual profit" value={rupiah(s.operating_profit)} sub={`Iuran ${rupiah(s.total_revenue)} · cost ${rupiah(s.operating_cost)}`} highlight={s.operating_profit >= 0 ? "lime" : "rose"} />
+          <Cell
+            label={t("periods.projBilledSoFar")}
+            value={rupiah(proj.revenue_billed)}
+            sub={t("periods.projBilledSub", { memberVisits: s.member_present, nonMemberVisits: s.non_member_present })}
+          />
+          <Cell
+            label={t("periods.projRunningProfit")}
+            value={rupiah(proj.profit_billed)}
+            sub={t("periods.projRunningSub")}
+            highlight={proj.profit_billed >= 0 ? "lime" : "rose"}
+          />
+          <Cell
+            label={t("periods.projActualCash")}
+            value={rupiah(s.cash_flow)}
+            sub={t("periods.projCashSub", { in: rupiah(s.cash_in), out: rupiah(s.cash_out) })}
+          />
+          <Cell
+            label={t("periods.projActualProfit")}
+            value={rupiah(s.operating_profit)}
+            sub={t("periods.projActualSub", { iuran: rupiah(s.total_revenue), cost: rupiah(s.operating_cost) })}
+            highlight={s.operating_profit >= 0 ? "lime" : "rose"}
+          />
         </dl>
         {editing && !done && (
           <div className="grid gap-2 border-t border-line p-3 sm:grid-cols-4">
-            <Field label="Name">
+            <Field label={t("periods.editName")}>
               <input id="edit-nama" className="w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
-            <Field label="Status">
+            <Field label={t("periods.editStatus")}>
               <select
                 id="edit-status"
                 className="w-full"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                <option value="DRAFT">DRAFT (Konsep)</option>
-                <option value="ACTIVE">ACTIVE (Aktif)</option>
+                <option value="DRAFT">{t("periods.editStatusDraft")}</option>
+                <option value="ACTIVE">{t("periods.editStatusActive")}</option>
               </select>
             </Field>
-            <Field label="Quota (Max members)" hint="Leave blank or 0 for unlimited">
+            <Field label={t("periods.fieldQuota")} hint={t("periods.editQuotaHint")}>
               <input
                 id="edit-max-members"
                 type="number"
                 min={0}
                 className="w-full"
                 value={form.max_members ?? ""}
-                placeholder="Unlimited"
+                placeholder={t("periods.placeholderUnlimited")}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -809,46 +1120,100 @@ export function PeriodDetailPage() {
                 }
               />
             </Field>
-            <Field label="Start">
+            <Field label={t("periods.fieldRegExpiresAt")} hint={t("periods.hintRegExpiresAt")}>
+              <input
+                id="edit-reg-expires-at"
+                type="datetime-local"
+                className="w-full"
+                value={form.registration_expires_at}
+                onChange={(e) => setForm({ ...form, registration_expires_at: e.target.value })}
+              />
+            </Field>
+            <Field label={t("periods.editStart")}>
               <input id="edit-mulai" type="date" className="w-full" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
             </Field>
-            <Field label="End">
+            <Field label={t("periods.editEnd")}>
               <input id="edit-selesai" type="date" className="w-full" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
             </Field>
-            <Field label="Sessions" hint="Used when no weekdays set.">
+            <Field label={t("periods.editSessions")} hint={t("periods.editSessionsHint")}>
               <input id="edit-sesi" type="number" min={1} className="w-full" value={form.number_of_sessions} onChange={(e) => setForm({ ...form, number_of_sessions: Number(e.target.value) })} />
             </Field>
-            <Field label="Member price (Rp)">
+            <Field label={t("periods.editMemberPrice")}>
               <MoneyInput id="edit-komitmen" value={form.commitment_fee} onChange={(n) => setForm({ ...form, commitment_fee: n })} />
             </Field>
-            <Field label="Contribution/session (Rp)">
+            <Field label={t("periods.editContribution")}>
               <MoneyInput id="edit-kontribusi" value={form.member_contribution} onChange={(n) => setForm({ ...form, member_contribution: n })} />
             </Field>
-            <Field label="Non-member (Rp)">
+            <Field label={t("periods.editNonMember")}>
               <MoneyInput id="edit-nonmember" value={form.non_member_fee} onChange={(n) => setForm({ ...form, non_member_fee: n })} />
             </Field>
-            <Field label="Total court (Rp)">
+            <Field label={t("periods.editTotalCourt")}>
               <MoneyInput id="edit-lapangan" value={form.venue_cost_total} onChange={(n) => setForm({ ...form, venue_cost_total: n })} />
             </Field>
-            <Field label="Shuttle/pack (Rp)">
+            <Field label={t("periods.editShuttlePack")}>
               <MoneyInput id="edit-kok" value={form.shuttle_pack_price} onChange={(n) => setForm({ ...form, shuttle_pack_price: n })} />
             </Field>
-            <Field label="Units/pack">
+            <Field label={t("periods.editUnitsPack")}>
               <input id="edit-isi" type="number" min={1} className="w-full" value={form.shuttle_units_per_pack} onChange={(e) => setForm({ ...form, shuttle_units_per_pack: Number(e.target.value) })} />
             </Field>
-            <Field label="Shuttles/session">
+            <Field label={t("periods.editShuttlesSession")}>
               <input id="edit-koksesi" type="number" min={0} className="w-full" value={form.shuttle_per_session} onChange={(e) => setForm({ ...form, shuttle_per_session: Number(e.target.value) })} />
             </Field>
+            <div className="sm:col-span-4 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="edit-registration-notes" className="text-xs font-semibold text-ink-soft">
+                  {t("periods.fieldNotes")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      registration_notes: buildRegistrationNotesTemplate({
+                        start_date: form.start_date,
+                        end_date: form.end_date,
+                        number_of_sessions: form.number_of_sessions,
+                        max_members: form.max_members,
+                        member_contribution: form.member_contribution,
+                        non_member_fee: form.non_member_fee,
+                      }),
+                    })
+                  }
+                  className="text-xs font-semibold text-pine hover:underline"
+                >
+                  {t("periods.btnFillTemplate")}
+                </button>
+              </div>
+              <textarea
+                id="edit-registration-notes"
+                rows={5}
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs leading-relaxed text-ink focus:border-pine focus:outline-none"
+                placeholder={t("periods.placeholderNotes")}
+                value={form.registration_notes}
+                onChange={(e) => setForm({ ...form, registration_notes: e.target.value })}
+              />
+            </div>
             <div className="sm:col-span-4">
               <Btn
                 disabled={updateState.isLoading || !form.name.trim() || !form.start_date || !form.end_date}
                 onClick={() => {
+                  let expiresUtc = "";
+                  if (form.registration_expires_at) {
+                    const converted = gmt7InputToUtcIso(form.registration_expires_at);
+                    if (!converted) {
+                      setError(t("periods.regErrSaveDeadline"));
+                      return;
+                    }
+                    expiresUtc = converted;
+                  }
                   update({
                     id,
                     body: {
                       ...form,
                       name: form.name.trim(),
                       max_members: form.max_members ? Number(form.max_members) : 0,
+                      registration_notes: form.registration_notes.trim() || "",
+                      registration_expires_at: expiresUtc,
                     },
                   })
                     .unwrap()
@@ -856,33 +1221,42 @@ export function PeriodDetailPage() {
                       setEditing(false);
                       setError("");
                     })
-                    .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not save settings."));
+                    .catch((e: unknown) => setError(e instanceof ApiError ? e.message : t("periods.errorSaveSettings")));
                 }}
               >
-                {updateState.isLoading ? "Saving…" : "Save settings"}
+                {updateState.isLoading ? t("periods.btnSavingSettings") : t("periods.btnSaveSettings")}
               </Btn>
             </div>
           </div>
         )}
       </section>
 
-      <section aria-label="Period finances" className="mb-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+      <section aria-label={t("periods.financesTitle")} className="mb-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
         <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/30 to-white px-4 py-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Period Finances & Cash Balance</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">{t("periods.financesTitle")}</h2>
         </div>
         <dl className="grid grid-cols-2 divide-x divide-line sm:grid-cols-4 bg-white">
-          <Cell label="Operating profit" value={rupiah(s.operating_profit)} sub={`${s.status === "PROFIT" ? "Profit" : s.status === "LOSS" ? "Loss" : "Break-even"} · iuran − kok`} highlight={s.operating_profit >= 0 ? "lime" : "rose"} />
-          <Cell label="Commitment fees (iuran)" value={rupiah(s.total_revenue)} sub="Money in from memberships · session dues below" />
           <Cell
-            label="Operating cost"
+            label={t("periods.financesProfit")}
+            value={rupiah(s.operating_profit)}
+            sub={`${t(`status.${s.status}`)} · ${t("periods.financesProfitSub")}`}
+            highlight={s.operating_profit >= 0 ? "lime" : "rose"}
+          />
+          <Cell label={t("periods.financesFees")} value={rupiah(s.total_revenue)} sub={t("periods.financesFeesSub")} />
+          <Cell
+            label={t("periods.financesCost")}
             value={rupiah(s.operating_cost)}
             sub={
               s.total_venue_cost > 0
-                ? `Courts ${rupiah(s.total_venue_cost)} · Shuttles ${rupiah(s.shuttlecock_usage_cost)}`
-                : `Shuttles ${rupiah(s.shuttlecock_usage_cost)} · court rental counted per night below`
+                ? t("periods.financesCostWithCourtSub", { court: rupiah(s.total_venue_cost) })
+                : t("periods.financesCostNoCourtSub")
             }
           />
-          <Cell label="Cash flow" value={rupiah(s.cash_flow)} sub={`Out ${rupiah(s.cash_out)} · stock ${s.shuttlecock_stock} pcs`} />
+          <Cell
+            label={t("periods.financesCashFlow")}
+            value={rupiah(s.cash_flow)}
+            sub={t("periods.financesCashFlowSub")}
+          />
         </dl>
         <p className="border-t border-line/70 bg-paper/30 px-4 py-2 text-[11px] leading-relaxed text-ink-faint">
           {t("periods.detailFinancesNote")}
@@ -890,26 +1264,28 @@ export function PeriodDetailPage() {
       </section>
 
       <div className="flex flex-col gap-5">
-        <section aria-label="Per session" className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
+        <section aria-label={t("periods.perSessionTitle")} className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
           <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-ink">Per session · {heldSessions.length} of {plannedSessions} held</h2>
-              <span className="text-xs font-semibold text-pine">{progressPct}% held</span>
+              <h2 className="text-sm font-bold text-ink">{t("periods.perSessionTitle")}</h2>
+              <span className="text-xs font-semibold text-pine">
+                {t("periods.perSessionHeldPct", { held: heldSessions.length, total: plannedSessions, pct: progressPct })}
+              </span>
             </div>
             <p className="mt-0.5 text-xs text-ink-faint">
-              One row = one night, with that night's own revenue, cost and profit.
+              {t("periods.perSessionSubtitle")}
               {remainingSessions > 0
-                ? ` ${remainingSessions} remaining`
-                : " All sessions held"}
-              {upcomingSessions.length > 0 && ` · ${upcomingSessions.length} scheduled`}
-              {lastHeldDate && ` · last held ${dateId(lastHeldDate)}`}
-              {` · ends ${dateId(s.period.end_date)}`}
+                ? ` ${t("periods.perSessionRemaining", { count: remainingSessions })}`
+                : ` ${t("periods.perSessionAllHeld")}`}
+              {upcomingSessions.length > 0 && ` · ${t("periods.perSessionScheduled", { count: upcomingSessions.length })}`}
+              {lastHeldDate && ` · ${t("periods.perSessionLastHeld", { date: dateFormatted(lastHeldDate) })}`}
+              {` · ${t("periods.perSessionEnds", { date: dateFormatted(s.period.end_date) })}`}
             </p>
             <p className="mt-0.5 text-xs text-ink-faint">
               {t("periods.detailSessionNote")}
             </p>
             <p className="mt-0.5 text-xs text-ink-faint">
-              Whole-period figures (commitment fees, projection) are in the projection and finances above.
+              {t("periods.perSessionWholeNote", { count: plannedSessions })}
             </p>
             <div
               className="mt-2 h-2 overflow-hidden rounded-full bg-court/80 border border-line/40"
@@ -917,7 +1293,7 @@ export function PeriodDetailPage() {
               aria-valuenow={heldSessions.length}
               aria-valuemin={0}
               aria-valuemax={plannedSessions}
-              aria-label="Sessions held"
+              aria-label={t("periods.perSessionTitle")}
             >
               <div className="h-full rounded-full bg-gradient-to-r from-pine via-lime-600 to-lime transition-all duration-500" style={{ width: `${progressPct}%` }} />
             </div>
@@ -925,15 +1301,15 @@ export function PeriodDetailPage() {
           {breakdown.isFetching && !breakdown.data ? (
             <Loading />
           ) : (breakdown.data ?? []).length === 0 ? (
-            <div className="p-3"><Empty text="No sessions in this period." /></div>
+            <div className="p-3"><Empty text={t("periods.emptySessions")} /></div>
           ) : (
             <div className="overflow-x-auto">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th className="text-right">Present</th>
-                  <th className="text-right">Revenue</th>
+                  <th>{t("periods.colDate")}</th>
+                  <th className="text-right">{t("periods.colPresent")}</th>
+                  <th className="text-right">{t("periods.colRevenue")}</th>
                   <th className="text-right">{t("periods.colShuttles")}</th>
                   <th className="text-right">{t("periods.colSessionProfit")}</th>
                   <th></th>
@@ -945,7 +1321,7 @@ export function PeriodDetailPage() {
                   const sProfit = sessionProfitOf(row);
                   return (
                     <tr key={row.session_id}>
-                      <td className="whitespace-nowrap">{dateId(row.date)}</td>
+                      <td className="whitespace-nowrap">{dateFormatted(row.date)}</td>
                       <td className="text-right tabular-nums">{row.players_present}</td>
                       <td className="whitespace-nowrap text-right tabular-nums">{rupiah(row.revenue)}</td>
                       <td className="whitespace-nowrap text-right tabular-nums">{rupiah(sCost)}</td>
@@ -960,7 +1336,7 @@ export function PeriodDetailPage() {
               <tfoot>
                 <tr>
                   <td className="px-3 py-2 text-xs font-semibold text-ink-soft">
-                    Sessions subtotal
+                    {t("periods.sessionsSubtotal", { count: bRows.length })}
                   </td>
                   <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums">
                     {bRows.reduce((a, r) => a + r.players_present, 0)}
@@ -1041,24 +1417,36 @@ export function PeriodDetailPage() {
           )}
         </section>
 
-        <section aria-label="Members" className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
+        <section aria-label={t("periods.membersTitle")} className="h-fit rounded-xl border border-line bg-white shadow-card overflow-hidden">
           <div className="border-b border-line bg-gradient-to-r from-court/70 via-court/35 to-white px-4 py-3">
             <h2 className="text-sm font-bold text-ink">
-              Members · {memberRows.length}
+              {t("periods.membersTitle")} · {memberRows.length}
               {memberRows.length > 0 && (
-                <span className="font-normal text-ink-soft"> · collected <strong className="text-lime-deep font-semibold">{rupiah(collectedTotal)}</strong> of {rupiah(billedTotal)}</span>
+                <span className="font-normal text-ink-soft">
+                  {" · "}
+                  {t("periods.membersCollected", {
+                    collected: `${rupiah(collectedTotal)} / ${rupiah(billedTotal)}`,
+                  })}
+                </span>
               )}
             </h2>
           </div>
           {members.isFetching && !members.data ? (
             <Loading />
           ) : memberRows.length === 0 ? (
-            <div className="p-3"><Empty text="No members yet." /></div>
+            <div className="p-3"><Empty text={t("periods.emptyMembers")} /></div>
           ) : (
             <div className="overflow-x-auto">
             <table className="data">
               <thead>
-                <tr><th>Name</th><th className="text-right">Attended</th><th className="text-right">Bill</th><th className="text-right">Paid</th><th className="text-right">Saved</th><th></th></tr>
+                <tr>
+                  <th>{t("periods.colName")}</th>
+                  <th className="text-right">{t("periods.colAttended")}</th>
+                  <th className="text-right">{t("periods.colBill")}</th>
+                  <th className="text-right">{t("periods.colPaid")}</th>
+                  <th className="text-right">{t("periods.colSaved")}</th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
                 {memberRows.map((m) => {
@@ -1070,8 +1458,10 @@ export function PeriodDetailPage() {
                         <span className="font-medium">{m.player_name}</span>
                         <span className={`block text-xs ${commitDone ? "text-lime" : "text-amber-700"}`}>
                           {m.commitment_fee
-                            ? (commitDone ? "Member price paid" : `Member price unpaid (${rupiah(m.commitment_fee)})`)
-                            : "No member price"}
+                            ? (commitDone
+                              ? t("periods.memberPricePaid")
+                              : `${t("periods.memberPriceUnpaid")} (${rupiah(m.commitment_fee)})`)
+                            : t("periods.noMemberPrice")}
                         </span>
                       </td>
                       <td className="text-right tabular-nums">{m.attendance_count}×</td>
@@ -1084,7 +1474,7 @@ export function PeriodDetailPage() {
                           <button
                             type="button"
                             className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-pine to-pine-deep px-3 py-1 text-xs font-semibold text-paper hover:brightness-110 shadow-2xs transition-all"
-                            title="Record member price payment"
+                            title={t("periods.btnMemberPriceTitle")}
                             onClick={() => openPay(m)}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-3.5 w-3.5" aria-hidden>
@@ -1092,9 +1482,9 @@ export function PeriodDetailPage() {
                               <circle cx="12" cy="12" r="2.6" />
                               <path d="M6.1 12h.01M17.9 12h.01" />
                             </svg>
-                            Member price
+                            {t("periods.btnMemberPrice")}
                           </button>
-                          <DeleteRowButton label="Delete" onClick={() => { setWithdrawFor(m); setWithdrawError(""); }} />
+                          <DeleteRowButton label={t("common.delete")} onClick={() => { setWithdrawFor(m); setWithdrawError(""); }} />
                           </span>
                         )}
                       </td>
@@ -1107,23 +1497,23 @@ export function PeriodDetailPage() {
           )}
           {payFor && !done && (
             <ConfirmModal
-              title={`Member price · ${payFor.player_name}`}
+              title={t("periods.payModalTitle", { name: payFor.player_name })}
               body={
                 <>
-                  <Field label="Amount (Rp)">
+                  <Field label={t("periods.payModalAmount")}>
                     <MoneyInput id="pay-amount" value={payAmount} onChange={setPayAmount} />
                   </Field>
                   <div className="mt-3">
-                    <Field label="Note" hint="Optional. E.g. cash, transfer.">
+                    <Field label={t("periods.payModalNote")} hint={t("periods.payModalNoteHint")}>
                       <input id="pay-note" className="w-full" value={payNote} onChange={(e) => setPayNote(e.target.value)} />
                     </Field>
                   </div>
                   {payError && <p role="alert" className="mt-2 text-sm text-red-700">{payError}</p>}
-                  <p className="mt-2 text-xs text-ink-faint">Visit payments are collected per session in Open Play. Use this form only for member price.</p>
+                  <p className="mt-2 text-xs text-ink-faint">{t("periods.payModalTip")}</p>
                 </>
               }
-              confirmLabel={payState.isLoading ? "Saving…" : `Save ${rupiah(payAmount || 0)}`}
-              cancelLabel="Cancel"
+              confirmLabel={payState.isLoading ? t("periods.btnSavingSettings") : `${t("periods.payModalConfirm")} (${rupiah(payAmount || 0)})`}
+              cancelLabel={t("periods.btnCancel")}
               busy={payState.isLoading}
               onConfirm={submitPayment}
               onCancel={() => setPayFor(null)}
@@ -1131,14 +1521,14 @@ export function PeriodDetailPage() {
           )}
           {withdrawFor && !done && (
             <ConfirmModal
-              title={`Delete ${withdrawFor.player_name} from this period?`}
+              title={t("periods.withdrawModalTitle")}
               body={
                 <>
-                  <p>Membership and <strong>all their payments in this period are permanently deleted</strong>. Session attendance history stays. This cannot be undone.</p>
+                  <p>{t("periods.withdrawModalBody", { name: withdrawFor.player_name })}</p>
                   {withdrawError && <p role="alert" className="mt-2 text-sm text-red-700">{withdrawError}</p>}
                 </>
               }
-              confirmLabel={withdrawState.isLoading ? "Deleting…" : "Yes, delete"}
+              confirmLabel={withdrawState.isLoading ? t("periods.btnDeleting") : t("periods.withdrawModalConfirm")}
               busy={withdrawState.isLoading}
               onConfirm={confirmWithdraw}
               onCancel={() => setWithdrawFor(null)}
@@ -1147,30 +1537,30 @@ export function PeriodDetailPage() {
           {!done && (
             <div className="space-y-2 border-t border-line p-3">
               <div className="flex gap-2">
-                <label htmlFor="tambah-member" className="sr-only">Add member</label>
+                <label htmlFor="tambah-member" className="sr-only">{t("periods.selectAddMember")}</label>
                 <select id="tambah-member" className="min-w-0 flex-1" value={pick} onChange={(e) => setPick(e.target.value)}>
-                  <option value="">- Add member… -</option>
+                  <option value="">{t("periods.selectAddMember")}</option>
                   {candidates.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
-                <Btn disabled={!pick || addState.isLoading} onClick={submitMember}>Add</Btn>
+                <Btn disabled={!pick || addState.isLoading} onClick={submitMember}>{t("periods.btnAdd")}</Btn>
               </div>
               <div className="flex gap-2">
-                <label htmlFor="tambah-member-baru" className="sr-only">New member name</label>
+                <label htmlFor="tambah-member-baru" className="sr-only">{t("periods.placeholderNewMember")}</label>
                 <input
                   id="tambah-member-baru"
                   className="min-w-0 flex-1"
-                  placeholder="New member name…"
+                  placeholder={t("periods.placeholderNewMember")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") submitNewMember(); }}
                 />
                 <Btn disabled={!newName.trim() || memberBusy} onClick={submitNewMember}>
-                  {createState.isLoading ? "Saving…" : "Add new"}
+                  {createState.isLoading ? t("periods.btnSavingSettings") : t("periods.btnAddNew")}
                 </Btn>
               </div>
-              <p className="text-xs text-ink-faint">If the name is not in the list, type a new name and click Add new — it will be registered and added as a member right away.</p>
+              <p className="text-xs text-ink-faint">{t("periods.hintNewMember")}</p>
             </div>
           )}
         </section>
@@ -1178,6 +1568,7 @@ export function PeriodDetailPage() {
 
       <AdminPaymentsPanel
         periodId={id}
+        period={s.period}
         isRegistrationOpen={s.period.is_registration_open ?? false}
         done={done}
         maxMembers={s.period.max_members}
@@ -1187,27 +1578,27 @@ export function PeriodDetailPage() {
       <MemberAttendanceMatrixSection periodId={id} periodName={s.period.name} />
 
       {(matrix.data?.rows.length ?? 0) > 0 && (
-      <section aria-label="Shuttlecock use per player" className="mt-5 rounded-xl border border-line bg-white shadow-card">
+      <section aria-label={t("periods.shuttleMatrixTitle")} className="mt-5 rounded-xl border border-line bg-white shadow-card">
         <h2 className="border-b border-line px-3 py-2 text-sm font-semibold">
-          Shuttlecocks per player · total {matrix.data?.total ?? 0} · avg {matrix.data?.avg_per_session ?? 0}/session
+          {t("periods.shuttleMatrixTitle")} · {matrix.data?.total ?? 0} pcs ({matrix.data?.avg_per_session ?? 0}/sesi)
         </h2>
         <p className="border-b border-line bg-court/40 px-3 py-1.5 text-xs text-ink-soft">
-          Detailed 2v2 matches only. Simple recap numbers stay in their own session panel.
+          {t("periods.shuttleMatrixNote")}
         </p>
         {matrix.isFetching && !matrix.data ? (
           <Loading />
         ) : !matrix.data || matrix.data.rows.length === 0 ? (
-          <div className="p-3"><Empty text="No match data in this period." /></div>
+          <div className="p-3"><Empty text={t("periods.emptyShuttleMatrix")} /></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Player</th>
+                  <th>{t("periods.colPlayer")}</th>
                   {matrix.data.dates.map((d) => (
-                    <th key={d} className="text-right">{dateId(d)}</th>
+                    <th key={d} className="text-right">{dateFormatted(d)}</th>
                   ))}
-                  <th className="text-right">Total</th>
+                  <th className="text-right">{t("periods.colTotal")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1228,14 +1619,13 @@ export function PeriodDetailPage() {
       )}
       {pendingComplete && (
         <ConfirmModal
-          title="Complete this period?"
+          title={t("periods.completeModalTitle")}
           body={
             <p>
-              <strong>{s.period.name}</strong> will become read-only. Sessions, members, and money
-              can no longer be changed afterwards. Are you sure?
+              {t("periods.completeModalBody", { name: s.period.name })}
             </p>
           }
-          confirmLabel="Yes, complete"
+          confirmLabel={t("periods.completeModalConfirm")}
           busy={completeState.isLoading}
           onConfirm={confirmComplete}
           onCancel={() => setPendingComplete(false)}
@@ -1243,24 +1633,22 @@ export function PeriodDetailPage() {
       )}
       {pendingDelete && (
         <ConfirmModal
-          title={forceArmed ? "Delete period and everything inside?" : "Delete this period?"}
+          title={forceArmed ? t("periods.deleteModalForceTitle") : t("periods.deleteModalTitle")}
           body={
             forceArmed ? (
               <>
                 <p>
-                  <strong>{s.period.name}</strong> has sessions, members, or money. Deleting it will{" "}
-                  <strong>permanently hard-delete the period and its whole tree</strong>: all sessions with
-                  matches, attendance, bills, payments, shuttlecock usage, memberships, and money records.
+                  {t("periods.deleteModalForceBody1", { name: s.period.name })}
                 </p>
-                <p className="mt-2">This cannot be undone. Are you sure?</p>
+                <p className="mt-2">{t("periods.deleteModalForceBody2")}</p>
               </>
             ) : (
               <p>
-                Delete period <strong>{s.period.name}</strong>? This cannot be undone.
+                {t("periods.deleteModalBody", { name: s.period.name })}
               </p>
             )
           }
-          confirmLabel={forceArmed ? "Yes, delete everything" : "Yes, delete"}
+          confirmLabel={forceArmed ? t("periods.deleteModalForceConfirm") : t("periods.deleteModalConfirm")}
           busy={removeState.isLoading}
           onConfirm={confirmDelete}
           onCancel={() => { setPendingDelete(false); setForceArmed(false); }}
@@ -1870,6 +2258,7 @@ async function copyNonMemberTableImage(
 }
 
 function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: string; periodName: string }) {
+  const { t } = useI18n();
   const { data, isFetching, isError, refetch } = usePeriodAttendanceMatrixQuery(periodId);
   const [activeTab, setActiveTab] = useState<"member" | "non_member">("member");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
@@ -1889,10 +2278,10 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
   if (isFetching && !data) return <Loading />;
   if (isError || !data) {
     return (
-      <section aria-label="Rekap Kas Kok & Lapangan Member" className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
-        <h2 className="text-sm font-semibold mb-2">Rekap Kehadiran & Kas Kok Member</h2>
+      <section aria-label={t("periods.matrixMemberTitle")} className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
+        <h2 className="text-sm font-semibold mb-2">{t("periods.matrixMemberTitle")}</h2>
         <ErrorBox
-          message="Belum dapat memuat rekap matrix. Pastikan server backend Go telah di-restart agar endpoint baru aktif."
+          message={t("periods.matrixError")}
           onRetry={() => refetch()}
         />
       </section>
@@ -1927,10 +2316,10 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
 
   if (rows.length === 0 && (data.non_members ?? []).length === 0) {
     return (
-      <section aria-label="Rekap Kas Kok & Lapangan" className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
-        <h2 className="text-sm font-semibold mb-1">Rekap Kehadiran & Kas Kok</h2>
-        <p className="text-xs text-ink-faint mb-3">Tabel otomatis bertambah kolomnya setiap ada pertemuan/sesi baru di period ini.</p>
-        <Empty text="Belum ada member atau pemain terdaftar di period ini. Tambahkan member di atas untuk mulai melihat rekap kas kok & lapangan." />
+      <section aria-label={t("periods.matrixEmptyTitle")} className="mt-5 rounded-xl border border-line bg-white shadow-card p-4">
+        <h2 className="text-sm font-semibold mb-1">{t("periods.matrixEmptyTitle")}</h2>
+        <p className="text-xs text-ink-faint mb-3">{t("periods.matrixEmptyHint")}</p>
+        <Empty text={t("periods.matrixEmptyDesc")} />
       </section>
     );
   }
@@ -2085,24 +2474,26 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
   }
 
   return (
-    <section aria-label="Rekap Kas Kok & Lapangan" className="mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+    <section aria-label={t("periods.matrixEmptyTitle")} className="mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
       {/* Header with Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 bg-gradient-to-r from-court/75 via-court/40 to-white">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-ink">
-              {activeTab === "member" ? "Rekap Kehadiran & Kas Kok Member" : "Rekap List Non-Member (Tamu)"}
+              {activeTab === "member" ? t("periods.matrixMemberTitle") : t("periods.matrixNonMemberTitle")}
             </h2>
             <span className="text-xs font-medium text-ink-soft">
               · {activeTab === "member"
-                ? `${rows.length} member · ${sessions.length} pertemuan`
-                : `${sessionNonMembers.length} non-member pada pertemuan ini${carryOverNonMembers.length > 0 ? ` · ${carryOverNonMembers.length} tunggakan sebelumnya` : ""}`}
+                ? `${t("periods.matrixMemberCountSub", { count: rows.length })} · ${t("periods.sessionsCount", { count: sessions.length })}`
+                : carryOverNonMembers.length > 0
+                  ? t("periods.matrixNonMemberCarryOverSub", { count: sessionNonMembers.length, carry: carryOverNonMembers.length })
+                  : t("periods.matrixNonMemberCountSub", { count: sessionNonMembers.length })}
             </span>
           </div>
           <p className="mt-0.5 text-xs text-ink-faint">
             {activeTab === "member"
-              ? `Tarif Lapangan ${feeLabel} · Kas Kok ${rupiah(member_contribution)}/pertemuan · Kolom otomatis bertambah setiap ada pertemuan baru.`
-              : `Tarif ${nonMemberFeeLabel} · Filter per pertemuan agar tidak menumpuk semua tanggal.`}
+              ? t("periods.matrixMemberDesc")
+              : t("periods.matrixNonMemberDesc")}
           </p>
         </div>
 
@@ -2117,7 +2508,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 : "text-ink-soft hover:text-ink hover:bg-court/40"
             }`}
           >
-            🏸 Member ({rows.length})
+            {t("periods.matrixTabMember", { count: rows.length })}
           </button>
           <button
             type="button"
@@ -2128,7 +2519,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 : "text-ink-soft hover:text-ink hover:bg-court/40"
             }`}
           >
-            👥 Non-Member ({(data.non_members ?? []).length})
+            {t("periods.matrixTabNonMember", { count: (data.non_members ?? []).length })}
           </button>
         </div>
       </div>
@@ -2139,7 +2530,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-court/40 via-court/20 to-white border-b border-line">
             <div className="flex items-center gap-2">
               <label htmlFor="filter-sesi-nonmember" className="text-xs font-semibold text-ink whitespace-nowrap">
-                Pilih Pertemuan:
+                {t("periods.matrixPickSession")}
               </label>
               <select
                 id="filter-sesi-nonmember"
@@ -2151,7 +2542,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                   const count = (data.non_members ?? []).filter((nm) => nm.session_id === s.id).length;
                   return (
                     <option key={s.id} value={s.id}>
-                      Pertemuan {idx + 1} · {dateDmy(s.date)} ({count} non-member)
+                      {t("periods.matrixSessionOption", { idx: idx + 1, date: dateDmy(s.date) })} ({count})
                     </option>
                   );
                 })}
@@ -2164,7 +2555,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 onClick={handleCopyNonMemberImage}
                 disabled={copyingImage || filteredNonMembers.length === 0}
                 className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
-                title="Salin gambar tabel non-member ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
+                title={t("periods.matrixCopyImg")}
               >
                 <span className="inline-flex items-center gap-1.5">
                   <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2172,24 +2563,24 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                     <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                     <path d="M21 15l-5-5L5 21" strokeWidth="2" />
                   </svg>
-                  {copiedImage ? "✓ Gambar Tersalin!" : copyingImage ? "Menyalin…" : "Salin Gambar (WA)"}
+                  {copiedImage ? t("periods.matrixCopiedImg") : copyingImage ? t("periods.matrixCopyingImg") : t("periods.matrixCopyImg")}
                 </span>
               </Btn>
               <Btn
                 variant="plain"
                 onClick={handleCopyNonMemberWhatsApp}
                 disabled={filteredNonMembers.length === 0}
-                title="Salin format ringkasan teks untuk WhatsApp"
+                title={t("periods.matrixCopyWa")}
               >
-                {copied ? "✓ Teks Tersalin!" : "Salin Teks WA"}
+                {copied ? t("periods.matrixCopiedWa") : t("periods.matrixCopyWa")}
               </Btn>
               <Btn
                 variant="plain"
                 onClick={handleExportNonMemberCSV}
                 disabled={filteredNonMembers.length === 0}
-                title="Download format CSV Excel"
+                title={t("periods.matrixDownloadCsv")}
               >
-                Download CSV
+                {t("periods.matrixDownloadCsv")}
               </Btn>
             </div>
           </div>
@@ -2197,7 +2588,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
           {/* Non-Member Table */}
           {filteredNonMembers.length === 0 ? (
             <div className="p-6">
-              <Empty text={`Tidak ada non-member yang tercatat hadir pada pertemuan ${currentSession ? dateDmy(currentSession.date) : ""}.`} />
+              <Empty text={t("periods.matrixEmptySessionNonMember")} />
             </div>
           ) : (
             <div className="overflow-x-auto max-w-2xl mx-auto sm:mx-0 p-3">
@@ -2278,7 +2669,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
               onClick={handleCopyMemberImage}
               disabled={copyingImage}
               className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
-              title="Salin gambar tabel ke clipboard (bisa langsung Ctrl+V di WhatsApp)"
+              title={t("periods.matrixCopyImg")}
             >
               <span className="inline-flex items-center gap-1.5">
                 <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2286,14 +2677,14 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                   <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" />
                 </svg>
-                {copiedImage ? "✓ Gambar Tersalin!" : copyingImage ? "Menyalin…" : "Salin Gambar (WA)"}
+                {copiedImage ? t("periods.matrixCopiedImg") : copyingImage ? t("periods.matrixCopyingImg") : t("periods.matrixCopyImg")}
               </span>
             </Btn>
-            <Btn variant="plain" onClick={handleCopyMemberWhatsApp} title="Salin format ringkasan teks untuk WhatsApp">
-              {copied ? "✓ Teks Tersalin!" : "Salin Teks WA"}
+            <Btn variant="plain" onClick={handleCopyMemberWhatsApp} title={t("periods.matrixCopyWa")}>
+              {copied ? t("periods.matrixCopiedWa") : t("periods.matrixCopyWa")}
             </Btn>
-            <Btn variant="plain" onClick={handleExportMemberCSV} title="Download format CSV Excel">
-              Download CSV
+            <Btn variant="plain" onClick={handleExportMemberCSV} title={t("periods.matrixDownloadCsv")}>
+              {t("periods.matrixDownloadCsv")}
             </Btn>
           </div>
 
@@ -2316,7 +2707,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                   ))}
                   {sessions.length === 0 && (
                     <th className="py-2.5 px-3 border border-white/40 text-xs italic font-normal text-blue-200">
-                      Belum ada pertemuan
+                      {t("periods.matrixNoSessions")}
                     </th>
                   )}
                 </tr>
@@ -2331,9 +2722,9 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                         {(r.fastest_count ?? 0) > 0 && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.2 text-[10px] font-bold text-amber-900 shadow-2xs"
-                            title={`Absen tercepat: ${r.fastest_count}x`}
+                            title={t("periods.matrixFastestBadge", { count: r.fastest_count ?? 0 })}
                           >
-                            ⚡ {r.fastest_count}x tercepat
+                            {t("periods.matrixFastestBadge", { count: r.fastest_count ?? 0 })}
                           </span>
                         )}
                       </div>
@@ -2346,8 +2737,10 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                       ) : (
                         <span className="inline-block w-full py-1 font-bold text-xs bg-amber-100 text-amber-900 border border-amber-300 rounded">
                           {r.commitment_amount_paid > 0
-                            ? `Kurang ${rupiah(Math.max(0, (r.commitment_fee || commitment_fee) - r.commitment_amount_paid))}`
-                            : "BELUM"}
+                            ? t("periods.matrixRemainingFee", {
+                                amount: rupiah(Math.max(0, (r.commitment_fee || commitment_fee) - r.commitment_amount_paid)),
+                              })
+                            : t("periods.matrixUnpaidBadge")}
                         </span>
                       )}
                     </td>

@@ -12,7 +12,7 @@ import {
 } from "../store/services";
 import { toApiError } from "../store/baseApi";
 import { compressImage } from "../utils/imageCompression";
-import { dateId, rupiah } from "../format";
+import { formatGmt7DateTime, rupiah } from "../format";
 import { useI18n } from "../i18n";
 import { LanguageSwitcher } from "../components/atoms/LanguageSwitcher/LanguageSwitcher";
 
@@ -90,6 +90,94 @@ function IconAlertTriangle({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function IconFileText({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  );
+}
+
+function IconWhatsApp({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.79 14.01c-.24.68-1.41 1.3-1.95 1.38-.5.08-1.13.11-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-2.99 0-1.42.74-2.12 1.01-2.41.26-.29.58-.36.77-.36.19 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.82 2 .89 2.15.07.14.12.31.02.5-.1.19-.14.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.3-.13.59.17.29.75 1.24 1.61 2.01 1.11.99 2.04 1.3 2.33 1.44.29.14.46.12.63-.07.17-.19.72-.84.91-1.13.19-.29.39-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.22.55.34.07.12.07.69-.17 1.37z" />
+    </svg>
+  );
+}
+
+const ADMIN_CONTACTS = [
+  {
+    number: 1,
+    name: "Hilman",
+    phoneDisplay: "+62 813-2054-6022",
+    waUrl: "https://wa.me/6281320546022",
+  },
+  {
+    number: 2,
+    name: "P_Tri",
+    phoneDisplay: "+62 857-8053-4995",
+    waUrl: "https://wa.me/6285780534995",
+  },
+] as const;
+
+function AdminHelpCard() {
+  const { t } = useI18n();
+
+  return (
+    <section
+      aria-label={t("registerMember.adminHelpAria")}
+      className="rounded-xl border border-line bg-white p-5 shadow-xs"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-line pb-3 mb-4">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint block">
+            {t("registerMember.adminHelpEyebrow")}
+          </span>
+          <h2 className="text-sm font-bold text-ink">
+            {t("registerMember.adminHelpTitle")}
+          </h2>
+        </div>
+        <p className="text-xs text-ink-soft">
+          {t("registerMember.adminHelpDesc")}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {ADMIN_CONTACTS.map((admin) => (
+          <div
+            key={admin.name}
+            className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper/60 px-4 py-3"
+          >
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint block">
+                {t("registerMember.adminRoleLabel")} {admin.number}
+              </span>
+              <p className="text-sm font-bold text-ink truncate">{admin.name}</p>
+              <p className="text-xs font-mono text-ink-soft">{admin.phoneDisplay}</p>
+            </div>
+
+            <a
+              href={admin.waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("registerMember.adminChatAria", { name: admin.name })}
+              title={`WhatsApp ${admin.name}`}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-pine text-white hover:bg-pine-deep transition-colors focus:outline-hidden focus:ring-2 focus:ring-pine/40"
+            >
+              <IconWhatsApp className="w-5 h-5" />
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Helpers & Countdown ──────────────────────────────────────────────────────
 
 function formatCountdown(secs: number): string {
@@ -114,38 +202,233 @@ function useCountdown(expiresAt: string | undefined, initialSecs: number) {
   return secs;
 }
 
+function getRemainingParts(expiresAt: string | null | undefined) {
+  if (!expiresAt) return null;
+  const targetMs = new Date(expiresAt).getTime();
+  if (isNaN(targetMs)) return null;
+  const totalSeconds = Math.max(0, Math.floor((targetMs - Date.now()) / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return { totalSeconds, days, hours, minutes, seconds, isExpired: totalSeconds <= 0 };
+}
+
+function useDeadlineCountdown(expiresAt: string | null | undefined) {
+  const [parts, setParts] = useState(() => getRemainingParts(expiresAt));
+
+  useEffect(() => {
+    const update = () => setParts(getRemainingParts(expiresAt));
+    update();
+    if (!expiresAt) return;
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return parts;
+}
+
+function RegistrationCountdownCard({
+  periodId,
+  expiresAt,
+  canRegister,
+  onExpired,
+}: {
+  periodId: string;
+  expiresAt: string;
+  canRegister: boolean;
+  onExpired: () => void;
+}) {
+  const { t, lang } = useI18n();
+  const parts = useDeadlineCountdown(expiresAt);
+  const autoRefetchedRef = useRef<string | null>(null);
+  const onExpiredRef = useRef(onExpired);
+  onExpiredRef.current = onExpired;
+
+  useEffect(() => {
+    if (!parts || !parts.isExpired || !canRegister) return;
+    const key = `${periodId}:${expiresAt}`;
+    if (autoRefetchedRef.current === key) return;
+    autoRefetchedRef.current = key;
+    onExpiredRef.current();
+  }, [parts, canRegister, periodId, expiresAt]);
+
+  if (!parts) return null;
+
+  const isUrgent = !parts.isExpired && parts.totalSeconds <= 3600;
+  const isWarning = !parts.isExpired && !isUrgent && parts.totalSeconds <= 86400;
+  const formattedDeadline = formatGmt7DateTime(expiresAt, lang);
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <section
+      aria-label={t("registerMember.countdownEyebrow")}
+      className={`rounded-xl border p-5 shadow-xs ${
+        parts.isExpired
+          ? "border-red-300 bg-red-50/70"
+          : isUrgent
+            ? "border-red-300 bg-white"
+            : isWarning
+              ? "border-amber-300 bg-white"
+              : "border-[#e5e7eb] bg-white"
+      }`}
+    >
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <IconClock
+              className={`w-4 h-4 ${
+                parts.isExpired || isUrgent
+                  ? "text-red-700"
+                  : isWarning
+                    ? "text-amber-700"
+                    : "text-[#6b7280]"
+              }`}
+            />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b7280]">
+              {t("registerMember.countdownEyebrow")}
+            </span>
+          </div>
+          <h2
+            className={`text-base font-bold ${
+              parts.isExpired ? "text-red-900" : "text-[#111827]"
+            }`}
+          >
+            {parts.isExpired
+              ? t("registerMember.countdownExpiredTitle")
+              : t("registerMember.countdownTitle")}
+          </h2>
+          <p className="text-xs text-[#4b5563]">
+            {t("registerMember.countdownDeadlineLabel")}:{" "}
+            <span className="font-semibold text-[#111827]">{formattedDeadline}</span>
+          </p>
+        </div>
+
+        {parts.isExpired ? (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-100/80 px-3.5 py-2 text-xs font-semibold text-red-900 self-start md:self-center">
+            <IconLock className="w-4 h-4 shrink-0" />
+            <span>
+              {canRegister
+                ? t("registerMember.countdownExpiredDesc")
+                : t("registerMember.indexClosedNow")}
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 sm:gap-2.5 self-start md:self-center">
+            {[
+              { value: String(parts.days), label: t("registerMember.countdownDays") },
+              { value: pad2(parts.hours), label: t("registerMember.countdownHours") },
+              { value: pad2(parts.minutes), label: t("registerMember.countdownMinutes") },
+              { value: pad2(parts.seconds), label: t("registerMember.countdownSeconds") },
+            ].map((cell) => (
+              <div
+                key={cell.label}
+                className={`min-w-[60px] sm:min-w-[68px] rounded-lg border px-2.5 py-2 text-center ${
+                  isUrgent
+                    ? "border-red-200 bg-red-50/70"
+                    : isWarning
+                      ? "border-amber-200 bg-amber-50/60"
+                      : "border-[#e5e7eb] bg-[#f5f6f8]"
+                }`}
+              >
+                <div
+                  className={`font-mono text-xl sm:text-2xl font-black tracking-tight tabular-nums ${
+                    isUrgent
+                      ? "text-red-800"
+                      : isWarning
+                        ? "text-amber-900"
+                        : "text-[#111827]"
+                  }`}
+                >
+                  {cell.value}
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#6b7280]">
+                  {cell.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function IndexDeadlineLine({ expiresAt }: { expiresAt: string }) {
+  const { t, lang } = useI18n();
+  const parts = useDeadlineCountdown(expiresAt);
+  if (!parts) return null;
+
+  const formatted = formatGmt7DateTime(expiresAt, lang);
+  let remainingText = t("registerMember.indexClosedNow");
+  if (!parts.isExpired) {
+    const dLabel = t("registerMember.countdownDays").toLowerCase();
+    const hLabel = t("registerMember.countdownHours").toLowerCase();
+    const mLabel = t("registerMember.countdownMinutes").toLowerCase();
+    const compact =
+      parts.days > 0
+        ? `${parts.days} ${dLabel} ${parts.hours} ${hLabel}`
+        : parts.hours > 0
+          ? `${parts.hours} ${hLabel} ${parts.minutes} ${mLabel}`
+          : `${Math.max(1, parts.minutes)} ${mLabel}`;
+    remainingText = t("registerMember.indexTimeLeft", { time: compact });
+  }
+
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[#4b5563]">
+      <IconClock className="w-3.5 h-3.5 text-[#6b7280] shrink-0" />
+      <span>
+        {t("registerMember.indexDeadlineLabel")}:{" "}
+        <span className="font-medium text-[#111827]">{formatted}</span>
+      </span>
+      <span className="text-[#d1d5db]">·</span>
+      <span
+        className={`font-semibold ${
+          parts.isExpired
+            ? "text-red-700"
+            : parts.totalSeconds <= 86400
+              ? "text-amber-800"
+              : "text-pine-deep"
+        }`}
+      >
+        {remainingText}
+      </span>
+    </p>
+  );
+}
+
 // ─── Status Badges (Metro Transit Style) ──────────────────────────────────────
 
 function StatusBadge({ status }: { status: MembershipPayment["status"] | string }) {
-  const { isEn } = useI18n();
+  const { t } = useI18n();
 
   switch (status) {
     case "WAITING_PAYMENT":
       return (
         <span className="inline-flex items-center gap-1 border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900 rounded">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          {isEn ? "Awaiting Payment" : "Menunggu Pembayaran"}
+          {t("registerMember.statusWaiting")}
         </span>
       );
     case "PENDING":
       return (
         <span className="inline-flex items-center gap-1 border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 rounded">
           <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-          {isEn ? "Verification Pending" : "Menunggu Verifikasi"}
+          {t("registerMember.statusPending")}
         </span>
       );
     case "PAID":
       return (
         <span className="inline-flex items-center gap-1 border border-line bg-paper px-2 py-0.5 text-xs font-semibold text-lime-deep rounded">
           <span className="w-1.5 h-1.5 rounded-full bg-lime" />
-          {isEn ? "Confirmed Paid" : "Lunas"}
+          {t("registerMember.statusPaid")}
         </span>
       );
     case "FAILED":
       return (
         <span className="inline-flex items-center gap-1 border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-900 rounded">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          {isEn ? "Expired / Failed" : "Kadaluarsa"}
+          {t("registerMember.statusFailed")}
         </span>
       );
     default:
@@ -160,7 +443,7 @@ function StatusBadge({ status }: { status: MembershipPayment["status"] | string 
 // ─── Slot Capacity Card (Metro Design System) ─────────────────────────────────
 
 function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
-  const { isEn } = useI18n();
+  const { t } = useI18n();
   const max = info.period.max_members;
   const current = info.current_members;
   const remaining = info.remaining_slots ?? (max && max > 0 ? Math.max(0, max - current) : null);
@@ -173,25 +456,25 @@ function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
       <div className="flex items-center justify-between border-b border-[#e5e7eb] pb-3 mb-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b7280]">
-            {isEn ? "Metro Transit Board" : "Papan Kuota Periode"}
+            {t("registerMember.quotaEyebrow")}
           </span>
           <h2 className="text-base font-bold text-[#111827]">
-            {isEn ? "Member Slot Availability" : "Kapasitas & Ketersediaan Slot"}
+            {t("registerMember.quotaTitle")}
           </h2>
         </div>
         {max && max > 0 ? (
           remaining === 0 ? (
             <span className="inline-flex items-center border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-800 rounded">
-              {isEn ? "Sold Out" : "Kuota Penuh"}
+              {t("registerMember.quotaSoldOut")}
             </span>
           ) : (
             <span className="inline-flex items-center border border-line bg-paper px-2.5 py-1 text-xs font-bold text-lime-deep rounded">
-              {isEn ? `${remaining} Slots Left` : `Sisa ${remaining} Slot`}
+              {t("registerMember.quotaSlotsLeft", { count: remaining ?? 0 })}
             </span>
           )
         ) : (
           <span className="inline-flex items-center border border-blue-300 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 rounded">
-            {isEn ? "Unlimited Quota" : "Tanpa Batas Kuota"}
+            {t("registerMember.quotaUnlimited")}
           </span>
         )}
       </div>
@@ -201,7 +484,7 @@ function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
         {/* Metric 1: Remaining Slots */}
         <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280] block">
-            {isEn ? "Remaining Slots" : "Sisa Slot"}
+            {t("registerMember.metricRemainingTitle")}
           </span>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-2xl font-black tracking-tight text-[#111827]">
@@ -209,53 +492,49 @@ function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
             </span>
             {max && max > 0 && (
               <span className="text-xs text-[#6b7280]">
-                {isEn ? `/ ${max}` : `/ ${max}`}
+                / {max}
               </span>
             )}
           </div>
           <p className="mt-1 text-[11px] text-[#6b7280]">
             {max && max > 0
-              ? isEn
-                ? `${remaining} available for booking`
-                : `${remaining} dapat didaftar sekarang`
-              : isEn
-                ? "Open for all active players"
-                : "Terbuka bagi seluruh pemain"}
+              ? t("registerMember.metricRemainingAvailable", { max })
+              : t("registerMember.metricRemainingOpen")}
           </p>
         </div>
 
         {/* Metric 2: Registered Members */}
         <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280] block">
-            {isEn ? "Confirmed Members" : "Member Terdaftar"}
+            {t("registerMember.metricMembersTitle")}
           </span>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-2xl font-black tracking-tight text-[#111827]">{current}</span>
-            <span className="text-xs text-[#6b7280]">{isEn ? "players" : "pemain"}</span>
+            <span className="text-xs text-[#6b7280]">{t("registerMember.metricMembersUnit")}</span>
           </div>
           <p className="mt-1 text-[11px] text-[#6b7280]">
-            {isEn ? "Joined & commitment paid" : "Lunas iuran komitmen"}
+            {t("registerMember.metricMembersDesc")}
           </p>
         </div>
 
         {/* Metric 3: Pending Verification */}
         <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280] block">
-            {isEn ? "Pending Review" : "Menunggu Verifikasi"}
+            {t("registerMember.metricPendingTitle")}
           </span>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-2xl font-black tracking-tight text-sky-800">{pendingCount}</span>
-            <span className="text-xs text-[#6b7280]">{isEn ? "proofs" : "bukti"}</span>
+            <span className="text-xs text-[#6b7280]">{t("registerMember.metricPendingUnit")}</span>
           </div>
           <p className="mt-1 text-[11px] text-[#6b7280]">
-            {isEn ? "In admin review queue" : "Menunggu verifikasi admin"}
+            {t("registerMember.metricPendingDesc")}
           </p>
         </div>
 
         {/* Metric 4: Commitment Fee */}
         <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280] block">
-            {isEn ? "Commitment Fee" : "Iuran Komitmen"}
+            {t("registerMember.metricFeeTitle")}
           </span>
           <div className="mt-1">
             <span className="text-lg font-black tracking-tight text-[#111827]">
@@ -263,7 +542,7 @@ function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
             </span>
           </div>
           <p className="mt-1 text-[11px] text-[#6b7280]">
-            {isEn ? "Per player / period" : "Per pemain / periode"}
+            {t("registerMember.metricFeeDesc")}
           </p>
         </div>
       </div>
@@ -273,10 +552,10 @@ function SlotCapacityCard({ info }: { info: PeriodRegistrationInfo }) {
         <div className="mt-4 pt-3 border-t border-[#e5e7eb]">
           <div className="flex items-center justify-between text-xs text-[#4b5563] mb-1.5">
             <span className="font-medium">
-              {isEn ? "Capacity Filled" : "Kapasitas Terisi"}: {pct}%
+              {t("registerMember.capacityFilled", { pct })}
             </span>
             <span className="font-mono text-[#6b7280]">
-              {current} / {max} {isEn ? "members" : "member"}
+              {t("registerMember.capacityMembersCount", { current, max })}
             </span>
           </div>
           <div className="h-2.5 w-full bg-[#e5e7eb] rounded overflow-hidden">
@@ -302,7 +581,7 @@ function PaymentCard({
   payment: MembershipPayment;
   onProofSubmitted: (p: MembershipPayment) => void;
 }) {
-  const { isEn } = useI18n();
+  const { t } = useI18n();
   const secs = useCountdown(payment.expires_at, payment.remaining_seconds);
   const [submitProof, submitState] = useSubmitPaymentProofMutation();
   const [file, setFile] = useState<File | null>(null);
@@ -354,13 +633,10 @@ function PaymentCard({
           <IconCheck className="w-6 h-6" />
         </div>
         <h3 className="text-lg font-bold text-lime-deep">
-          {isEn ? "Payment Confirmed!" : "Pembayaran Dikonfirmasi!"}
+          {t("registerMember.paidConfirmedTitle")}
         </h3>
         <p className="mt-1 text-sm text-lime-deep">
-          <strong>{payment.player_name}</strong>{" "}
-          {isEn
-            ? "is now officially registered as an active member."
-            : "telah resmi terdaftar sebagai member aktif periode ini."}
+          <strong>{payment.player_name}</strong> — {t("registerMember.paidConfirmedDesc")}
         </p>
       </div>
     );
@@ -373,34 +649,35 @@ function PaymentCard({
           <IconClock className="w-6 h-6" />
         </div>
         <h3 className="text-lg font-bold text-sky-900">
-          {isEn ? "Proof Submitted — Pending Verification" : "Bukti Diterima — Menunggu Verifikasi"}
+          {t("registerMember.pendingSubmittedTitle")}
         </h3>
         <p className="mt-1 text-sm text-sky-800">
-          {isEn
-            ? "Your payment proof has been submitted. Admins will verify and activate your membership shortly."
-            : "Bukti transfer telah diterima. Pengurus akan memeriksa dan mengaktifkan keanggotaan Anda."}
+          {t("registerMember.pendingSubmittedDesc")}
         </p>
         <div className="mt-3 inline-block rounded border border-sky-200 bg-white px-3 py-1.5 text-xs font-mono text-sky-900">
-          {isEn ? "Amount" : "Nominal"}: <strong>{rupiah(payment.total_amount)}</strong> ·{" "}
-          {isEn ? "Unique Code" : "Kode Unik"}: <strong>+{payment.unique_code}</strong>
+          {t("registerMember.amountLabel")}: <strong>{rupiah(payment.total_amount)}</strong> ·{" "}
+          {t("registerMember.uniqueCodeShort", { code: payment.unique_code })}
         </div>
       </div>
     );
   }
 
   if (payment.status === "FAILED" || expired) {
+    const hasReason = payment.status === "FAILED" && Boolean(payment.rejection_reason?.trim());
     return (
       <div className="rounded-xl border border-red-300 bg-red-50 p-6 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-800 mb-3">
           <IconAlertTriangle className="w-6 h-6" />
         </div>
         <h3 className="text-lg font-bold text-red-900">
-          {isEn ? "Payment Session Expired" : "Waktu Pembayaran Habis"}
+          {hasReason
+            ? t("registerMember.failedTitle")
+            : t("registerMember.expiredTitle")}
         </h3>
         <p className="mt-1 text-sm text-red-800">
-          {isEn
-            ? "The 30-minute payment window has expired. Please initiate registration again."
-            : "Batas waktu transfer 30 menit telah berakhir. Silakan pilih kembali nama untuk mendaftar ulang."}
+          {hasReason
+            ? payment.rejection_reason
+            : t("registerMember.expiredDesc")}
         </p>
       </div>
     );
@@ -411,7 +688,7 @@ function PaymentCard({
       <div className="flex items-center justify-between border-b border-[#e5e7eb] pb-3 mb-4">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280] block">
-            {isEn ? "Payment for" : "Pendaftaran Atas Nama"}
+            {t("registerMember.paymentForLabel")}
           </span>
           <p className="text-base font-bold text-[#111827]">{payment.player_name}</p>
         </div>
@@ -421,15 +698,15 @@ function PaymentCard({
       {/* Transfer Amount Card */}
       <div className="mb-4 rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-4 text-center">
         <span className="text-xs font-medium text-[#6b7280] block">
-          {isEn ? "Transfer Exact Amount to PB Kecebong" : "Transfer tepat sesuai nominal berikut"}
+          {t("registerMember.transferExactLabel")}
         </span>
         <div className="mt-1 text-3xl font-black tracking-tight text-[#111827]">
           {rupiah(payment.total_amount)}
         </div>
         <p className="mt-1 text-xs text-[#4b5563]">
-          {isEn ? "Base fee" : "Iuran"} {rupiah(payment.base_amount)} +{" "}
+          {t("registerMember.baseFeeLabel", { amount: rupiah(payment.base_amount) })} +{" "}
           <span className="font-semibold text-amber-800">
-            {isEn ? "unique code" : "kode unik"} +{payment.unique_code}
+            {t("registerMember.uniqueCodeLower", { code: payment.unique_code })}
           </span>
         </p>
         <button
@@ -438,7 +715,7 @@ function PaymentCard({
           className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] hover:bg-[#f5f6f8] transition-colors"
         >
           <IconCopy className="w-3.5 h-3.5 text-[#6b7280]" />
-          {copied ? (isEn ? "Copied!" : "Disalin!") : isEn ? "Copy exact amount" : "Salin nominal"}
+          {copied ? t("registerMember.copiedLabel") : t("registerMember.copyExactAmount")}
         </button>
       </div>
 
@@ -446,7 +723,7 @@ function PaymentCard({
       <div className="mb-4 flex items-center justify-between rounded-md border border-[#e5e7eb] px-3.5 py-2.5 bg-white">
         <div className="flex items-center gap-2 text-xs font-medium text-[#4b5563]">
           <IconClock className="w-4 h-4 text-[#6b7280]" />
-          <span>{isEn ? "Payment Time Remaining" : "Sisa Waktu Pembayaran"}</span>
+          <span>{t("registerMember.timeRemainingLabel")}</span>
         </div>
         <span
           className={`font-mono text-base font-bold ${
@@ -464,12 +741,10 @@ function PaymentCard({
           <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-4">
             <div className="mb-3">
               <h4 className="text-xs font-bold uppercase tracking-wide text-[#374151] mb-2">
-                {isEn ? "📱 Scan to Pay (QRIS)" : "📱 Bayar dengan QRIS"}
+                {t("registerMember.qrisTitle")}
               </h4>
               <p className="text-xs text-[#6b7280] mb-3">
-                {isEn
-                  ? "Scan the QR code below using any banking app or e-wallet:"
-                  : "Pindai QR code di bawah menggunakan aplikasi perbankan atau e-wallet:"}
+                {t("registerMember.qrisDesc")}
               </p>
             </div>
 
@@ -487,25 +762,25 @@ function PaymentCard({
                 download="PB-Kecebong-QRIS.jpeg"
                 className="text-xs px-3 py-1.5 rounded bg-[#374151] text-white hover:bg-[#1f2937] transition-colors"
               >
-                {isEn ? "⬇ Download QRIS" : "⬇ Unduh QRIS"}
+                {t("registerMember.downloadQris")}
               </a>
             </div>
 
             <div className="text-center text-xs text-[#6b7280] mb-3">
               <p className="font-medium text-[#111827] mb-1">
-                {isEn ? "PB Kecebong" : "PB Kecebong"}
+                {t("registerMember.headerBrand")}
               </p>
               <p className="font-mono text-[#374151]">NMID: ID1021066584504</p>
             </div>
 
             <div className="rounded bg-white p-3 border border-[#e5e7eb]">
               <p className="text-[11px] text-[#6b7280] mb-1">
-                {isEn ? "Total amount to transfer:" : "Total nominal transfer:"}
+                {t("registerMember.totalToTransferLabel")}
               </p>
               <p className="text-sm font-bold text-[#111827]">
                 {rupiah(payment.total_amount)}{" "}
                 <span className="text-xs font-normal text-amber-800">
-                  ({isEn ? "includes unique code" : "sudah termasuk kode unik"} +{payment.unique_code})
+                  ({t("registerMember.includesUniqueCode", { code: payment.unique_code })})
                 </span>
               </p>
             </div>
@@ -514,35 +789,19 @@ function PaymentCard({
           {/* Instructions */}
           <div className="rounded-lg border border-[#e5e7eb] bg-blue-50 p-3.5">
             <h4 className="text-xs font-bold uppercase tracking-wide text-[#111827] mb-2">
-              {isEn ? "✓ Next Steps" : "✓ Langkah Berikutnya"}
+              {t("registerMember.nextStepsTitle")}
             </h4>
             <ol className="text-xs text-[#4b5563] space-y-1.5 list-decimal list-inside">
-              <li>
-                {isEn
-                  ? "Transfer the exact amount above within 30 minutes"
-                  : "Transfer nominal di atas dalam waktu 30 menit"}
-              </li>
-              <li>
-                {isEn
-                  ? "Fill in the transfer date below"
-                  : "Isi tanggal transfer pada form di bawah"}
-              </li>
-              <li>
-                {isEn
-                  ? "Upload a clear screenshot/photo of the transfer proof"
-                  : "Unggah foto bukti transfer (screenshot atau foto slip)"}
-              </li>
-              <li>
-                {isEn
-                  ? "Click 'Submit Payment Proof' — admins will verify within 15 minutes"
-                  : "Klik 'Kirim Bukti' — pengurus akan verifikasi dalam 15 menit"}
-              </li>
+              <li>{t("registerMember.nextStep1")}</li>
+              <li>{t("registerMember.nextStep2")}</li>
+              <li>{t("registerMember.nextStep3")}</li>
+              <li>{t("registerMember.nextStep4")}</li>
             </ol>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-[#374151] uppercase tracking-wide mb-1">
-              {isEn ? "Transfer Date" : "Tanggal Transfer"}
+              {t("registerMember.transferDateLabel")}
             </label>
             <input
               type="date"
@@ -555,7 +814,7 @@ function PaymentCard({
 
           <div>
             <label className="block text-xs font-bold text-[#374151] uppercase tracking-wide mb-1">
-              {isEn ? "Proof of Payment Image" : "Foto Bukti Transfer"}
+              {t("registerMember.proofImageLabel")}
             </label>
             <input
               ref={fileRef}
@@ -572,14 +831,10 @@ function PaymentCard({
               <div className="flex flex-col items-center gap-1.5">
                 <IconUpload className="w-5 h-5 text-[#6b7280]" />
                 <span>
-                  {file
-                    ? file.name
-                    : isEn
-                      ? "Select transfer receipt photo"
-                      : "Pilih foto bukti transfer (JPG / PNG)"}
+                  {file ? file.name : t("registerMember.selectProofPhoto")}
                 </span>
                 <span className="text-[11px] text-[#6b7280]">
-                  {isEn ? "Max 2MB, will be compressed automatically" : "Maks 2MB, dikompres otomatis"}
+                  {t("registerMember.proofSizeHint")}
                 </span>
               </div>
             </button>
@@ -596,12 +851,12 @@ function PaymentCard({
 
           <div>
             <label className="block text-xs font-bold text-[#374151] uppercase tracking-wide mb-1">
-              {isEn ? "Note (Optional)" : "Catatan / Bank Pengirim (Opsional)"}
+              {t("registerMember.noteLabel")}
             </label>
             <input
               type="text"
               className="w-full rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#141518] focus:outline-hidden"
-              placeholder={isEn ? "e.g. BCA from account John" : "Contoh: Transfer via BCA a.n. Budi"}
+              placeholder={t("registerMember.notePlaceholder")}
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
@@ -620,12 +875,8 @@ function PaymentCard({
             className="w-full rounded-md bg-[#141518] py-2.5 text-sm font-bold text-white hover:bg-[#27272a] disabled:opacity-50 transition-colors"
           >
             {submitState.isLoading
-              ? isEn
-                ? "Uploading proof…"
-                : "Mengunggah bukti…"
-              : isEn
-                ? "Submit Payment Proof"
-                : "Kirim Bukti Pembayaran"}
+              ? t("registerMember.uploadingProof")
+              : t("registerMember.submitProofBtn")}
           </button>
         </div>
       )}
@@ -642,13 +893,15 @@ function RegistrationForm({
   info: PeriodRegistrationInfo;
   onPaymentCreated: (p: MembershipPayment) => void;
 }) {
-  const { isEn } = useI18n();
+  const { t } = useI18n();
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [initiatePayment, initState] = useInitiatePaymentMutation();
   const [error, setError] = useState("");
   const [activePayment, setActivePayment] = useState<MembershipPayment | null>(null);
+  const hasNotes = Boolean(info.period.registration_notes?.trim());
 
   const players = info.eligible_players ?? [];
   const filteredPlayers = players.filter((p) =>
@@ -669,7 +922,7 @@ function RegistrationForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedPlayer || initState.isLoading) return;
+    if (!selectedPlayer || initState.isLoading || (hasNotes && !acceptedTerms)) return;
     setError("");
     try {
       const result = await initiatePayment({
@@ -695,12 +948,10 @@ function RegistrationForm({
             <IconAlertTriangle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-amber-900">
-                {isEn ? "Active Payment Session Found" : "Pembayaran Aktif Ditemukan"}
+                {t("registerMember.activePaymentTitle")}
               </p>
               <p className="mt-0.5 text-xs text-amber-800">
-                {isEn
-                  ? "A payment for this player is already in progress. Complete this payment or wait until it expires."
-                  : "Pemain ini masih memiliki transaksi pembayaran yang sedang berjalan. Selesaikan pembayaran atau tunggu hingga kadaluarsa."}
+                {t("registerMember.activePaymentDesc")}
               </p>
             </div>
           </div>
@@ -713,7 +964,7 @@ function RegistrationForm({
           className="text-xs font-semibold text-[#4b5563] hover:text-[#111827] underline"
           onClick={() => setActivePayment(null)}
         >
-          {isEn ? "← Back to player selection" : "← Kembali ke pilihan pemain"}
+          {t("registerMember.backToPlayers")}
         </button>
       </div>
     );
@@ -723,13 +974,13 @@ function RegistrationForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div ref={dropdownRef}>
         <label className="block text-xs font-bold uppercase tracking-wider text-[#374151] mb-1.5">
-          {isEn ? "Select Player Name" : "Pilih Nama Pemain"}
+          {t("registerMember.selectPlayerLabel")}
         </label>
         
         <div className="relative">
           <input
             type="text"
-            placeholder={isEn ? "Type to search players..." : "Ketik untuk cari pemain..."}
+            placeholder={t("registerMember.searchPlayersPlaceholder")}
             value={selectedPlayer ? selectedPlayerName || searchQuery : searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -761,7 +1012,7 @@ function RegistrationForm({
                 ))
               ) : (
                 <div className="px-3 py-2.5 text-sm text-[#6b7280]">
-                  {isEn ? "No players match your search" : "Tidak ada pemain yang sesuai"}
+                  {t("registerMember.noPlayersMatch")}
                 </div>
               )}
             </div>
@@ -780,15 +1031,11 @@ function RegistrationForm({
 
         {players.length === 0 ? (
           <p className="mt-1 text-xs text-[#6b7280]">
-            {isEn
-              ? "All active players are already registered in this period."
-              : "Semua pemain aktif sudah terdaftar di periode ini."}
+            {t("registerMember.allPlayersRegistered")}
           </p>
         ) : (
           <p className="mt-1 text-[11px] text-[#6b7280]">
-            {isEn
-              ? `${players.length} players available to register • Type to search`
-              : `${players.length} pemain belum terdaftar • Ketik untuk cari`}
+            {t("registerMember.playersAvailableHint", { count: players.length })}
           </p>
         )}
       </div>
@@ -796,26 +1043,24 @@ function RegistrationForm({
       {/* Pricing Breakdown Card */}
       <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-3.5 text-xs">
         <span className="font-bold text-[#111827] uppercase tracking-wide block mb-2">
-          {isEn ? "Payment Breakdown" : "Rincian Pembayaran"}
+          {t("registerMember.breakdownTitle")}
         </span>
         <div className="space-y-1.5 text-[#4b5563]">
           <div className="flex justify-between">
-            <span>{isEn ? "Commitment Fee" : "Iuran Komitmen"}</span>
+            <span>{t("registerMember.commitmentFeeLabel")}</span>
             <span className="font-semibold text-[#111827]">{rupiah(info.period.commitment_fee)}</span>
           </div>
           <div className="flex justify-between">
-            <span>{isEn ? "Unique 3-digit Code" : "Kode Unik (3 digit)"}</span>
+            <span>{t("registerMember.uniqueCodeLabel")}</span>
             <span className="font-mono font-semibold text-amber-800">+ Rp 001–999</span>
           </div>
           <div className="border-t border-[#e5e7eb] pt-1.5 flex justify-between font-bold text-[#111827]">
-            <span>{isEn ? "Approximate Total" : "Perkiraan Total"}</span>
+            <span>{t("registerMember.approximateTotalLabel")}</span>
             <span>≈ {rupiah(info.period.commitment_fee + 500)}</span>
           </div>
         </div>
         <p className="mt-2 text-[11px] text-[#6b7280]">
-          {isEn
-            ? "Exact nominal with unique code will be generated upon clicking 'Register & Pay'."
-            : "Nominal pasti dengan 3 digit unik akan dibuat setelah klik 'Daftar & Bayar'."}
+          {t("registerMember.breakdownHint")}
         </p>
       </div>
 
@@ -825,18 +1070,28 @@ function RegistrationForm({
         </div>
       )}
 
+      {hasNotes && (
+        <label className="flex items-start gap-2.5 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-3 text-xs text-[#374151] cursor-pointer select-none hover:border-[#d1d5db] transition-colors">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[#d1d5db] text-[#141518] focus:ring-[#141518]"
+          />
+          <span>
+            {t("registerMember.agreeTermsLabel")}
+          </span>
+        </label>
+      )}
+
       <button
         type="submit"
-        disabled={!selectedPlayer || initState.isLoading || players.length === 0}
+        disabled={!selectedPlayer || initState.isLoading || players.length === 0 || (hasNotes && !acceptedTerms)}
         className="w-full rounded-md bg-[#141518] py-3 text-sm font-bold text-white hover:bg-[#27272a] disabled:opacity-50 transition-colors"
       >
         {initState.isLoading
-          ? isEn
-            ? "Generating payment…"
-            : "Menyiapkan pembayaran…"
-          : isEn
-            ? "Register & Pay"
-            : "Daftar & Bayar"}
+          ? t("registerMember.generatingPayment")
+          : t("registerMember.registerAndPay")}
       </button>
     </form>
   );
@@ -845,15 +1100,13 @@ function RegistrationForm({
 // ─── Registered Members Table (Metro Transit Roster) ──────────────────────────
 
 function RegisteredMembersTable({ members }: { members?: RegisteredMemberItem[] }) {
-  const { isEn } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const list = members ?? [];
 
   if (list.length === 0) {
     return (
       <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-6 text-center text-xs text-[#6b7280]">
-        {isEn
-          ? "No members have officially registered for this period yet."
-          : "Belum ada member yang terdaftar pada periode ini."}
+        {t("registerMember.emptyMembers")}
       </div>
     );
   }
@@ -863,11 +1116,11 @@ function RegisteredMembersTable({ members }: { members?: RegisteredMemberItem[] 
       <table className="w-full text-left text-xs border-collapse">
         <thead className="bg-[#f5f6f8] border-b border-[#e5e7eb] text-[#374151]">
           <tr>
-            <th className="py-2.5 px-3 font-bold w-12 text-center">#</th>
-            <th className="py-2.5 px-3 font-bold">{isEn ? "Player Name" : "Nama Pemain"}</th>
-            <th className="py-2.5 px-3 font-bold">{isEn ? "Tier" : "Tier"}</th>
-            <th className="py-2.5 px-3 font-bold">{isEn ? "Joined Date" : "Tanggal Masuk"}</th>
-            <th className="py-2.5 px-3 font-bold text-right">{isEn ? "Status" : "Status"}</th>
+            <th className="py-2.5 px-3 font-bold w-12 text-center">{t("registerMember.colNumber")}</th>
+            <th className="py-2.5 px-3 font-bold">{t("registerMember.colPlayerName")}</th>
+            <th className="py-2.5 px-3 font-bold">{t("registerMember.colTier")}</th>
+            <th className="py-2.5 px-3 font-bold">{t("registerMember.colJoinedDate")}</th>
+            <th className="py-2.5 px-3 font-bold text-right">{t("registerMember.colStatus")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#e5e7eb] bg-white">
@@ -884,11 +1137,11 @@ function RegisteredMembersTable({ members }: { members?: RegisteredMemberItem[] 
                   "—"
                 )}
               </td>
-              <td className="py-2 px-3 text-[#4b5563]">{dateId(m.joined_at)}</td>
+              <td className="py-2 px-3 text-[#4b5563]">{dateFormatted(m.joined_at)}</td>
               <td className="py-2 px-3 text-right">
                 <span className="inline-flex items-center gap-1 border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-lime-deep rounded">
                   <span className="w-1.5 h-1.5 rounded-full bg-lime" />
-                  {isEn ? "Member" : "Member"}
+                  {t("registerMember.badgeMember")}
                 </span>
               </td>
             </tr>
@@ -902,15 +1155,13 @@ function RegisteredMembersTable({ members }: { members?: RegisteredMemberItem[] 
 // ─── Pending Payments Table ───────────────────────────────────────────────────
 
 function PendingPaymentsTable({ items }: { items?: PendingPaymentItem[] }) {
-  const { isEn } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const list = items ?? [];
 
   if (list.length === 0) {
     return (
       <div className="rounded-lg border border-[#e5e7eb] bg-[#f5f6f8] p-6 text-center text-xs text-[#6b7280]">
-        {isEn
-          ? "There are currently no payment proofs waiting for verification."
-          : "Tidak ada bukti transfer yang sedang menunggu verifikasi saat ini."}
+        {t("registerMember.emptyPending")}
       </div>
     );
   }
@@ -919,23 +1170,20 @@ function PendingPaymentsTable({ items }: { items?: PendingPaymentItem[] }) {
     <div className="space-y-3">
       <div className="rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
         <span className="font-bold">
-          {isEn ? "Review in progress" : "Sedang dalam antrean verifikasi"}
+          {t("registerMember.pendingBannerTitle")}
         </span>
-        :{" "}
-        {isEn
-          ? "The following players have submitted transfer receipts. Admins will confirm payments and roster seats shortly."
-          : "Pemain di bawah ini telah mengirim bukti transfer dan sedang menunggu pengecekan mutasi bank oleh admin."}
+        : {t("registerMember.pendingBannerDesc")}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-[#e5e7eb]">
         <table className="w-full text-left text-xs border-collapse">
           <thead className="bg-[#f5f6f8] border-b border-[#e5e7eb] text-[#374151]">
             <tr>
-              <th className="py-2.5 px-3 font-bold w-12 text-center">#</th>
-              <th className="py-2.5 px-3 font-bold">{isEn ? "Player Name" : "Nama Pemain"}</th>
-              <th className="py-2.5 px-3 font-bold">{isEn ? "Transfer Date" : "Tanggal Transfer"}</th>
-              <th className="py-2.5 px-3 font-bold">{isEn ? "Submitted" : "Waktu Pengajuan"}</th>
-              <th className="py-2.5 px-3 font-bold text-right">{isEn ? "Status" : "Status"}</th>
+              <th className="py-2.5 px-3 font-bold w-12 text-center">{t("registerMember.colNumber")}</th>
+              <th className="py-2.5 px-3 font-bold">{t("registerMember.colPlayerName")}</th>
+              <th className="py-2.5 px-3 font-bold">{t("registerMember.colTransferDate")}</th>
+              <th className="py-2.5 px-3 font-bold">{t("registerMember.colSubmittedAt")}</th>
+              <th className="py-2.5 px-3 font-bold text-right">{t("registerMember.colStatus")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#e5e7eb] bg-white">
@@ -943,12 +1191,12 @@ function PendingPaymentsTable({ items }: { items?: PendingPaymentItem[] }) {
               <tr key={it.payment_id} className="hover:bg-[#f5f6f8]/60 transition-colors">
                 <td className="py-2 px-3 text-center font-mono text-[#6b7280]">{idx + 1}</td>
                 <td className="py-2 px-3 font-semibold text-[#111827]">{it.name}</td>
-                <td className="py-2 px-3 text-[#4b5563]">{it.paid_at ? dateId(it.paid_at) : "—"}</td>
-                <td className="py-2 px-3 text-[#6b7280]">{dateId(it.created_at)}</td>
+                <td className="py-2 px-3 text-[#4b5563]">{it.paid_at ? dateFormatted(it.paid_at) : "—"}</td>
+                <td className="py-2 px-3 text-[#6b7280]">{dateFormatted(it.created_at)}</td>
                 <td className="py-2 px-3 text-right">
                   <span className="inline-flex items-center gap-1 border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-900 rounded">
                     <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                    {isEn ? "Reviewing" : "Menunggu Admin"}
+                    {t("registerMember.badgeReviewing")}
                   </span>
                 </td>
               </tr>
@@ -963,7 +1211,7 @@ function PendingPaymentsTable({ items }: { items?: PendingPaymentItem[] }) {
 // ─── Period Detail Registration Page ─────────────────────────────────────────
 
 function PeriodRegistrationPage({ id }: { id: string }) {
-  const { isEn } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const info = usePublicRegistrationInfoQuery(id, { pollingInterval: 30_000 });
   const [payment, setPayment] = useState<MembershipPayment | null>(null);
   const [activeTab, setActiveTab] = useState<"members" | "pending">("members");
@@ -976,7 +1224,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
             <IconClock className="w-5 h-5 text-[#111827]" />
           </div>
           <p className="text-sm font-medium">
-            {isEn ? "Loading registration board…" : "Memuat data pendaftaran…"}
+            {t("registerMember.loadingBoard")}
           </p>
         </div>
       </div>
@@ -991,19 +1239,17 @@ function PeriodRegistrationPage({ id }: { id: string }) {
             <IconAlertTriangle className="w-6 h-6" />
           </div>
           <h2 className="text-lg font-bold text-[#111827]">
-            {isEn ? "Period Not Found" : "Periode Tidak Ditemukan"}
+            {t("registerMember.notFoundTitle")}
           </h2>
           <p className="mt-1.5 text-sm text-[#4b5563]">
-            {isEn
-              ? "This registration link is invalid, expired, or has been removed."
-              : "Link pendaftaran ini tidak valid atau sudah tidak aktif."}
+            {t("registerMember.notFoundDesc")}
           </p>
           <Link
             to="/register-member"
             className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#141518] px-4 py-2 text-xs font-semibold text-white hover:bg-[#27272a] transition-colors"
           >
             <IconArrowLeft className="w-3.5 h-3.5" />
-            {isEn ? "View Active Periods" : "Lihat Periode Aktif"}
+            {t("registerMember.viewActivePeriods")}
           </Link>
         </div>
       </div>
@@ -1012,6 +1258,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
 
   const d = info.data;
   const isRegistrationClosed = !d.can_register && !payment;
+  const periodStatusLabel = t(`status.${d.period.status}`);
 
   return (
     <div className="min-h-screen bg-[#f5f6f8] text-[#111827] pb-16">
@@ -1024,15 +1271,15 @@ function PeriodRegistrationPage({ id }: { id: string }) {
               className="inline-flex items-center gap-1 text-xs font-semibold text-[#4b5563] hover:text-[#111827]"
             >
               <IconArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">{isEn ? "All Periods" : "Semua Periode"}</span>
+              <span className="hidden sm:inline">{t("registerMember.allPeriods")}</span>
             </Link>
             <span className="text-[#d1d5db]">|</span>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#6b7280] block">
-                PB Kecebong · Metro Pass
+                {t("registerMember.headerBrand")}
               </span>
               <span className="text-xs font-bold text-[#111827]">
-                {isEn ? "Online Membership Registration" : "Pendaftaran Member Online"}
+                {t("registerMember.headerTitle")}
               </span>
             </div>
           </div>
@@ -1047,20 +1294,59 @@ function PeriodRegistrationPage({ id }: { id: string }) {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-[#111827]">{d.period.name}</h1>
             <p className="mt-0.5 text-xs text-[#6b7280]">
-              {isEn ? "Period Schedule" : "Jadwal Periode"}: {dateId(d.period.start_date)} —{" "}
-              {dateId(d.period.end_date)}
+              {t("registerMember.periodSchedule")}: {dateFormatted(d.period.start_date)} —{" "}
+              {dateFormatted(d.period.end_date)}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="font-mono text-[#6b7280]">
-              {isEn ? "Status" : "Status"}:
+              {t("registerMember.statusLabel")}:
             </span>
-            <span className="font-semibold text-[#111827]">{d.period.status}</span>
+            <span className="font-semibold text-[#111827]">
+              {periodStatusLabel === `status.${d.period.status}` ? d.period.status : periodStatusLabel}
+            </span>
           </div>
         </div>
 
         {/* 1. Slot Capacity & Statistics Card */}
         <SlotCapacityCard info={d} />
+
+        {/* 1b. Registration Deadline Countdown (GMT+7 / WIB) */}
+        {d.period.registration_expires_at && (
+          <RegistrationCountdownCard
+            periodId={d.period.id}
+            expiresAt={d.period.registration_expires_at}
+            canRegister={d.can_register}
+            onExpired={() => {
+              void info.refetch();
+            }}
+          />
+        )}
+
+        {/* Member Terms / S&K & Schedule Card (when customized in admin) */}
+        {d.period.registration_notes?.trim() && (
+          <section
+            aria-label={t("registerMember.termsAria")}
+            className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-xs"
+          >
+            <div className="flex items-center gap-2 border-b border-[#e5e7eb] pb-3 mb-3.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f3f4f6] text-[#111827]">
+                <IconFileText className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6b7280] block">
+                  {t("registerMember.termsEyebrow")}
+                </span>
+                <h2 className="text-sm font-bold text-[#111827]">
+                  {t("registerMember.termsTitle")}
+                </h2>
+              </div>
+            </div>
+            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] px-4 py-3.5 text-sm leading-relaxed text-[#374151] whitespace-pre-line">
+              {d.period.registration_notes}
+            </div>
+          </section>
+        )}
 
         {/* Closed or Full Alert Notice */}
         {isRegistrationClosed && (
@@ -1069,13 +1355,10 @@ function PeriodRegistrationPage({ id }: { id: string }) {
               <IconLock className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-sm font-bold text-amber-900">
-                  {isEn ? "Registration Closed" : "Pendaftaran Ditutup"}
+                  {t("registerMember.closedTitle")}
                 </h3>
                 <p className="mt-0.5 text-xs text-amber-800">
-                  {d.close_reason ||
-                    (isEn
-                      ? "This period is currently not accepting new member registrations."
-                      : "Pendaftaran member untuk periode ini saat ini sedang tidak dibuka.")}
+                  {d.close_reason || t("registerMember.closedFallback")}
                 </p>
               </div>
             </div>
@@ -1090,16 +1373,12 @@ function PeriodRegistrationPage({ id }: { id: string }) {
               <div className="border-b border-[#e5e7eb] pb-3 mb-4 flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b7280] block">
-                    {isEn ? "Step 1 & 2" : "Langkah 1 & 2"}
+                    {t("registerMember.stepEyebrow", { step: payment ? 2 : 1 })}
                   </span>
                   <h2 className="text-base font-bold text-[#111827]">
                     {payment
-                      ? isEn
-                        ? "Payment Details"
-                        : "Detail Pembayaran"
-                      : isEn
-                        ? "Register New Member"
-                        : "Formulir Pendaftaran"}
+                      ? t("registerMember.paymentDetailsTitle")
+                      : t("registerMember.registerFormTitle")}
                   </h2>
                 </div>
                 {payment && (payment.status === "FAILED" || payment.status === "PAID") && (
@@ -1108,7 +1387,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
                     className="text-xs font-semibold text-[#111827] underline"
                     onClick={() => setPayment(null)}
                   >
-                    {isEn ? "Register another" : "Daftar lagi"}
+                    {t("registerMember.registerAnother")}
                   </button>
                 )}
               </div>
@@ -1117,11 +1396,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
                 <PaymentCard payment={payment} onProofSubmitted={setPayment} />
               ) : !d.can_register ? (
                 <div className="py-6 text-center text-xs text-[#6b7280]">
-                  <p>
-                    {isEn
-                      ? "Registration is currently unavailable for this period."
-                      : "Pendaftaran baru tidak dapat dilakukan untuk periode ini."}
-                  </p>
+                  <p>{t("registerMember.registrationUnavailable")}</p>
                 </div>
               ) : (
                 <RegistrationForm info={d} onPaymentCreated={setPayment} />
@@ -1144,7 +1419,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
                         : "border-transparent text-[#6b7280] hover:text-[#111827]"
                     }`}
                   >
-                    {isEn ? "Registered Members" : "Member Terdaftar"} (
+                    {t("registerMember.tabMembers")} (
                     {d.registered_members?.length ?? d.current_members})
                   </button>
                   <button
@@ -1156,12 +1431,14 @@ function PeriodRegistrationPage({ id }: { id: string }) {
                         : "border-transparent text-[#6b7280] hover:text-[#111827]"
                     }`}
                   >
-                    {isEn ? "Pending Review" : "Menunggu Verifikasi"} (
+                    {t("registerMember.tabPending")} (
                     {d.pending_payments?.length ?? 0})
                   </button>
                 </div>
                 <span className="text-[11px] font-mono text-[#6b7280]">
-                  {activeTab === "members" ? `${d.current_members} confirmed` : "queue"}
+                  {activeTab === "members"
+                    ? t("registerMember.tabMembersCount", { count: d.current_members })
+                    : t("registerMember.tabQueueLabel")}
                 </span>
               </div>
 
@@ -1169,9 +1446,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
               {activeTab === "members" ? (
                 <div>
                   <div className="mb-3 text-xs text-[#4b5563]">
-                    {isEn
-                      ? "List of confirmed players who have joined this period and completed their commitment fee."
-                      : "Daftar pemain yang telah resmi bergabung dan melunasi iuran komitmen pada periode ini."}
+                    {t("registerMember.membersTabDesc")}
                   </div>
                   <RegisteredMembersTable members={d.registered_members} />
                 </div>
@@ -1183,6 +1458,9 @@ function PeriodRegistrationPage({ id }: { id: string }) {
             </div>
           </div>
         </div>
+
+        {/* Admin WhatsApp Help Section */}
+        <AdminHelpCard />
       </main>
     </div>
   );
@@ -1192,7 +1470,7 @@ function PeriodRegistrationPage({ id }: { id: string }) {
 
 function RegistrationIndexPage() {
   const navigate = useNavigate();
-  const { isEn } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const periods = usePublicRegistrationPeriodsQuery();
 
   if (periods.isFetching && !periods.data) {
@@ -1203,7 +1481,7 @@ function RegistrationIndexPage() {
             <IconClock className="w-5 h-5 text-[#111827]" />
           </div>
           <p className="text-sm font-medium">
-            {isEn ? "Loading active periods…" : "Memuat daftar periode aktif…"}
+            {t("registerMember.loadingPeriods")}
           </p>
         </div>
       </div>
@@ -1219,10 +1497,10 @@ function RegistrationIndexPage() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#6b7280] block">
-              PB Kecebong · Metro Pass
+              {t("registerMember.headerBrand")}
             </span>
             <span className="text-xs font-bold text-[#111827]">
-              {isEn ? "Online Membership Registration" : "Pendaftaran Member Online"}
+              {t("registerMember.headerTitle")}
             </span>
           </div>
           <LanguageSwitcher />
@@ -1232,12 +1510,10 @@ function RegistrationIndexPage() {
       <main className="max-w-3xl mx-auto px-4 pt-8 space-y-6">
         <div className="border-b border-[#e5e7eb] pb-4 text-center sm:text-left">
           <h1 className="text-2xl font-black tracking-tight text-[#111827]">
-            {isEn ? "Select Registration Period" : "Pilih Periode Pendaftaran"}
+            {t("registerMember.selectPeriodTitle")}
           </h1>
           <p className="mt-1 text-sm text-[#4b5563]">
-            {isEn
-              ? "Choose an active membership period below to view slot quota and proceed with registration."
-              : "Pilih periode badminton aktif di bawah ini untuk melihat ketersediaan slot dan mendaftar."}
+            {t("registerMember.selectPeriodSubtitle")}
           </p>
         </div>
 
@@ -1247,12 +1523,10 @@ function RegistrationIndexPage() {
               <IconLock className="w-6 h-6" />
             </div>
             <h2 className="text-base font-bold text-[#111827]">
-              {isEn ? "No Open Registration Periods" : "Tidak Ada Pendaftaran Aktif"}
+              {t("registerMember.noOpenTitle")}
             </h2>
             <p className="mt-1 text-xs text-[#6b7280]">
-              {isEn
-                ? "Currently there are no periods accepting member registrations."
-                : "Saat ini belum ada periode yang membuka pendaftaran member baru."}
+              {t("registerMember.noOpenDesc")}
             </p>
           </div>
         ) : (
@@ -1278,37 +1552,41 @@ function RegistrationIndexPage() {
                         </h3>
                         {item.is_full ? (
                           <span className="border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-800 rounded">
-                            {isEn ? "Sold Out" : "Penuh"}
+                            {t("registerMember.badgeSoldOut")}
                           </span>
                         ) : (
                           <span className="border border-line bg-paper px-2 py-0.5 text-[11px] font-bold text-lime-deep rounded">
-                            {isEn ? "Open" : "Buka"}
+                            {t("registerMember.badgeOpen")}
                           </span>
                         )}
                       </div>
                       <p className="mt-1 text-xs text-[#6b7280]">
-                        {dateId(item.period.start_date)} — {dateId(item.period.end_date)}
+                        {dateFormatted(item.period.start_date)} — {dateFormatted(item.period.end_date)}
                       </p>
+                      {item.period.registration_expires_at && (
+                        <IndexDeadlineLine expiresAt={item.period.registration_expires_at} />
+                      )}
+                      {item.period.registration_notes?.trim() && (
+                        <p className="mt-2 text-xs text-[#4b5563] line-clamp-2 whitespace-pre-line border-l-2 border-[#d1d5db] pl-2.5">
+                          {item.period.registration_notes}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 text-xs sm:text-right">
                       <div>
                         <span className="text-[#6b7280] block text-[10px] uppercase font-semibold">
-                          {isEn ? "Capacity" : "Kapasitas"}
+                          {t("registerMember.capacityLabel")}
                         </span>
                         <span className="font-mono font-bold text-[#111827]">
                           {max && max > 0
-                            ? isEn
-                              ? `${remaining} slots left (${current}/${max})`
-                              : `Sisa ${remaining} slot (${current}/${max})`
-                            : isEn
-                              ? `${current} members (Unlimited)`
-                              : `${current} member (Tanpa batas)`}
+                            ? `${t("registerMember.capacityLeft", { count: remaining ?? 0 })} (${current}/${max})`
+                            : `${t("registerMember.capacityMembersCount", { current, max: "∞" })} · ${t("registerMember.capacityUnlimited")}`}
                         </span>
                       </div>
                       <div>
                         <span className="text-[#6b7280] block text-[10px] uppercase font-semibold">
-                          {isEn ? "Fee" : "Iuran"}
+                          {t("registerMember.feeLabel")}
                         </span>
                         <span className="font-bold text-[#111827]">
                           {rupiah(item.period.commitment_fee)}
@@ -1321,6 +1599,8 @@ function RegistrationIndexPage() {
             })}
           </div>
         )}
+
+        <AdminHelpCard />
       </main>
     </div>
   );

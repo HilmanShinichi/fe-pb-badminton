@@ -466,7 +466,12 @@ export const api = baseApi.injectEndpoints({
     }),
     updatePeriod: build.mutation<Period, { id: string; body: Record<string, unknown> }>({
       query: ({ id, body }) => ({ url: `/api/v1/periods/${id}`, method: "PATCH", body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Periods", id }, "Periods"],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Periods", id },
+        "Periods",
+        { type: "Payments", id },
+        { type: "RegistrationInfo", id },
+      ],
     }),
     deletePeriod: build.mutation<unknown, { id: string; force?: boolean }>({
       query: ({ id, force }) => ({ url: `/api/v1/periods/${id}${force ? "?force=true" : ""}`, method: "DELETE" }),
@@ -803,9 +808,26 @@ export const api = baseApi.injectEndpoints({
       query: ({ periodId, status }) => `/api/v1/periods/${periodId}/payments${status && status !== "ALL" ? `?status=${status}` : ""}`,
       providesTags: (_r, _e, { periodId }) => [{ type: "Payments", id: periodId }],
     }),
-    setRegistrationStatus: build.mutation<{ period_id: string; is_registration_open: boolean }, { periodId: string; is_registration_open: boolean }>({
+    setRegistrationStatus: build.mutation<
+      { period_id: string; is_registration_open: boolean; registration_expires_at?: string | null },
+      { periodId: string; is_registration_open?: boolean; registration_expires_at?: string | null }
+    >({
       query: ({ periodId, ...body }) => ({ url: `/api/v1/periods/${periodId}/registration-status`, method: "PATCH", body }),
-      invalidatesTags: (_r, _e, { periodId }) => [{ type: "Periods", id: periodId }, "Periods", { type: "Payments", id: periodId }],
+      invalidatesTags: (_r, _e, { periodId }) => [
+        { type: "Periods", id: periodId },
+        "Periods",
+        { type: "Payments", id: periodId },
+        { type: "RegistrationInfo", id: periodId },
+      ],
+    }),
+    updateRegistrationNotes: build.mutation<{ period_id: string; registration_notes: string | null }, { periodId: string; registration_notes: string | null }>({
+      query: ({ periodId, ...body }) => ({ url: `/api/v1/periods/${periodId}/registration-notes`, method: "PATCH", body }),
+      invalidatesTags: (_r, _e, { periodId }) => [
+        { type: "Periods", id: periodId },
+        "Periods",
+        { type: "Payments", id: periodId },
+        { type: "RegistrationInfo", id: periodId },
+      ],
     }),
     verifyPayment: build.mutation<MembershipPayment, { periodId: string; paymentId: string; status: "PAID" | "FAILED"; rejection_reason?: string }>({
       query: ({ periodId, paymentId, ...body }) => ({ url: `/api/v1/periods/${periodId}/payments/${paymentId}/verify`, method: "PATCH", body }),
@@ -921,6 +943,7 @@ export const {
   useSubmitPaymentProofMutation,
   useAdminPeriodPaymentsQuery,
   useSetRegistrationStatusMutation,
+  useUpdateRegistrationNotesMutation,
   useVerifyPaymentMutation,
   useDeletePaymentMutation,
 } = api;

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "../store/baseApi";
 import { useCreatePeriodMutation, usePeriodsQuery } from "../store/services";
-import { dateId } from "../format";
+import { buildRegistrationNotesTemplate, gmt7InputToUtcIso } from "../format";
 import { Badge, Btn, Empty, ErrorBox, Field, Loading, MoneyInput, OpenLink, PageHead } from "../ui";
 import { useI18n } from "../i18n";
 import type { Period } from "../types";
 
 export function PeriodListPage() {
-  const { t, lang } = useI18n();
+  const { t, dateFormatted } = useI18n();
   const [form, setForm] = useState({
     name: "",
     start_date: "",
@@ -22,6 +22,8 @@ export function PeriodListPage() {
     shuttle_units_per_pack: 12,
     shuttle_per_session: 24,
     max_members: "" as string | number,
+    registration_notes: "",
+    registration_expires_at: "",
   });
   const [error, setError] = useState("");
 
@@ -41,9 +43,13 @@ export function PeriodListPage() {
         ...form,
         number_of_sessions: Math.max(1, Math.floor(Number(form.number_of_sessions)) || 1),
         max_members: form.max_members ? Number(form.max_members) : null,
+        registration_notes: form.registration_notes.trim() || null,
+        registration_expires_at: form.registration_expires_at
+          ? gmt7InputToUtcIso(form.registration_expires_at)
+          : null,
       }).unwrap();
       setError("");
-      setForm({ ...form, name: "" });
+      setForm({ ...form, name: "", registration_notes: "", registration_expires_at: "" });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("periods.errorCreatePeriod"));
     }
@@ -111,18 +117,28 @@ export function PeriodListPage() {
                   onChange={(e) => setForm({ ...form, number_of_sessions: e.target.value })}
                 />
               </Field>
-              <Field label={lang === "id" ? "Kuota (Maks member)" : "Quota (Max members)"} hint={lang === "id" ? "Kosongkan jika tak terbatas" : "Blank = unlimited"}>
+              <Field label={t("periods.fieldQuota")} hint={t("periods.hintQuota")}>
                 <input
                   id="kuota-member"
                   type="number"
                   min={1}
                   className="w-full"
                   value={form.max_members}
-                  placeholder={lang === "id" ? "Tak terbatas" : "Unlimited"}
+                  placeholder={t("periods.placeholderUnlimited")}
                   onChange={(e) => setForm({ ...form, max_members: e.target.value })}
                 />
               </Field>
             </div>
+
+            <Field label={t("periods.fieldRegExpiresAt")} hint={t("periods.hintRegExpiresAt")}>
+              <input
+                id="reg-expires-at"
+                type="datetime-local"
+                className="w-full"
+                value={form.registration_expires_at}
+                onChange={(e) => setForm({ ...form, registration_expires_at: e.target.value })}
+              />
+            </Field>
 
             <Field label={t("periods.fieldMemberPrice")}>
               <MoneyInput id="commitment-fee-rp" value={form.commitment_fee} onChange={(n) => setForm({ ...form, commitment_fee: n })} />
@@ -168,6 +184,44 @@ export function PeriodListPage() {
               />
             </Field>
 
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="catatan-sk" className="text-xs font-semibold text-ink-soft">
+                  {t("periods.fieldNotes")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      registration_notes: buildRegistrationNotesTemplate({
+                        start_date: form.start_date,
+                        end_date: form.end_date,
+                        number_of_sessions: Number(form.number_of_sessions) || 5,
+                        max_members: form.max_members ? Number(form.max_members) : 20,
+                        member_contribution: form.member_contribution,
+                        non_member_fee: form.non_member_fee,
+                      }),
+                    })
+                  }
+                  className="text-[11px] font-semibold text-pine hover:underline"
+                >
+                  {t("periods.btnFillTemplate")}
+                </button>
+              </div>
+              <textarea
+                id="catatan-sk"
+                rows={4}
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs leading-relaxed text-ink focus:border-pine focus:outline-none"
+                placeholder={t("periods.placeholderNotes")}
+                value={form.registration_notes}
+                onChange={(e) => setForm({ ...form, registration_notes: e.target.value })}
+              />
+              <p className="text-[11px] text-ink-faint">
+                {t("periods.hintNotesPublic")}
+              </p>
+            </div>
+
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
             <Btn className="w-full justify-center" disabled={!valid || createState.isLoading} onClick={submit}>
@@ -204,7 +258,7 @@ export function PeriodListPage() {
                           <line x1="3" y1="10" x2="21" y2="10" />
                         </svg>
                         <span className="font-semibold text-ink">
-                          {dateId(p.start_date, lang)} – {dateId(p.end_date, lang)}
+                          {dateFormatted(p.start_date)} – {dateFormatted(p.end_date)}
                         </span>
                       </div>
                       <div className="text-[11px] text-ink-faint">
@@ -242,7 +296,7 @@ export function PeriodListPage() {
                       <tr key={p.id}>
                         <td className="font-medium text-ink">{p.name}</td>
                         <td className="whitespace-nowrap font-normal text-ink-soft">
-                          {dateId(p.start_date, lang)} – {dateId(p.end_date, lang)}
+                          {dateFormatted(p.start_date)} – {dateFormatted(p.end_date)}
                         </td>
                         <td className="text-right tabular-nums">{p.number_of_sessions}</td>
                         <td><Badge status={p.status} /></td>
