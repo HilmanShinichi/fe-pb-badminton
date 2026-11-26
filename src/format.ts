@@ -122,6 +122,95 @@ export function buildRegistrationNotesTemplate(opts: {
   ].join("\n");
 }
 
+function parseTimestampMs(iso: string | null | undefined): number {
+  if (!iso) return 0;
+  // Format: "2026-11-27 12:00:00+00" needs to become "2026-11-27T12:00:00+00:00"
+  let normalized = iso
+    .replace(" ", "T")  // Replace space with T
+    .replace(/([+-])(\d{2})$/, "$1$2:00");  // Add colon to timezone offset (+00 → +00:00)
+  
+  const ms = Date.parse(normalized);
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+export interface CountdownTime {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalSeconds: number;
+  isExpired: boolean;
+}
+
+export function calculateCountdown(targetIso: string | null | undefined, nowMs?: number): CountdownTime {
+  if (!targetIso) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isExpired: true };
+  }
+
+  const targetMs = parseTimestampMs(targetIso);
+  const currentMs = nowMs ?? Date.now();
+  const diffMs = Math.max(0, targetMs - currentMs);
+  const totalSeconds = Math.floor(diffMs / 1000);
+
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+    totalSeconds,
+    isExpired: diffMs <= 0,
+  };
+}
+
+export function buildMabarShareListTemplate(opts: {
+  date: string | null | undefined;
+  participants: Array<{ player_name: string; listed_at?: string }>;
+  waitingList?: Array<{ player_name: string; listed_at?: string }>;
+  lang?: "id" | "en" | string;
+}): string {
+  const isEn = opts.lang === "en";
+  const formattedDate = dateId(opts.date, isEn ? "en" : "id");
+
+  const sortedParticipants = [...opts.participants].sort(
+    (a, b) => parseTimestampMs(a.listed_at) - parseTimestampMs(b.listed_at),
+  );
+  const sortedWaiting = [...(opts.waitingList ?? [])].sort(
+    (a, b) => parseTimestampMs(a.listed_at) - parseTimestampMs(b.listed_at),
+  );
+
+  const lines: string[] = [
+    "===========================================",
+    isEn
+      ? `List for the joint play session (mabar) on ${formattedDate}`
+      : `List mabar tanggal ${formattedDate}`,
+    isEn
+      ? `Total participants: ${sortedParticipants.length}`
+      : `Total peserta: ${sortedParticipants.length}`,
+    "",
+  ];
+
+  if (sortedParticipants.length === 0) {
+    lines.push(isEn ? "(No participants yet)" : "(Belum ada peserta)");
+  } else {
+    sortedParticipants.forEach((p, idx) => {
+      lines.push(`${idx + 1}. ${p.player_name}`);
+    });
+  }
+
+  if (sortedWaiting.length > 0) {
+    lines.push("");
+    lines.push(isEn ? "Waiting List:" : "Waiting List:");
+    sortedWaiting.forEach((w, idx) => {
+      lines.push(`${idx + 1}. ${w.player_name}`);
+    });
+  }
+
+  lines.push("");
+  lines.push("============================================");
+
+  return lines.join("\n");
+}
+
 export function statusLabel(s: string, lang: "id" | "en" | string = "id"): string {
   const mapEn: Record<string, string> = {
     PROFIT: "Profit",
@@ -137,6 +226,7 @@ export function statusLabel(s: string, lang: "id" | "en" | string = "id"): strin
     NOT_LISTED: "Not Listed",
     ABSENT: "Absent",
     NO_SHOW: "No-Show",
+    WAITING: "Waiting List",
     PERIOD: "Period",
     DAILY_EVENT: "Open Play",
     PAID: "Paid",
@@ -165,6 +255,7 @@ export function statusLabel(s: string, lang: "id" | "en" | string = "id"): strin
     NOT_LISTED: "Tidak Hadir",
     ABSENT: "Tidak Hadir",
     NO_SHOW: "PHP / Mangkir",
+    WAITING: "Daftar Tunggu",
     PERIOD: "Periode",
     DAILY_EVENT: "Mabar Umum",
     PAID: "Lunas",
@@ -203,6 +294,7 @@ export function statusClass(s: string): string {
     case "DRAFT":
     case "UNPAID":
     case "PENDING":
+    case "WAITING":
       return "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-900 border-amber-300";
     default:
       return "bg-court text-ink border-line";

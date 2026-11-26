@@ -23,16 +23,20 @@ import {
   useSimpleStatsQuery,
   useUpdateBillingStatusMutation,
   useUpdateMabarMutation,
+  useUpdateMabarNoteMutation,
   useSessionExpensesQuery,
   useAddSessionExpenseMutation,
   useDeleteSessionExpenseMutation,
+  useMabarCancellationsQuery,
+  useApproveMabarCancellationMutation,
+  useRejectMabarCancellationMutation,
   type MabarSummary,
 } from "../store/services";
 import { dateId, rupiah, statusClass, statusLabel } from "../format";
 import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead, PlayerPicker } from "../ui";
 
-const STATUSES = ["NOT_LISTED", "PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW"];
+const STATUSES = ["NOT_LISTED", "PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW", "WAITING"];
 
 // Badminton needs at least 4 players on court: calculations stay locked
 // until this many players are marked PRESENT.
@@ -72,6 +76,14 @@ function MabarDetailInner({
   onRetry: () => void;
 }) {
   const [mode, setMode] = useState<RecapMode>(() => initialMode(sessionType, sessionId));
+  const { isId } = useI18n();
+  const [updateMabarNote, { isLoading: isUpdatingNote }] = useUpdateMabarNoteMutation();
+  const [adminNote, setAdminNote] = useState(s.session.admin_note ?? "");
+  const [noteMessage, setNoteMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    setAdminNote(s.session.admin_note ?? "");
+  }, [s.session.admin_note]);
 
   useEffect(() => {
     try {
@@ -97,10 +109,82 @@ function MabarDetailInner({
           <Cell label="Shuttlecocks" value={`${s.shuttlecock_used} pcs`} sub="Matches + simple recap" />
         </dl>
       </section>
+      
+      <section aria-label="Admin note" className="mb-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+        <div className="border-b border-line px-3 py-2">
+          <h2 className="text-sm font-semibold">{isId ? "Catatan Admin / S&K" : "Admin Note / T&C"}</h2>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {isId
+              ? "Ditampilkan secara read-only kepada peserta di halaman pendaftaran Open Play."
+              : "Displayed read-only to participants on the Open Play registration page."}
+          </p>
+        </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setNoteMessage(null);
+            try {
+              await updateMabarNote({
+                id: sessionId,
+                admin_note: adminNote.trim() || null,
+              }).unwrap();
+              setNoteMessage({
+                type: "success",
+                text: isId ? "Catatan berhasil diperbarui." : "Note updated successfully.",
+              });
+              onRetry();
+            } catch (err) {
+              const apiErr = err as ApiError;
+              setNoteMessage({
+                type: "error",
+                text: apiErr.message || (isId ? "Gagal memperbarui catatan." : "Failed to update note."),
+              });
+            }
+          }}
+          className="p-3 space-y-3"
+        >
+          {noteMessage && (
+            <p
+              role={noteMessage.type === "error" ? "alert" : "status"}
+              className={`rounded-lg px-3 py-2 text-sm ${noteMessage.type === "success" ? "bg-emerald-50 text-emerald-900" : "bg-red-50 text-red-800"}`}
+            >
+              {noteMessage.text}
+            </p>
+          )}
+          <div>
+            <label htmlFor="admin-note-textarea" className="sr-only">
+              {isId ? "Catatan untuk Peserta" : "Note for Participants"}
+            </label>
+            <textarea
+              id="admin-note-textarea"
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              placeholder={isId ? "Tulis catatan atau S&K untuk peserta..." : "Write a note or T&C for participants..."}
+              rows={4}
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-pine focus:outline-hidden"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Btn type="submit" disabled={isUpdatingNote}>
+              {isUpdatingNote ? (isId ? "Menyimpan..." : "Saving...") : (isId ? "Simpan Catatan" : "Save Note")}
+            </Btn>
+            {(s.session.admin_note ?? "") !== adminNote && (
+              <span className="text-xs text-amber-700">{isId ? "Perubahan belum disimpan" : "Unsaved changes"}</span>
+            )}
+          </div>
+        </form>
+      </section>
+      
       {s.session.type === "DAILY_EVENT" && (
         <SessionCostPanel sessionId={sessionId} summary={s} onSaved={onRetry} />
       )}
       <OtherExpensesPanel sessionId={sessionId} onExpensesChanged={onRetry} />
+      {s.session.type === "PERIOD" && (
+        <>
+          <RegistrationPanel sessionId={sessionId} summary={s} onSaved={onRetry} />
+          <CancellationsPanel sessionId={sessionId} />
+        </>
+      )}
       <div className="grid gap-5 xl:grid-cols-2 min-w-0 w-full">
         <AttendancePanel sessionId={sessionId} sessionType={s.session.type} periodId={s.session.period_id ?? null} />
         <div className="min-w-0 w-full">
@@ -430,6 +514,393 @@ function OtherExpensesPanel({ sessionId, onExpensesChanged }: { sessionId: strin
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function RegistrationPanel({ sessionId, summary: s, onSaved }: { sessionId: string; summary: MabarSummary; onSaved: () => void }) {
+  const [error, setError] = useState("");
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedWA, setCopiedWA] = useState(false);
+  const [update, updateState] = useUpdateMabarMutation();
+
+  const UTC_OFFSET_MS = 7 * 60 * 60 * 1000; // GMT+7
+
+  const formatToLocalDateTime = (isoString: string | null): string => {
+    if (!isoString) return "";
+    try {
+      const date = new Date(isoString);
+      const localDate = new Date(date.getTime() + UTC_OFFSET_MS);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${localDate.getUTCFullYear()}-${pad(localDate.getUTCMonth() + 1)}-${pad(localDate.getUTCDate())}T${pad(localDate.getUTCHours())}:${pad(localDate.getUTCMinutes())}`;
+    } catch {
+      return "";
+    }
+  };
+
+  const formatToISO = (localDateTime: string): string | null => {
+    if (!localDateTime) return null;
+    try {
+      const [date, time] = localDateTime.split("T");
+      const [year, month, day] = date.split("-").map(Number);
+      const [hours, minutes] = time.split(":").map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+      const isoDate = new Date(utcDate.getTime() - UTC_OFFSET_MS);
+      return isoDate.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
+  const [opensAt, setOpensAt] = useState(formatToLocalDateTime(s.session.registration_opens_at));
+  const [memberClosesAt, setMemberClosesAt] = useState(formatToLocalDateTime(s.session.member_registration_closes_at));
+  const [closesAt, setClosesAt] = useState(formatToLocalDateTime(s.session.registration_closes_at));
+
+  const [maxMembers, setMaxMembers] = useState(s.session.max_members || 20);
+  const [maxNonMembers, setMaxNonMembers] = useState(s.session.max_non_members || 18);
+  const [maxWaitingList, setMaxWaitingList] = useState(s.session.max_waiting_list || 3);
+
+  useEffect(() => {
+    setOpensAt(formatToLocalDateTime(s.session.registration_opens_at));
+    setMemberClosesAt(formatToLocalDateTime(s.session.member_registration_closes_at));
+    setClosesAt(formatToLocalDateTime(s.session.registration_closes_at));
+    setMaxMembers(s.session.max_members || 20);
+    setMaxNonMembers(s.session.max_non_members || 18);
+    setMaxWaitingList(s.session.max_waiting_list || 3);
+  }, [
+    s.session.registration_opens_at,
+    s.session.member_registration_closes_at,
+    s.session.registration_closes_at,
+    s.session.max_members,
+    s.session.max_non_members,
+    s.session.max_waiting_list,
+  ]);
+
+  const dirty =
+    formatToLocalDateTime(s.session.registration_opens_at) !== opensAt ||
+    formatToLocalDateTime(s.session.member_registration_closes_at) !== memberClosesAt ||
+    formatToLocalDateTime(s.session.registration_closes_at) !== closesAt ||
+    (s.session.max_members || 20) !== maxMembers ||
+    (s.session.max_non_members || 18) !== maxNonMembers ||
+    (s.session.max_waiting_list || 3) !== maxWaitingList;
+
+  async function submit() {
+    try {
+      await update({
+        id: sessionId,
+        body: {
+          type: s.session.type,
+          date: s.session.date,
+          period_id: s.session.period_id,
+          venue_id: s.session.venue_id,
+          start_time: s.session.start_time,
+          end_time: s.session.end_time,
+          description: s.session.description,
+          venue_description: s.session.venue_description,
+          pricing_mode: s.session.pricing_mode,
+          status: s.session.status,
+          court_cost: s.session.court_cost,
+          shuttlecock_price: s.session.shuttlecock_price,
+          shuttle_pack_price: s.session.shuttle_pack_price,
+          shuttle_units_per_pack: s.session.shuttle_units_per_pack,
+          registration_opens_at: formatToISO(opensAt),
+          member_registration_closes_at: formatToISO(memberClosesAt),
+          registration_closes_at: formatToISO(closesAt),
+          max_members: Number(maxMembers),
+          max_non_members: Number(maxNonMembers),
+          max_waiting_list: Number(maxWaitingList),
+        },
+      }).unwrap();
+      setError("");
+      onSaved();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not save registration settings.");
+    }
+  }
+
+  const openPlayUrl = `${window.location.origin}/open-play/${sessionId}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(openPlayUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleCopyWA = () => {
+    const waText = [
+      `🏸 *PENDAFTARAN OPEN PLAY PB KECEBONG* 🏸`,
+      `📅 Tanggal: ${s.session.date}`,
+      `⏰ Waktu: ${s.session.start_time || "13:00"} - ${s.session.end_time || "16:00"} WIB`,
+      s.session.venue_description ? `📍 Lokasi: ${s.session.venue_description}` : "",
+      `👥 Kuota: Member (${maxMembers}), Non-Member (${maxNonMembers}), Waiting List (${maxWaitingList})`,
+      opensAt ? `🟢 Buka Pendaftaran: ${opensAt.replace("T", " ")} WIB` : "",
+      memberClosesAt ? `⏳ Batas Khusus Member: ${memberClosesAt.replace("T", " ")} WIB (Setelah itu slot sisa dibuka untuk umum)` : "",
+      closesAt ? `🔴 Tutup Pendaftaran: ${closesAt.replace("T", " ")} WIB` : "",
+      ``,
+      `👉 *Daftar Sekarang melalui link berikut:*`,
+      openPlayUrl,
+    ].filter(Boolean).join("\n");
+
+    navigator.clipboard.writeText(waText);
+    setCopiedWA(true);
+    setTimeout(() => setCopiedWA(false), 2000);
+  };
+
+  return (
+    <section aria-label="Registration" className="mb-5 rounded-xl border border-line bg-white shadow-card">
+      <div className="border-b border-line px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-semibold">Pengaturan Pendaftaran Open Play</h2>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            Atur jendela waktu (WIB / GMT+7) & kuota slot. Link pendaftaran dapat dibagikan langsung ke grup WhatsApp.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg border border-line hover:bg-slate-50 transition"
+          >
+            {copiedLink ? "✓ Link Tersalin!" : "📋 Salin Link Web"}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyWA}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition"
+          >
+            {copiedWA ? "✓ Teks WA Tersalin!" : "💬 Salin Format WA"}
+          </button>
+        </div>
+      </div>
+      {error && <p role="alert" className="px-3 pt-2 text-sm text-red-700">{error}</p>}
+      <div className="p-3 space-y-4">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint mb-2">Jadwal Pendaftaran (GMT+7 / WIB)</h3>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Field label="1. Buka Pendaftaran">
+              <input
+                type="datetime-local"
+                className="w-full text-xs"
+                value={opensAt}
+                onChange={(e) => setOpensAt(e.target.value)}
+              />
+            </Field>
+            <Field label="2. Batas Khusus Member (Cutoff)">
+              <input
+                type="datetime-local"
+                className="w-full text-xs"
+                value={memberClosesAt}
+                onChange={(e) => setMemberClosesAt(e.target.value)}
+              />
+            </Field>
+            <Field label="3. Tutup Semua Pendaftaran">
+              <input
+                type="datetime-local"
+                className="w-full text-xs"
+                value={closesAt}
+                onChange={(e) => setClosesAt(e.target.value)}
+              />
+            </Field>
+          </div>
+          <p className="text-[11px] text-ink-faint mt-1.5">
+            💡 Sebelum cutoff member, member dan non-member sama-sama dapat mendaftar sesuai kuota masing-masing. Setelah cutoff member lewat, pendaftaran member ditutup dan sisa slot member yang belum diisi otomatis ditambahkan ke kuota non-member hingga pendaftaran ditutup.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint mb-2">Batas Kuota Pemain</h3>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Field label="Max Member (Prioritas)">
+              <input
+                type="number"
+                min="0"
+                className="w-full text-xs"
+                value={maxMembers}
+                onChange={(e) => setMaxMembers(Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Max Non-Member">
+              <input
+                type="number"
+                min="0"
+                className="w-full text-xs"
+                value={maxNonMembers}
+                onChange={(e) => setMaxNonMembers(Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Max Waiting List">
+              <input
+                type="number"
+                min="0"
+                className="w-full text-xs"
+                value={maxWaitingList}
+                onChange={(e) => setMaxWaitingList(Number(e.target.value))}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div>
+          <Btn disabled={!dirty || updateState.isLoading} onClick={submit}>
+            {updateState.isLoading ? "Menyimpan…" : "Simpan Pengaturan Pendaftaran"}
+          </Btn>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CancellationsPanel({ sessionId }: { sessionId: string }) {
+  const { data: cancellations = [], isLoading, refetch } = useMabarCancellationsQuery(sessionId);
+  const [approve, approveState] = useApproveMabarCancellationMutation();
+  const [reject, rejectState] = useRejectMabarCancellationMutation();
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const handleApprove = async (id: string, playerName: string) => {
+    if (!window.confirm(`Setujui pengajuan pembatalan untuk ${playerName}?`)) return;
+    try {
+      const res = await approve({ sessionId, cancellationId: id }).unwrap();
+      setNotice(res.message);
+      setError("");
+      refetch();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Gagal menyetujui pembatalan.");
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const res = await reject({ sessionId, cancellationId: id, admin_notes: rejectReason }).unwrap();
+      setNotice(res.message);
+      setError("");
+      setRejectingId(null);
+      setRejectReason("");
+      refetch();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Gagal menolak pembatalan.");
+    }
+  };
+
+  if (cancellations.length === 0 && !isLoading) {
+    return null;
+  }
+
+  return (
+    <section aria-label="Pengajuan Pembatalan" className="mb-5 rounded-xl border border-line bg-white shadow-card">
+      <div className="border-b border-line px-3 py-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">Pengajuan Pembatalan Open Play</h2>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            Review alasan pembatalan pemain. Jika disetujui, pemain waiting list teratas akan otomatis mengisi slot kosong.
+          </p>
+        </div>
+        <span className="text-xs bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full">
+          {cancellations.filter((c) => c.status === "PENDING").length} Menunggu Review
+        </span>
+      </div>
+      {notice && <p role="status" className="px-3 pt-2 text-sm text-green-700 bg-green-50 p-2 m-3 rounded-lg border border-green-200">{notice}</p>}
+      {error && <p role="alert" className="px-3 pt-2 text-sm text-red-700 bg-red-50 p-2 m-3 rounded-lg border border-red-200">{error}</p>}
+
+      <div className="overflow-x-auto p-3">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-line text-ink-faint">
+              <th className="py-2 pr-3">Pemain</th>
+              <th className="py-2 pr-3">Tipe</th>
+              <th className="py-2 pr-3">Alasan</th>
+              <th className="py-2 pr-3">Waktu Pengajuan</th>
+              <th className="py-2 pr-3">Status</th>
+              <th className="py-2 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {cancellations.map((c) => (
+              <tr key={c.id}>
+                <td className="py-2.5 pr-3 font-medium text-ink">{c.player_name}</td>
+                <td className="py-2.5 pr-3">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${c.is_member ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                    {c.is_member ? "Member" : "Non-Member"}
+                  </span>
+                </td>
+                <td className="py-2.5 pr-3 max-w-[240px] truncate" title={c.reason}>
+                  {c.reason}
+                </td>
+                <td className="py-2.5 pr-3 text-ink-faint whitespace-nowrap">
+                  {new Date(c.created_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB
+                </td>
+                <td className="py-2.5 pr-3">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                    c.status === "PENDING" ? "bg-amber-100 text-amber-800" :
+                    c.status === "APPROVED" ? "bg-emerald-100 text-emerald-800" :
+                    "bg-rose-100 text-rose-800"
+                  }`}>
+                    {c.status}
+                  </span>
+                </td>
+                <td className="py-2.5 text-right whitespace-nowrap space-x-1">
+                  {c.status === "PENDING" ? (
+                    <>
+                      <button
+                        onClick={() => handleApprove(c.id, c.player_name)}
+                        disabled={approveState.isLoading}
+                        className="px-2 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Setujui
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRejectingId(c.id);
+                          setRejectReason("");
+                        }}
+                        disabled={rejectState.isLoading}
+                        className="px-2 py-1 text-xs bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50"
+                      >
+                        Tolak
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-ink-faint">
+                      {c.reviewed_at ? `Direview ${new Date(c.reviewed_at).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}` : "-"}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {rejectingId && (
+        <div className="p-3 bg-red-50 border-t border-red-200">
+          <p className="text-xs font-semibold text-red-900 mb-1">Alasan Penolakan Pembatalan:</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Masukkan catatan penolakan..."
+              className="flex-1 text-xs p-1.5 border border-red-300 rounded"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <button
+              onClick={() => handleReject(rejectingId)}
+              disabled={rejectState.isLoading}
+              className="px-3 py-1 text-xs bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50"
+            >
+              Kirim Penolakan
+            </button>
+            <button
+              onClick={() => setRejectingId(null)}
+              className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

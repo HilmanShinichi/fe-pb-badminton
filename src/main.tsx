@@ -20,6 +20,7 @@ import { LiveEventPage, LiveIndexPage, LivePlayedPage, LiveRefereedPage, LiveArr
 import { UsersPage } from "./pages/Users";
 import { NoAccessPage } from "./pages/NoAccess";
 import { RegisterMemberPage } from "./pages/RegisterMember";
+import { OpenPlayPage } from "./pages/OpenPlay";
 import { I18nProvider } from "./i18n";
 import { ThemeProvider } from "./theme";
 import { canAccess, homeFor } from "./permissions";
@@ -57,6 +58,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/live/:id/arrival" element={<LiveArrivalPage />} />
               <Route path="/register-member" element={<RegisterMemberPage />} />
               <Route path="/register-member/:id" element={<RegisterMemberPage />} />
+              <Route path="/open-play" element={<OpenPlayPage />} />
+              <Route path="/open-play/:id" element={<OpenPlayPage />} />
               <Route path="/" element={<LandingPage />} />
               <Route path="/no-access" element={<Guard><NoAccessPage /></Guard>} />
               <Route path="/users" element={<Guard><Need perm="users"><UsersPage /></Need></Guard>} />

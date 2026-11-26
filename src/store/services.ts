@@ -5,6 +5,8 @@ import type {
   GenMatch,
   GenerateMatchesResponse,
   GenStrategy,
+  MabarCancellationItem,
+  MabarRegistrationInfo,
   MabarSession,
   MatchEventDetail,
   MatchEventRow,
@@ -526,7 +528,16 @@ export const api = baseApi.injectEndpoints({
       query: ({ id, body }) => ({ url: `/api/v1/mabar/${id}`, method: "PATCH", body }),
       invalidatesTags: (_r, _e, { id }) => [
         { type: "Mabar", id },
+        { type: "RegistrationInfo", id },
         { type: "Billing", id },
+        "Mabar",
+      ],
+    }),
+    updateMabarNote: build.mutation<MabarSession, { id: string; admin_note: string | null }>({
+      query: ({ id, admin_note }) => ({ url: `/api/v1/mabar/${id}/note`, method: "PATCH", body: { admin_note } }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Mabar", id },
+        { type: "RegistrationInfo", id },
         "Mabar",
       ],
     }),
@@ -851,6 +862,105 @@ export const api = baseApi.injectEndpoints({
         "Dashboard",
       ],
     }),
+
+    // --- Mabar Open Play Registration & Cancellations ---
+    mabarRegistrationInfo: build.query<MabarRegistrationInfo, string>({
+      query: (id) => `/api/v1/public/mabar/${id}/registration`,
+      providesTags: (_r, _e, id) => [
+        { type: "RegistrationInfo", id },
+        { type: "Attendance", id },
+      ],
+    }),
+    registerMabar: build.mutation<
+      { status: string; is_member: boolean; message: string },
+      { sessionId: string; participant_type: string; player_id?: string; player_name?: string; phone?: string }
+    >({
+      query: ({ sessionId, ...body }) => ({
+        url: `/api/v1/public/mabar/${sessionId}/register`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "RegistrationInfo", id: sessionId },
+        { type: "Attendance", id: sessionId },
+        { type: "Mabar", id: sessionId },
+        "Mabar",
+      ],
+    }),
+    cancelMabar: build.mutation<
+      { message: string },
+      { sessionId: string; player_id: string; reason: string }
+    >({
+      query: ({ sessionId, ...body }) => ({
+        url: `/api/v1/public/mabar/${sessionId}/cancel`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "RegistrationInfo", id: sessionId },
+        { type: "Attendance", id: sessionId },
+        { type: "MabarCancellations", id: sessionId },
+      ],
+    }),
+    mabarCancellations: build.query<MabarCancellationItem[], string>({
+      query: (id) => `/api/v1/mabar/${id}/cancellations`,
+      providesTags: (_r, _e, id) => [{ type: "MabarCancellations", id }],
+    }),
+    approveMabarCancellation: build.mutation<
+      { message: string; auto_filled_player?: string },
+      { sessionId: string; cancellationId: string }
+    >({
+      query: ({ sessionId, cancellationId }) => ({
+        url: `/api/v1/mabar/${sessionId}/cancellations/${cancellationId}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "MabarCancellations", id: sessionId },
+        { type: "RegistrationInfo", id: sessionId },
+        { type: "Attendance", id: sessionId },
+        { type: "Mabar", id: sessionId },
+        "Mabar",
+      ],
+    }),
+    rejectMabarCancellation: build.mutation<
+      { message: string },
+      { sessionId: string; cancellationId: string; admin_notes?: string }
+    >({
+      query: ({ sessionId, cancellationId, ...body }) => ({
+        url: `/api/v1/mabar/${sessionId}/cancellations/${cancellationId}/reject`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "MabarCancellations", id: sessionId },
+      ],
+    }),
+    updateOpenPlaySession: build.mutation<
+      { message: string },
+      { id: string; name?: string; description?: string; admin_note?: string | null; status?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/api/v1/open-play/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "RegistrationInfo", id },
+      ],
+    }),
+    addPlayerManually: build.mutation<
+      { message: string; player_id: string; participant_id: string },
+      { sessionId: string; player_name: string; phone_number?: string }
+    >({
+      query: ({ sessionId, ...body }) => ({
+        url: `/api/v1/open-play/${sessionId}/add-player`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "RegistrationInfo", id: sessionId },
+      ],
+    }),
   }),
 });
 
@@ -896,6 +1006,7 @@ export const {
   useMabarListQuery,
   useCreateMabarMutation,
   useUpdateMabarMutation,
+  useUpdateMabarNoteMutation,
   useDeleteMabarMutation,
   useMabarSummaryQuery,
   useAttendanceQuery,
@@ -946,4 +1057,12 @@ export const {
   useUpdateRegistrationNotesMutation,
   useVerifyPaymentMutation,
   useDeletePaymentMutation,
+  useMabarRegistrationInfoQuery,
+  useRegisterMabarMutation,
+  useCancelMabarMutation,
+  useMabarCancellationsQuery,
+  useApproveMabarCancellationMutation,
+  useRejectMabarCancellationMutation,
+  useUpdateOpenPlaySessionMutation,
+  useAddPlayerManuallyMutation,
 } = api;

@@ -198,7 +198,14 @@ export interface MabarSession {
   shuttlecock_price: number;
   shuttle_pack_price: number;
   shuttle_units_per_pack: number;
+  registration_opens_at: string | null;
+  member_registration_closes_at: string | null;
+  registration_closes_at: string | null;
+  max_members: number;
+  max_non_members: number;
+  max_waiting_list: number;
   status: string;
+  admin_note?: string | null;
   created_at: string;
 }
 
@@ -255,6 +262,97 @@ export interface Product {
   purpose: string;
   active: boolean;
   stock: number;
+}
+
+export interface MabarRegistrationInfo {
+  session: {
+    id: string;
+    type: string;
+    period_id: string | null;
+    period_name: string | null;
+    venue_name: string | null;
+    venue_description: string | null;
+    date: string;
+    start_time: string | null;
+    end_time: string | null;
+    description: string | null;
+    admin_note?: string | null;
+    registration_opens_at: string | null;
+    member_registration_closes_at: string | null;
+    registration_closes_at: string | null;
+    max_members: number;
+    max_non_members: number;
+    max_waiting_list: number;
+    server_time: string;
+    status: "UPCOMING" | "MEMBER_ONLY" | "OPEN" | "CLOSED" | "NOT_CONFIGURED";
+    member_registration_open?: boolean;
+    non_member_registration_open?: boolean;
+  };
+  quotas: {
+    max_members: number;
+    max_non_members: number;
+    effective_max_non_members?: number;
+    bonus_non_member_slots?: number;
+    max_waiting_list: number;
+    member_count: number;
+    non_member_count: number;
+    waiting_count: number;
+    available_member_slots: number;
+    available_non_member_slots: number;
+    available_waiting_slots: number;
+  };
+  period_members: {
+    id: string;
+    name: string;
+    phone: string | null;
+    attendance_status: string;
+    is_registered: boolean;
+    commitment_fee: number;
+  }[];
+  non_member_players?: {
+    id: string;
+    name: string;
+    is_registered: boolean;
+  }[];
+  participants: {
+    members: {
+      attendance_id: string;
+      player_id: string;
+      player_name: string;
+      status: string;
+      listed_at: string;
+    }[];
+    non_members: {
+      attendance_id: string;
+      player_id: string;
+      player_name: string;
+      status: string;
+      listed_at: string;
+    }[];
+    waiting_list: {
+      attendance_id: string;
+      player_id: string;
+      player_name: string;
+      is_member: boolean;
+      status: string;
+      listed_at: string;
+    }[];
+  };
+}
+
+export interface MabarCancellationItem {
+  id: string;
+  session_id: string;
+  player_id: string;
+  player_name: string;
+  phone: string | null;
+  is_member: boolean;
+  attendance_status: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  admin_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
 }
 
 export interface PeriodAttendanceMatrixSession {

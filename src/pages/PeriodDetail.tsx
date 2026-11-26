@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../store/baseApi";
 import {
   useAddMemberMutation,
@@ -25,6 +25,7 @@ import {
 } from "../store/services";
 import { buildRegistrationNotesTemplate, dateDmy, formatGmt7DateTime, gmt7InputToUtcIso, rupiah, utcIsoToGmt7Input } from "../format";
 import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 import { Badge, Btn, ConfirmModal, DeleteRowButton, Empty, ErrorBox, Field, Loading, MoneyInput, OpenLink, PageHead } from "../ui";
 import type { Membership, Period, PeriodAttendanceMatrixNonMember, PeriodAttendanceMatrixResponse } from "../types";
 
@@ -1688,11 +1689,125 @@ function Cell({
   );
 }
 
+interface CanvasThemePalette {
+  headerBg: string;
+  headerFeeBg: string;
+  headerText: string;
+  headerLine: string;
+  titleText: string;
+  subtitleText: string;
+  rowAltBg: string;
+  border: string;
+  outerBorder: string;
+  paidBg: string;
+  paidText: string;
+  unpaidBg: string;
+  unpaidText: string;
+  presentBg: string;
+  presentText: string;
+  absentBg: string;
+  absentText: string;
+  footerBg: string;
+  footerText: string;
+  nmPaidBg: string;
+  nmPaidText: string;
+  nmUnpaidBg: string;
+  nmUnpaidText: string;
+  carryOverBg: string;
+}
+
+function getCanvasThemeColors(themeName: string): CanvasThemePalette {
+  if (themeName === "modern") {
+    return {
+      headerBg: "#141518",
+      headerFeeBg: "#27272a",
+      headerText: "#ffffff",
+      headerLine: "rgba(255, 255, 255, 0.2)",
+      titleText: "#111827",
+      subtitleText: "#4b5563",
+      rowAltBg: "#f8f9fb",
+      border: "#d4d4d8",
+      outerBorder: "#141518",
+      paidBg: "#141518",
+      paidText: "#ffffff",
+      unpaidBg: "#fef3c7",
+      unpaidText: "#92400e",
+      presentBg: "#dcfce7",
+      presentText: "#166534",
+      absentBg: "#fee2e2",
+      absentText: "#991b1b",
+      footerBg: "#eaedf2",
+      footerText: "#111827",
+      nmPaidBg: "#dcfce7",
+      nmPaidText: "#166534",
+      nmUnpaidBg: "#fee2e2",
+      nmUnpaidText: "#991b1b",
+      carryOverBg: "#fef2f2",
+    };
+  }
+  if (themeName === "light") {
+    return {
+      headerBg: "#3730a3",
+      headerFeeBg: "#312e81",
+      headerText: "#ffffff",
+      headerLine: "rgba(255, 255, 255, 0.25)",
+      titleText: "#0f172a",
+      subtitleText: "#475569",
+      rowAltBg: "#f8fafc",
+      border: "#cbd5e1",
+      outerBorder: "#312e81",
+      paidBg: "#4338ca",
+      paidText: "#ffffff",
+      unpaidBg: "#fef3c7",
+      unpaidText: "#92400e",
+      presentBg: "#dcfce7",
+      presentText: "#166534",
+      absentBg: "#fee2e2",
+      absentText: "#991b1b",
+      footerBg: "#eef2ff",
+      footerText: "#1e1b4b",
+      nmPaidBg: "#dcfce7",
+      nmPaidText: "#166534",
+      nmUnpaidBg: "#fee2e2",
+      nmUnpaidText: "#991b1b",
+      carryOverBg: "#fef2f2",
+    };
+  }
+  return {
+    headerBg: "#143728",
+    headerFeeBg: "#0f2a1e",
+    headerText: "#f4f2ea",
+    headerLine: "rgba(244, 242, 234, 0.22)",
+    titleText: "#1c2420",
+    subtitleText: "#55605a",
+    rowAltBg: "#f7faf3",
+    border: "#c5d3bd",
+    outerBorder: "#143728",
+    paidBg: "#1d4d3b",
+    paidText: "#f4f2ea",
+    unpaidBg: "#fef3c7",
+    unpaidText: "#92400e",
+    presentBg: "#e3f2df",
+    presentText: "#143728",
+    absentBg: "#fee2e2",
+    absentText: "#991b1b",
+    footerBg: "#e4edd9",
+    footerText: "#143728",
+    nmPaidBg: "#e3f2df",
+    nmPaidText: "#143728",
+    nmUnpaidBg: "#fee2e2",
+    nmUnpaidText: "#991b1b",
+    carryOverBg: "#fef2f2",
+  };
+}
+
 async function copyTableImage(
   data: PeriodAttendanceMatrixResponse,
-  periodName: string
+  periodName: string,
+  themeName: string = "green"
 ): Promise<boolean> {
   const { sessions, rows, commitment_fee, member_contribution, total_lapangan_paid } = data;
+  const tc = getCanvasThemeColors(themeName);
 
   const feeLabel = commitment_fee >= 1000 && commitment_fee % 1000 === 0
     ? `LAPANGAN ${commitment_fee / 1000}K`
@@ -1732,13 +1847,13 @@ async function copyTableImage(
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   // Title Banner
-  ctx.fillStyle = "#1e293b";
+  ctx.fillStyle = tc.titleText;
   ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   ctx.fillText("PB KECEBONG — REKAP KAS KOK & LAPANGAN", padX, padY + 20);
 
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = tc.subtitleText;
   ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText(
     `Period: ${periodName}  ·  Tarif Lapangan: ${feeLabel}  ·  Kas Kok: ${rupiah(member_contribution)}/pertemuan`,
@@ -1761,11 +1876,13 @@ async function copyTableImage(
   }
 
   // Header Background
-  ctx.fillStyle = "#1e3a8a";
+  ctx.fillStyle = tc.headerBg;
   ctx.fillRect(startX, startY, totalColsWidth, headerRowHeight);
+  ctx.fillStyle = tc.headerFeeBg;
+  ctx.fillRect(colXs[2], startY, lapanganColWidth, headerRowHeight);
 
   // Header Text
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = tc.headerText;
   ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textBaseline = "middle";
 
@@ -1790,8 +1907,8 @@ async function copyTableImage(
     });
   }
 
-  // Header Vertical Lines (White for high contrast on dark blue)
-  ctx.strokeStyle = "#ffffff";
+  // Header Vertical Lines
+  ctx.strokeStyle = tc.headerLine;
   ctx.lineWidth = 1;
   for (const x of colXs) {
     ctx.beginPath();
@@ -1800,8 +1917,8 @@ async function copyTableImage(
     ctx.stroke();
   }
 
-  // Header Bottom Border Line (Solid Black)
-  ctx.strokeStyle = "#000000";
+  // Header Bottom Border Line
+  ctx.strokeStyle = tc.outerBorder;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(startX, startY + headerRowHeight);
@@ -1812,33 +1929,33 @@ async function copyTableImage(
   let curY = startY + headerRowHeight;
   rows.forEach((r, idx) => {
     // Row background
-    ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+    ctx.fillStyle = idx % 2 === 0 ? "#ffffff" : tc.rowAltBg;
     ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
 
     // NO
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = tc.subtitleText;
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(String(idx + 1), colXs[0] + noColWidth / 2, curY + rowHeight / 2);
 
     // LIST MEM
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = tc.titleText;
     ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(r.player_name, colXs[1] + 12, curY + rowHeight / 2);
 
     // LAPANGAN Cell
     if (r.commitment_paid) {
-      ctx.fillStyle = "#059669";
+      ctx.fillStyle = tc.paidBg;
       ctx.fillRect(colXs[2] + 4, curY + 3, lapanganColWidth - 8, rowHeight - 6);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = tc.paidText;
       ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("LUNAS", colXs[2] + lapanganColWidth / 2, curY + rowHeight / 2);
     } else {
-      ctx.fillStyle = "#fef3c7";
+      ctx.fillStyle = tc.unpaidBg;
       ctx.fillRect(colXs[2] + 4, curY + 3, lapanganColWidth - 8, rowHeight - 6);
-      ctx.fillStyle = "#92400e";
+      ctx.fillStyle = tc.unpaidText;
       ctx.font = "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(r.commitment_amount_paid > 0 ? "KURANG" : "BELUM", colXs[2] + lapanganColWidth / 2, curY + rowHeight / 2);
@@ -1846,7 +1963,7 @@ async function copyTableImage(
 
     // Sessions Attendance Cells
     if (sessions.length === 0) {
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = tc.subtitleText;
       ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("—", colXs[3] + sessionColWidth / 2, curY + rowHeight / 2);
@@ -1855,16 +1972,16 @@ async function copyTableImage(
         const isPresent = r.attendances[s.id] === "PRESENT";
         const sessX = colXs[3 + sIdx];
         if (isPresent) {
-          ctx.fillStyle = "#059669";
+          ctx.fillStyle = tc.presentBg;
           ctx.fillRect(sessX + 4, curY + 3, sessionColWidth - 8, rowHeight - 6);
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = tc.presentText;
           ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
           ctx.textAlign = "center";
           ctx.fillText("✓", sessX + sessionColWidth / 2, curY + rowHeight / 2);
         } else {
-          ctx.fillStyle = "#dc2626";
+          ctx.fillStyle = tc.absentBg;
           ctx.fillRect(sessX + 4, curY + 3, sessionColWidth - 8, rowHeight - 6);
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = tc.absentText;
           ctx.font = "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
           ctx.textAlign = "center";
           ctx.fillText("TIDAK HADIR", sessX + sessionColWidth / 2, curY + rowHeight / 2);
@@ -1872,15 +1989,15 @@ async function copyTableImage(
       });
     }
 
-    // Row Bottom Border Line (Solid Black)
-    ctx.strokeStyle = "#000000";
+    // Row Bottom Border Line
+    ctx.strokeStyle = tc.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(startX, curY + rowHeight);
     ctx.lineTo(startX + totalColsWidth, curY + rowHeight);
     ctx.stroke();
 
-    // Column Separator Lines (Solid Black)
+    // Column Separator Lines
     for (const x of colXs) {
       ctx.beginPath();
       ctx.moveTo(x, curY);
@@ -1892,24 +2009,25 @@ async function copyTableImage(
   });
 
   // Footer Row (TOTAL)
-  ctx.fillStyle = "#fde047";
+  ctx.fillStyle = tc.footerBg;
   ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
 
-  // Footer Top Border (Thick Black Line)
-  ctx.strokeStyle = "#000000";
+  // Footer Top Border
+  ctx.strokeStyle = tc.outerBorder;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(startX, curY);
   ctx.lineTo(startX + totalColsWidth, curY);
   ctx.stroke();
 
-  // Footer Bottom Border (Black Line)
+  // Footer Bottom Border
   ctx.beginPath();
   ctx.moveTo(startX, curY + footerRowHeight);
   ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
   ctx.stroke();
 
-  // Footer Vertical Column Separator Lines (Solid Black)
+  // Footer Vertical Column Separator Lines
+  ctx.strokeStyle = tc.border;
   ctx.lineWidth = 1;
   for (const x of colXs) {
     ctx.beginPath();
@@ -1919,7 +2037,7 @@ async function copyTableImage(
   }
 
   // Footer Text
-  ctx.fillStyle = "#000000";
+  ctx.fillStyle = tc.footerText;
   ctx.font = "900 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("TOTAL", colXs[1] + 12, curY + footerRowHeight / 2);
@@ -1937,8 +2055,8 @@ async function copyTableImage(
     });
   }
 
-  // Outer Border (Solid Black)
-  ctx.strokeStyle = "#000000";
+  // Outer Border
+  ctx.strokeStyle = tc.outerBorder;
   ctx.lineWidth = 2;
   ctx.strokeRect(startX, startY, totalColsWidth, tableHeight);
 
@@ -1998,8 +2116,10 @@ async function copyNonMemberTableImage(
   items: PeriodAttendanceMatrixNonMember[],
   sessionDate: string,
   fee: number,
-  periodName: string
+  periodName: string,
+  themeName: string = "green"
 ): Promise<boolean> {
+  const tc = getCanvasThemeColors(themeName);
   const feeLabel = fee >= 1000 && fee % 1000 === 0 ? `INCLUDE KOK ${fee / 1000}K` : `INCLUDE KOK ${rupiah(fee)}`;
 
   const scale = 2;
@@ -2045,13 +2165,13 @@ async function copyNonMemberTableImage(
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   // Title Banner
-  ctx.fillStyle = "#1e293b";
+  ctx.fillStyle = tc.titleText;
   ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   ctx.fillText("PB KECEBONG — LIST NON MEMBER", padX, padY + 20);
 
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = tc.subtitleText;
   ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText(
     `Period: ${periodName}  ·  Pertemuan: ${dateDmy(sessionDate)}  ·  Tarif: ${feeLabel}`,
@@ -2071,11 +2191,13 @@ async function copyNonMemberTableImage(
   ];
 
   // Header Background
-  ctx.fillStyle = "#1e3a8a";
+  ctx.fillStyle = tc.headerBg;
   ctx.fillRect(startX, startY, totalColsWidth, headerRowHeight);
+  ctx.fillStyle = tc.headerFeeBg;
+  ctx.fillRect(colXs[2], startY, feeColWidth, headerRowHeight);
 
   // Header Text
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = tc.headerText;
   ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textBaseline = "middle";
 
@@ -2095,8 +2217,8 @@ async function copyNonMemberTableImage(
   ctx.textAlign = "left";
   ctx.fillText("NOTE", colXs[3] + 12, startY + headerRowHeight / 2);
 
-  // Header Vertical Lines (White for high contrast against dark blue header)
-  ctx.strokeStyle = "#ffffff";
+  // Header Vertical Lines
+  ctx.strokeStyle = tc.headerLine;
   ctx.lineWidth = 1;
   for (const x of colXs) {
     ctx.beginPath();
@@ -2105,8 +2227,8 @@ async function copyNonMemberTableImage(
     ctx.stroke();
   }
 
-  // Header Bottom Border Line (Solid Black)
-  ctx.strokeStyle = "#000000";
+  // Header Bottom Border Line
+  ctx.strokeStyle = tc.outerBorder;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(startX, startY + headerRowHeight);
@@ -2118,46 +2240,46 @@ async function copyNonMemberTableImage(
   items.forEach((nm, idx) => {
     // Row background (white or subtle alternating); tunggakan carry-over
     // selalu merah muda supaya menonjol dari tagihan pertemuan ini
-    ctx.fillStyle = nm.carry_over ? "#fee2e2" : idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+    ctx.fillStyle = nm.carry_over ? tc.carryOverBg : idx % 2 === 0 ? "#ffffff" : tc.rowAltBg;
     ctx.fillRect(startX, curY, totalColsWidth, rowHeight);
 
-    // Fee cell background: lime when settled, red while still unpaid
-    ctx.fillStyle = nm.paid ? "#00e600" : "#ef4444";
+    // Fee cell background
+    ctx.fillStyle = nm.paid ? tc.nmPaidBg : tc.nmUnpaidBg;
     ctx.fillRect(colXs[2], curY, feeColWidth, rowHeight);
 
     // Text: NO
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = tc.subtitleText;
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(String(idx + 1), colXs[0] + noColWidth / 2, curY + rowHeight / 2);
 
     // Text: LIST NON MEMBER
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = tc.titleText;
     ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(fitText(ctx, nm.player_name, nameColWidth - 20), colXs[1] + 12, curY + rowHeight / 2);
 
     // Text: FEE
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = nm.paid ? tc.nmPaidText : tc.nmUnpaidText;
     ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(String(nm.fee), colXs[2] + feeColWidth / 2, curY + rowHeight / 2);
 
     // Text: NOTE
-    ctx.fillStyle = nm.paid ? "#475569" : "#b91c1c";
+    ctx.fillStyle = nm.paid ? tc.subtitleText : tc.nmUnpaidText;
     ctx.font = `${nm.paid ? "" : "bold "}11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
     ctx.textAlign = "left";
     ctx.fillText(fitText(ctx, nonMemberNote(nm), noteColWidth - 20), colXs[3] + 12, curY + rowHeight / 2);
 
-    // Row Bottom Border Line (Solid Black)
-    ctx.strokeStyle = "#000000";
+    // Row Bottom Border Line
+    ctx.strokeStyle = tc.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(startX, curY + rowHeight);
     ctx.lineTo(startX + totalColsWidth, curY + rowHeight);
     ctx.stroke();
 
-    // Column Separator Lines (Solid Black)
+    // Column Separator Lines
     for (const x of colXs) {
       ctx.beginPath();
       ctx.moveTo(x, curY);
@@ -2172,31 +2294,32 @@ async function copyNonMemberTableImage(
   const paidTotal = items.filter((i) => i.paid).reduce((a, b) => a + b.fee, 0);
   const unpaidTotal = items.filter((i) => !i.paid).reduce((a, b) => a + b.fee, 0);
   const footerLines: Array<{ label: string; amount: number; count: number; bg: string; fg: string }> = [
-    { label: "TOTAL", amount: paidTotal, count: items.length - unpaidCount, bg: "#fde047", fg: "#000000" },
+    { label: "TOTAL", amount: paidTotal, count: items.length - unpaidCount, bg: tc.footerBg, fg: tc.footerText },
   ];
   if (unpaidCount > 0) {
-    footerLines.push({ label: "BELUM LUNAS", amount: unpaidTotal, count: unpaidCount, bg: "#fee2e2", fg: "#b91c1c" });
+    footerLines.push({ label: "BELUM LUNAS", amount: unpaidTotal, count: unpaidCount, bg: tc.nmUnpaidBg, fg: tc.nmUnpaidText });
   }
 
   footerLines.forEach((line) => {
     ctx.fillStyle = line.bg;
     ctx.fillRect(startX, curY, totalColsWidth, footerRowHeight);
 
-    // Footer Top Border (Thick Black Line)
-    ctx.strokeStyle = "#000000";
+    // Footer Top Border
+    ctx.strokeStyle = tc.outerBorder;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(startX, curY);
     ctx.lineTo(startX + totalColsWidth, curY);
     ctx.stroke();
 
-    // Footer Bottom Border (Black Line)
+    // Footer Bottom Border
     ctx.beginPath();
     ctx.moveTo(startX, curY + footerRowHeight);
     ctx.lineTo(startX + totalColsWidth, curY + footerRowHeight);
     ctx.stroke();
 
-    // Footer Vertical Column Separator Lines (Solid Black)
+    // Footer Vertical Column Separator Lines
+    ctx.strokeStyle = tc.border;
     ctx.lineWidth = 1;
     for (const x of colXs) {
       ctx.beginPath();
@@ -2221,8 +2344,8 @@ async function copyNonMemberTableImage(
     curY += footerRowHeight;
   });
 
-  // Outer Border (Solid Black)
-  ctx.strokeStyle = "#000000";
+  // Outer Border
+  ctx.strokeStyle = tc.outerBorder;
   ctx.lineWidth = 2;
   ctx.strokeRect(startX, startY, totalColsWidth, tableHeight);
 
@@ -2258,7 +2381,10 @@ async function copyNonMemberTableImage(
 }
 
 function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: string; periodName: string }) {
-  const { t } = useI18n();
+  const { t, isId } = useI18n();
+  const { theme } = useTheme();
+  const isModern = theme === "modern";
+  const isLight = theme === "light";
   const { data, isFetching, isError, refetch } = usePeriodAttendanceMatrixQuery(periodId);
   const [activeTab, setActiveTab] = useState<"member" | "non_member">("member");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
@@ -2328,7 +2454,7 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     if (!data || copyingImage) return;
     setCopyingImage(true);
     try {
-      const ok = await copyTableImage(data, periodName);
+      const ok = await copyTableImage(data, periodName, theme);
       if (ok) {
         setCopiedImage(true);
         setTimeout(() => setCopiedImage(false), 2500);
@@ -2348,7 +2474,8 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
         filteredNonMembers,
         currentSession.date,
         data?.non_member_fee || 25000,
-        periodName
+        periodName,
+        theme
       );
       if (ok) {
         setCopiedImage(true);
@@ -2473,8 +2600,80 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
     document.body.removeChild(link);
   }
 
+  const tableStyles = isModern
+    ? {
+        wrapperBorder: "border-zinc-300",
+        thead: "bg-[#141518] text-white",
+        theadFee: "bg-zinc-800",
+        thBorder: "border-white/15",
+        tdBorder: "border-zinc-200",
+        rowEven: "bg-white hover:bg-zinc-50",
+        rowOdd: "bg-[#f8f9fb] hover:bg-zinc-100/80",
+        noText: "text-zinc-500",
+        nameText: "text-zinc-900",
+        lunasBadge: "bg-zinc-900 text-white",
+        presentCell: "bg-emerald-50/60",
+        presentPill: "bg-emerald-100 text-emerald-800 border border-emerald-200/80",
+        absentCell: "bg-red-100/55",
+        absentPill: "bg-red-100 text-red-800 border border-red-200",
+        nmPaidCell: "bg-emerald-50 text-emerald-900",
+        nmUnpaidCell: "bg-rose-50 text-rose-800",
+        tfoot: "border-t-2 border-zinc-900 bg-[#eaedf2] text-zinc-900",
+        tfootUnpaid: "bg-rose-50 text-rose-800",
+        copyBtn: "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 font-semibold shadow-2xs",
+        copyIcon: "text-zinc-700",
+        emptySessionHeader: "text-zinc-300",
+      }
+    : isLight
+    ? {
+        wrapperBorder: "border-indigo-200",
+        thead: "bg-[#3730a3] text-white",
+        theadFee: "bg-[#312e81]",
+        thBorder: "border-white/20",
+        tdBorder: "border-slate-200",
+        rowEven: "bg-white hover:bg-indigo-50/30",
+        rowOdd: "bg-slate-50/70 hover:bg-indigo-50/40",
+        noText: "text-slate-500",
+        nameText: "text-slate-900",
+        lunasBadge: "bg-indigo-700 text-white",
+        presentCell: "bg-emerald-50/60",
+        presentPill: "bg-emerald-100 text-emerald-800 border border-emerald-200/80",
+        absentCell: "bg-red-100/55",
+        absentPill: "bg-red-100 text-red-800 border border-red-200",
+        nmPaidCell: "bg-emerald-50 text-emerald-900",
+        nmUnpaidCell: "bg-rose-50 text-rose-800",
+        tfoot: "border-t-2 border-indigo-900 bg-indigo-50 text-indigo-950",
+        tfootUnpaid: "bg-rose-50 text-rose-800",
+        copyBtn: "border-indigo-200 bg-indigo-50/60 text-indigo-950 hover:bg-indigo-100/70 font-semibold shadow-2xs",
+        copyIcon: "text-indigo-700",
+        emptySessionHeader: "text-indigo-200",
+      }
+    : {
+        wrapperBorder: "border-[#b8cbb0]",
+        thead: "bg-[#143728] text-[#f4f2ea]",
+        theadFee: "bg-[#0f2a1e]",
+        thBorder: "border-white/20",
+        tdBorder: "border-[#d4e0ce]",
+        rowEven: "bg-white hover:bg-[#eef3e4]/70",
+        rowOdd: "bg-[#f7faf3] hover:bg-[#eef3e4]",
+        noText: "text-[#55605a]",
+        nameText: "text-[#1c2420]",
+        lunasBadge: "bg-[#1d4d3b] text-[#f4f2ea]",
+        presentCell: "bg-[#edf7ea]",
+        presentPill: "bg-[#d9eed2] text-[#143728] border border-[#b7d9ad]",
+        absentCell: "bg-red-100/60",
+        absentPill: "bg-red-100 text-red-800 border border-red-200",
+        nmPaidCell: "bg-[#e3f2df] text-[#143728]",
+        nmUnpaidCell: "bg-rose-50 text-rose-800",
+        tfoot: "border-t-2 border-[#143728] bg-[#e4edd9] text-[#143728]",
+        tfootUnpaid: "bg-rose-50 text-rose-800",
+        copyBtn: "border-[#c4d5bb] bg-[#f4f8ef] text-[#143728] hover:bg-[#e8f0df] font-semibold shadow-2xs",
+        copyIcon: "text-[#1d4d3b]",
+        emptySessionHeader: "text-emerald-200/80",
+      };
+
   return (
-    <section aria-label={t("periods.matrixEmptyTitle")} className="mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
+    <section aria-label={t("periods.matrixEmptyTitle")} className="modern-card mt-5 rounded-xl border border-line bg-white shadow-card overflow-hidden">
       {/* Header with Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 bg-gradient-to-r from-court/75 via-court/40 to-white">
         <div>
@@ -2554,11 +2753,11 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                 variant="plain"
                 onClick={handleCopyNonMemberImage}
                 disabled={copyingImage || filteredNonMembers.length === 0}
-                className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
+                className={tableStyles.copyBtn}
                 title={t("periods.matrixCopyImg")}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`h-3.5 w-3.5 ${tableStyles.copyIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                     <path d="M21 15l-5-5L5 21" strokeWidth="2" />
@@ -2592,15 +2791,15 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
             </div>
           ) : (
             <div className="overflow-x-auto max-w-2xl mx-auto sm:mx-0 p-3">
-              <table className="w-full text-xs border-collapse border border-neutral-400 shadow-xs">
-                <thead className="bg-[#1e3a8a] text-white tracking-wider uppercase font-semibold">
+              <table className={`w-full text-xs border-collapse border ${tableStyles.wrapperBorder} shadow-xs`}>
+                <thead className={`${tableStyles.thead} tracking-wider uppercase font-semibold`}>
                   <tr>
-                    <th className="py-2.5 px-3 border border-white/40 w-12 text-center">NO</th>
-                    <th className="py-2.5 px-3 border border-white/40 text-left min-w-[160px]">LIST NON MEMBER</th>
-                    <th className="py-2.5 px-3 border border-white/40 text-center min-w-[150px] bg-blue-900/80">
+                    <th className={`py-2.5 px-3 border ${tableStyles.thBorder} w-12 text-center`}>NO</th>
+                    <th className={`py-2.5 px-3 border ${tableStyles.thBorder} text-left min-w-[160px]`}>LIST NON MEMBER</th>
+                    <th className={`py-2.5 px-3 border ${tableStyles.thBorder} text-center min-w-[150px] ${tableStyles.theadFee}`}>
                       {nonMemberFeeLabel}
                     </th>
-                    <th className="py-2.5 px-3 border border-white/40 text-left min-w-[120px]">NOTE</th>
+                    <th className={`py-2.5 px-3 border ${tableStyles.thBorder} text-left min-w-[120px]`}>NOTE</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
@@ -2609,24 +2808,24 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                       key={`${nm.session_id}-${nm.player_id}`}
                       className={
                         nm.carry_over
-                          ? "bg-red-100 hover:bg-red-200"
+                          ? "bg-rose-50 hover:bg-rose-100/80"
                           : idx % 2 === 0
-                          ? "bg-white hover:bg-neutral-50"
-                          : "bg-neutral-50/70 hover:bg-neutral-100"
+                          ? tableStyles.rowEven
+                          : tableStyles.rowOdd
                       }
                     >
-                      <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600 text-center">{idx + 1}</td>
-                      <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">{nm.player_name}</td>
+                      <td className={`py-2 px-3 border ${tableStyles.tdBorder} font-medium ${tableStyles.noText} text-center`}>{idx + 1}</td>
+                      <td className={`py-2 px-3 border ${tableStyles.tdBorder} text-left font-semibold ${tableStyles.nameText}`}>{nm.player_name}</td>
                       <td
-                        className={`py-2 px-3 border border-neutral-400 text-black font-bold text-center ${
-                          nm.paid ? "bg-[#00e600]" : "bg-[#ef4444]"
+                        className={`py-2 px-3 border ${tableStyles.tdBorder} font-bold text-center tabular-nums ${
+                          nm.paid ? tableStyles.nmPaidCell : tableStyles.nmUnpaidCell
                         }`}
                       >
                         {nm.fee}
                       </td>
                       <td
-                        className={`py-2 px-3 border border-neutral-400 text-left text-[11px] ${
-                          nm.paid ? "text-neutral-600" : "font-semibold text-red-700"
+                        className={`py-2 px-3 border ${tableStyles.tdBorder} text-left text-[11px] ${
+                          nm.paid ? tableStyles.noText : "font-semibold text-rose-700"
                         }`}
                       >
                         {nonMemberNote(nm)}
@@ -2634,26 +2833,26 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="font-bold border-t-2 border-neutral-900 bg-yellow-300 text-neutral-900 text-sm">
+                <tfoot className={`font-bold ${tableStyles.tfoot} text-sm`}>
                   {unpaidNonMembers.length > 0 && (
-                    <tr className="bg-red-50 text-red-700">
-                      <td className="py-2.5 px-3 border border-neutral-400"></td>
-                      <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">
+                    <tr className={tableStyles.tfootUnpaid}>
+                      <td className={`py-2.5 px-3 border ${tableStyles.tdBorder}`}></td>
+                      <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-left font-black tracking-wider`}>
                         BELUM LUNAS
                       </td>
-                      <td className="py-2.5 px-3 border border-neutral-400 font-black text-center whitespace-nowrap">
+                      <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} font-black text-center whitespace-nowrap tabular-nums`}>
                         {rupiah(unpaidNonMemberTotal)}
                       </td>
-                      <td className="py-2.5 px-3 border border-neutral-400 text-center">{unpaidNonMembers.length} org</td>
+                      <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-center`}>{unpaidNonMembers.length} org</td>
                     </tr>
                   )}
                   <tr>
-                    <td className="py-2.5 px-3 border border-neutral-400"></td>
-                    <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">TOTAL</td>
-                    <td className="py-2.5 px-3 border border-neutral-400 font-black text-center whitespace-nowrap">
+                    <td className={`py-2.5 px-3 border ${tableStyles.tdBorder}`}></td>
+                    <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-left font-black tracking-wider`}>TOTAL</td>
+                    <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} font-black text-center whitespace-nowrap tabular-nums`}>
                       {rupiah(totalNonMember)}
                     </td>
-                    <td className="py-2.5 px-3 border border-neutral-400 text-center">{paidNonMembers.length} org</td>
+                    <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-center`}>{paidNonMembers.length} org</td>
                   </tr>
                 </tfoot>
               </table>
@@ -2668,11 +2867,11 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
               variant="plain"
               onClick={handleCopyMemberImage}
               disabled={copyingImage}
-              className="border-line/80 bg-gradient-to-r from-lime-50 to-white text-lime-950 hover:from-lime-100 hover:to-lime-50 font-semibold shadow-2xs"
+              className={tableStyles.copyBtn}
               title={t("periods.matrixCopyImg")}
             >
               <span className="inline-flex items-center gap-1.5">
-                <svg className="h-3.5 w-3.5 text-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-3.5 w-3.5 ${tableStyles.copyIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
                   <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" />
@@ -2689,24 +2888,29 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
           </div>
 
           <div className="overflow-x-auto p-3">
-            <table className="w-full text-xs text-center border-collapse border border-neutral-400 shadow-xs">
-              <thead className="bg-[#1e3a8a] text-white tracking-wider uppercase font-semibold">
+            <table className={`w-full text-xs text-center border-collapse border ${tableStyles.wrapperBorder} shadow-xs`}>
+              <thead className={`${tableStyles.thead} tracking-wider uppercase font-semibold`}>
                 <tr>
-                  <th className="py-2.5 px-3 border border-white/40 w-12 text-center">NO</th>
-                  <th className="py-2.5 px-3 border border-white/40 text-left min-w-[130px]">LIST MEM</th>
-                  <th className="py-2.5 px-3 border border-white/40 min-w-[130px] whitespace-nowrap bg-blue-900/80">
+                  <th className={`py-2.5 px-3 border ${tableStyles.thBorder} w-12 text-center`}>NO</th>
+                  <th className={`py-2.5 px-3 border ${tableStyles.thBorder} text-left min-w-[130px]`}>LIST MEM</th>
+                  <th className={`py-2.5 px-3 border ${tableStyles.thBorder} min-w-[130px] whitespace-nowrap ${tableStyles.theadFee}`}>
                     {feeLabel}
                   </th>
                   {sessions.map((s) => (
-                    <th key={s.id} className="py-2.5 px-3 border border-white/40 min-w-[140px] whitespace-nowrap">
+                    <th key={s.id} className={`py-2.5 px-3 border ${tableStyles.thBorder} min-w-[140px] whitespace-nowrap`}>
                       <div className="flex items-center justify-center gap-1.5">
                         <span>Kas Kok ({dateDmy(s.date)})</span>
-                        <OpenLink to={`/mabar/${s.id}`} />
+                        <Link
+                          to={`/mabar/${s.id}`}
+                          className="inline-flex items-center rounded-md bg-white/15 hover:bg-white/25 border border-white/25 px-2 py-0.5 text-[10px] font-semibold text-white normal-case tracking-normal transition-colors"
+                        >
+                          {isId ? "Buka" : "Open"}
+                        </Link>
                       </div>
                     </th>
                   ))}
                   {sessions.length === 0 && (
-                    <th className="py-2.5 px-3 border border-white/40 text-xs italic font-normal text-blue-200">
+                    <th className={`py-2.5 px-3 border ${tableStyles.thBorder} text-xs italic font-normal ${tableStyles.emptySessionHeader}`}>
                       {t("periods.matrixNoSessions")}
                     </th>
                   )}
@@ -2714,9 +2918,9 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
               </thead>
               <tbody className="bg-white">
                 {rows.map((r, idx) => (
-                  <tr key={r.player_id} className={idx % 2 === 0 ? "bg-white hover:bg-neutral-50" : "bg-neutral-50/70 hover:bg-neutral-100"}>
-                    <td className="py-2 px-3 border border-neutral-400 font-medium text-neutral-600">{idx + 1}</td>
-                    <td className="py-2 px-3 border border-neutral-400 text-left font-semibold text-neutral-900">
+                  <tr key={r.player_id} className={idx % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}>
+                    <td className={`py-2 px-3 border ${tableStyles.tdBorder} font-medium ${tableStyles.noText}`}>{idx + 1}</td>
+                    <td className={`py-2 px-3 border ${tableStyles.tdBorder} text-left font-semibold ${tableStyles.nameText}`}>
                       <div className="flex items-center justify-between gap-1.5">
                         <span>{r.player_name}</span>
                         {(r.fastest_count ?? 0) > 0 && (
@@ -2729,9 +2933,9 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                         )}
                       </div>
                     </td>
-                    <td className="py-2 px-3 border border-neutral-400">
+                    <td className={`py-2 px-3 border ${tableStyles.tdBorder}`}>
                       {r.commitment_paid ? (
-                        <span className="inline-block w-full py-1 font-bold text-xs bg-lime text-white rounded shadow-sm">
+                        <span className={`inline-block w-full py-1 font-bold text-xs rounded shadow-2xs ${tableStyles.lunasBadge}`}>
                           LUNAS
                         </span>
                       ) : (
@@ -2750,43 +2954,47 @@ function MemberAttendanceMatrixSection({ periodId, periodName }: { periodId: str
                       return isPresent ? (
                         <td
                           key={s.id}
-                          className="py-2 px-3 border border-neutral-400 bg-lime text-white font-bold text-sm"
+                          className={`py-2 px-3 border ${tableStyles.tdBorder} ${tableStyles.presentCell}`}
                           title={`${r.player_name}: Hadir`}
                         >
-                          ✓
+                          <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-black text-xs shadow-2xs ${tableStyles.presentPill}`}>
+                            ✓
+                          </span>
                         </td>
                       ) : (
                         <td
                           key={s.id}
-                          className="py-2 px-3 border border-neutral-400 bg-red-600 text-white font-bold text-[11px] whitespace-nowrap"
+                          className={`py-2 px-3 border ${tableStyles.tdBorder} ${tableStyles.absentCell}`}
                           title={`${r.player_name}: ${status ? status : "Tidak Hadir"}`}
                         >
-                          TIDAK HADIR
+                          <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-[10px] font-bold whitespace-nowrap ${tableStyles.absentPill}`}>
+                            TIDAK HADIR
+                          </span>
                         </td>
                       );
                     })}
                     {sessions.length === 0 && (
-                      <td className="py-2 px-3 border border-neutral-400 text-neutral-400 italic">
+                      <td className={`py-2 px-3 border ${tableStyles.tdBorder} text-ink-faint italic`}>
                         —
                       </td>
                     )}
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="font-bold border-t-2 border-neutral-900 bg-yellow-300 text-neutral-900">
+              <tfoot className={`font-bold ${tableStyles.tfoot}`}>
                 <tr className="text-sm">
-                  <td className="py-2.5 px-3 border border-neutral-400"></td>
-                  <td className="py-2.5 px-3 border border-neutral-400 text-left font-black tracking-wider">TOTAL</td>
-                  <td className="py-2.5 px-3 border border-neutral-400 font-black whitespace-nowrap">
+                  <td className={`py-2.5 px-3 border ${tableStyles.tdBorder}`}></td>
+                  <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-left font-black tracking-wider`}>TOTAL</td>
+                  <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} font-black whitespace-nowrap tabular-nums`}>
                     {rupiah(total_lapangan_paid)}
                   </td>
                   {sessions.map((s) => (
-                    <td key={s.id} className="py-2.5 px-3 border border-neutral-400 font-black whitespace-nowrap">
+                    <td key={s.id} className={`py-2.5 px-3 border ${tableStyles.tdBorder} font-black whitespace-nowrap tabular-nums`}>
                       {rupiah(s.total_kas_kok)}
                     </td>
                   ))}
                   {sessions.length === 0 && (
-                    <td className="py-2.5 px-3 border border-neutral-400 text-neutral-600">
+                    <td className={`py-2.5 px-3 border ${tableStyles.tdBorder} text-ink-soft`}>
                       —
                     </td>
                   )}
