@@ -134,6 +134,7 @@ export function statusLabel(s: string, lang: "id" | "en" | string = "id"): strin
     PRESENT: "Present",
     LISTED: "Listed",
     CONFIRMED: "Confirmed",
+    NOT_LISTED: "Not Listed",
     ABSENT: "Absent",
     NO_SHOW: "No-Show",
     PERIOD: "Period",
@@ -161,6 +162,7 @@ export function statusLabel(s: string, lang: "id" | "en" | string = "id"): strin
     PRESENT: "Hadir",
     LISTED: "Terdaftar",
     CONFIRMED: "Konfirmasi Hadir",
+    NOT_LISTED: "Tidak Hadir",
     ABSENT: "Tidak Hadir",
     NO_SHOW: "PHP / Mangkir",
     PERIOD: "Periode",
@@ -197,6 +199,7 @@ export function statusClass(s: string): string {
     case "BREAK_EVEN":
     case "LISTED":
     case "CONFIRMED":
+    case "NOT_LISTED":
     case "DRAFT":
     case "UNPAID":
     case "PENDING":
