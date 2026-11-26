@@ -32,7 +32,7 @@ import { dateId, rupiah, statusClass, statusLabel } from "../format";
 import { useI18n } from "../i18n";
 import { Badge, Btn, ConfirmModal, Empty, ErrorBox, Field, Loading, MoneyInput, PageHead, PlayerPicker } from "../ui";
 
-const STATUSES = ["PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW"];
+const STATUSES = ["NOT_LISTED", "PRESENT", "LISTED", "CONFIRMED", "CANCELLED", "ABSENT", "NO_SHOW"];
 
 // Badminton needs at least 4 players on court: calculations stay locked
 // until this many players are marked PRESENT.

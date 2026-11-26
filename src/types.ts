@@ -25,6 +25,65 @@ export interface GenTeamPlayer {
 
 export type GenStrategy = "leveling" | "rest";
 
+export type ParticipantType = "MEMBER" | "NON_MEMBER";
+export type ParticipantStatus = "REGISTERED" | "WAITING" | "CANCELLED" | "AUTO_FILLED";
+export type CancellationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface OpenPlaySession {
+  id: string;
+  name: string;
+  description: string | null;
+  schedule_date: string;
+  start_time: string;
+  end_time: string | null;
+  venue_id: string | null;
+  max_members: number;
+  max_non_members: number;
+  max_waiting_list: number;
+  cancellation_window_hours: number;
+  min_non_member_fee: number;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  registered_member_count?: number;
+  registered_non_member_count?: number;
+  waiting_list_count?: number;
+}
+
+export interface Participant {
+  id: string;
+  session_id: string;
+  player_id: string;
+  player_name: string;
+  participant_type: ParticipantType;
+  participant_status: ParticipantStatus;
+  joined_at: string;
+  filled_from_waiting_at: string | null;
+}
+
+export interface CancellationRequest {
+  id: string;
+  participant_id: string;
+  session_id: string;
+  player_id: string;
+  player_name: string;
+  reason: string;
+  request_status: CancellationStatus;
+  reviewed_by: string | null;
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  requested_at: string;
+  created_at: string;
+}
+
+export interface ParticipantListResponse {
+  members: Participant[] | null;
+  non_members: Participant[] | null;
+  waiting_list: Participant[] | null;
+}
+
 export interface GenMatch {
   id: string;
   event_id: string;

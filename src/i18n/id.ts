@@ -1189,6 +1189,98 @@ export const id: TranslationSchema = {
     indexTimeLeft: "Sisa {time}",
     indexClosedNow: "Batas waktu berakhir",
   },
+  openPlay: {
+    title: "Open Play",
+    description: "Daftar untuk bermain badminton bersama",
+    joinSession: "Daftar Open Play",
+    
+    // Session listing
+    availableSessions: "Sesi Tersedia",
+    noSessions: "Tidak ada sesi open play yang tersedia",
+    upcomingSessions: "Sesi Mendatang",
+    pastSessions: "Sesi Lalu",
+    
+    // Session details
+    scheduleDate: "Tanggal",
+    startTime: "Jam Mulai",
+    endTime: "Jam Selesai",
+    venue: "GOR / Venue",
+    maxMembers: "Kapasitas Member",
+    maxNonMembers: "Kapasitas Non-Member",
+    maxWaitingList: "Daftar Tunggu Maks",
+    cancellationWindow: "Jendela Pembatalan",
+    memberSlots: "Slot Member",
+    nonMemberSlots: "Slot Non-Member",
+    waitingList: "Daftar Tunggu",
+    registeredMembers: "Member Terdaftar",
+    registeredNonMembers: "Non-Member Terdaftar",
+    
+    // Participant types
+    memberType: "Member",
+    nonMemberType: "Non-Member",
+    
+    // Status
+    registered: "Terdaftar",
+    waiting: "Menunggu",
+    cancelled: "Dibatalkan",
+    autoFilled: "Otomatis Terisi",
+    
+    // Actions
+    join: "Daftar",
+    cancel: "Batalkan Pendaftaran",
+    joinAs: "Daftar Sebagai",
+    selectType: "Pilih Tipe Partisipasi",
+    
+    // Forms
+    participationType: "Tipe Partisipasi",
+    cancellationReason: "Alasan Pembatalan",
+    reasonRequired: "Alasan pembatalan harus diisi",
+    enterReason: "Jelaskan alasan pembatalan...",
+    reviewNotes: "Catatan Review",
+    
+    // Admin
+    adminPanel: "Panel Admin",
+    createSession: "Buat Sesi Baru",
+    editSession: "Ubah Sesi",
+    deleteSession: "Hapus Sesi",
+    deleteSessionConfirm: "Yakin hapus sesi ini? Semua pendaftaran akan dihapus.",
+    manageParticipants: "Kelola Peserta",
+    pendingCancellations: "Pembatalan Menunggu Approval",
+    noCancellations: "Tidak ada permintaan pembatalan yang menunggu",
+    approveCancellation: "Setujui Pembatalan",
+    rejectCancellation: "Tolak Pembatalan",
+    removeParticipant: "Hapus Peserta",
+    
+    // Notifications
+    joinedSuccessfully: "Berhasil mendaftar open play",
+    joinedWaitingList: "Mendaftar di daftar tunggu",
+    cancelledSuccessfully: "Pembatalan berhasil diajukan",
+    cancellationApproved: "Pembatalan disetujui",
+    cancellationRejected: "Pembatalan ditolak",
+    participantRemoved: "Peserta dihapus",
+    sessionCreated: "Sesi berhasil dibuat",
+    sessionUpdated: "Sesi berhasil diperbarui",
+    sessionDeleted: "Sesi berhasil dihapus",
+    
+    // Errors
+    joinFailed: "Gagal mendaftar, silakan coba lagi",
+    alreadyJoined: "Anda sudah mendaftar sesi ini",
+    slotsFullWaitingList: "Slot penuh dan daftar tunggu juga penuh",
+    memberSlotsFull: "Slot member penuh, mendaftar di daftar tunggu",
+    nonMemberSlotsFull: "Slot non-member penuh, mendaftar di daftar tunggu",
+    sessionClosed: "Sesi ini tidak menerima pendaftaran lagi",
+    
+    // Columns
+    playerName: "Nama Pemain",
+    joinedAt: "Terdaftar",
+    participantStatus: "Status",
+    actions: "Aksi",
+    
+    // Messages
+    hoursBeforeDeadline: (hours: number) => `Pembatalan hanya bisa dilakukan ${hours} jam sebelum sesi dimulai`,
+    slotsAvailable: (available: number, max: number) => `${available} dari ${max} slot tersedia`,
+  },
 };
+
 
 

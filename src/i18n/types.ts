@@ -1166,6 +1166,98 @@ export interface RegisterMemberTranslations {
   indexClosedNow: string;
 }
 
+export interface OpenPlayTranslations {
+  title: string;
+  description: string;
+  joinSession: string;
+  
+  // Session listing
+  availableSessions: string;
+  noSessions: string;
+  upcomingSessions: string;
+  pastSessions: string;
+  
+  // Session details
+  scheduleDate: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  maxMembers: string;
+  maxNonMembers: string;
+  maxWaitingList: string;
+  cancellationWindow: string;
+  memberSlots: string;
+  nonMemberSlots: string;
+  waitingList: string;
+  registeredMembers: string;
+  registeredNonMembers: string;
+  
+  // Participant types
+  memberType: string;
+  nonMemberType: string;
+  
+  // Status
+  registered: string;
+  waiting: string;
+  cancelled: string;
+  autoFilled: string;
+  
+  // Actions
+  join: string;
+  cancel: string;
+  joinAs: string;
+  selectType: string;
+  
+  // Forms
+  participationType: string;
+  cancellationReason: string;
+  reasonRequired: string;
+  enterReason: string;
+  reviewNotes: string;
+  
+  // Admin
+  adminPanel: string;
+  createSession: string;
+  editSession: string;
+  deleteSession: string;
+  deleteSessionConfirm: string;
+  manageParticipants: string;
+  pendingCancellations: string;
+  noCancellations: string;
+  approveCancellation: string;
+  rejectCancellation: string;
+  removeParticipant: string;
+  
+  // Notifications
+  joinedSuccessfully: string;
+  joinedWaitingList: string;
+  cancelledSuccessfully: string;
+  cancellationApproved: string;
+  cancellationRejected: string;
+  participantRemoved: string;
+  sessionCreated: string;
+  sessionUpdated: string;
+  sessionDeleted: string;
+  
+  // Errors
+  joinFailed: string;
+  alreadyJoined: string;
+  slotsFullWaitingList: string;
+  memberSlotsFull: string;
+  nonMemberSlotsFull: string;
+  sessionClosed: string;
+  
+  // Columns
+  playerName: string;
+  joinedAt: string;
+  participantStatus: string;
+  actions: string;
+  
+  // Messages
+  hoursBeforeDeadline: (hours: number) => string;
+  slotsAvailable: (available: number, max: number) => string;
+}
+
 export interface TranslationSchema {
   nav: NavTranslations;
   common: CommonTranslations;
@@ -1182,6 +1274,7 @@ export interface TranslationSchema {
   landing: LandingTranslations;
   usersAdmin: UsersAdminTranslations;
   registerMember: RegisterMemberTranslations;
+  openPlay: OpenPlayTranslations;
 }
 
 

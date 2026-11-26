@@ -1190,6 +1190,98 @@ export const en: TranslationSchema = {
     indexTimeLeft: "{time} left",
     indexClosedNow: "Deadline passed",
   },
+  openPlay: {
+    title: "Open Play",
+    description: "Register to play badminton with us",
+    joinSession: "Register for Open Play",
+    
+    // Session listing
+    availableSessions: "Available Sessions",
+    noSessions: "No open play sessions available",
+    upcomingSessions: "Upcoming Sessions",
+    pastSessions: "Past Sessions",
+    
+    // Session details
+    scheduleDate: "Date",
+    startTime: "Start Time",
+    endTime: "End Time",
+    venue: "Venue",
+    maxMembers: "Member Capacity",
+    maxNonMembers: "Non-Member Capacity",
+    maxWaitingList: "Max Waiting List",
+    cancellationWindow: "Cancellation Window",
+    memberSlots: "Member Slots",
+    nonMemberSlots: "Non-Member Slots",
+    waitingList: "Waiting List",
+    registeredMembers: "Registered Members",
+    registeredNonMembers: "Registered Non-Members",
+    
+    // Participant types
+    memberType: "Member",
+    nonMemberType: "Non-Member",
+    
+    // Status
+    registered: "Registered",
+    waiting: "Waiting",
+    cancelled: "Cancelled",
+    autoFilled: "Auto-Filled",
+    
+    // Actions
+    join: "Register",
+    cancel: "Cancel Registration",
+    joinAs: "Register As",
+    selectType: "Select Participation Type",
+    
+    // Forms
+    participationType: "Participation Type",
+    cancellationReason: "Cancellation Reason",
+    reasonRequired: "Cancellation reason is required",
+    enterReason: "Explain your cancellation reason...",
+    reviewNotes: "Review Notes",
+    
+    // Admin
+    adminPanel: "Admin Panel",
+    createSession: "Create New Session",
+    editSession: "Edit Session",
+    deleteSession: "Delete Session",
+    deleteSessionConfirm: "Are you sure you want to delete this session? All registrations will be removed.",
+    manageParticipants: "Manage Participants",
+    pendingCancellations: "Pending Cancellation Approvals",
+    noCancellations: "No pending cancellation requests",
+    approveCancellation: "Approve Cancellation",
+    rejectCancellation: "Reject Cancellation",
+    removeParticipant: "Remove Participant",
+    
+    // Notifications
+    joinedSuccessfully: "Successfully registered for open play",
+    joinedWaitingList: "Added to waiting list",
+    cancelledSuccessfully: "Cancellation request submitted",
+    cancellationApproved: "Cancellation approved",
+    cancellationRejected: "Cancellation rejected",
+    participantRemoved: "Participant removed",
+    sessionCreated: "Session created successfully",
+    sessionUpdated: "Session updated successfully",
+    sessionDeleted: "Session deleted successfully",
+    
+    // Errors
+    joinFailed: "Failed to register, please try again",
+    alreadyJoined: "You are already registered for this session",
+    slotsFullWaitingList: "Slots are full and waiting list is also full",
+    memberSlotsFull: "Member slots are full, added to waiting list",
+    nonMemberSlotsFull: "Non-member slots are full, added to waiting list",
+    sessionClosed: "This session is no longer accepting registrations",
+    
+    // Columns
+    playerName: "Player Name",
+    joinedAt: "Registered",
+    participantStatus: "Status",
+    actions: "Actions",
+    
+    // Messages
+    hoursBeforeDeadline: (hours: number) => `Cancellations can only be made ${hours} hours before the session starts`,
+    slotsAvailable: (available: number, max: number) => `${available} of ${max} slots available`,
+  },
 };
+
 
 
