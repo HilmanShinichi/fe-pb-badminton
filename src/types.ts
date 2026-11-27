@@ -307,6 +307,7 @@ export interface MabarRegistrationInfo {
     phone: string | null;
     attendance_status: string;
     is_registered: boolean;
+    is_absent: boolean;
     commitment_fee: number;
   }[];
   non_member_players?: {
@@ -323,6 +324,13 @@ export interface MabarRegistrationInfo {
       listed_at: string;
     }[];
     non_members: {
+      attendance_id: string;
+      player_id: string;
+      player_name: string;
+      status: string;
+      listed_at: string;
+    }[];
+    absent_members: {
       attendance_id: string;
       player_id: string;
       player_name: string;

@@ -2,7 +2,28 @@ import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs } from "@re
 import type { RootState } from "./store";
 import { clearCredentials } from "./authSlice";
 
-export class ApiError extends Error {
+export interface ApiErrorShape {
+  status: number;
+  code: string;
+  message: string;
+  payload?: unknown;
+}
+
+function isApiErrorShape(value: unknown): value is ApiErrorShape {
+  if (typeof value !== "object" || value === null) return false;
+  const error = value as Partial<ApiErrorShape>;
+  return (
+    typeof error.status === "number" &&
+    typeof error.code === "string" &&
+    typeof error.message === "string"
+  );
+}
+
+export class ApiError extends Error implements ApiErrorShape {
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return isApiErrorShape(value);
+  }
+
   code: string;
   status: number;
   payload?: unknown;
@@ -15,16 +36,50 @@ export class ApiError extends Error {
 }
 
 export function toApiError(err: unknown): ApiError {
-  if (err instanceof ApiError) return err;
+  if (isApiErrorShape(err)) {
+    return err instanceof Error
+      ? err
+      : new ApiError(err.status, err.code, err.message, err.payload);
+  }
   if (typeof err === "object" && err !== null) {
-    const e = err as { status?: unknown; data?: unknown };
+    const e = err as {
+      status?: unknown;
+      data?: unknown;
+      error?: unknown;
+      originalStatus?: unknown;
+    };
     // RTK Query wraps errors thrown from baseQuery in a CUSTOM_ERROR
     // envelope — unwrap it back to the original ApiError.
     if (e.status === "CUSTOM_ERROR" && e.data !== undefined) return toApiError(e.data);
     if ("status" in err) {
       const d = e.data as { error?: { code?: string; message?: string; payment?: unknown } } | undefined;
-      const status = typeof e.status === "number" ? e.status : 0;
-      return new ApiError(status, d?.error?.code ?? "UNKNOWN", d?.error?.message ?? `HTTP ${status}`, d?.error?.payment);
+      if (typeof e.status === "number") {
+        return new ApiError(
+          e.status,
+          d?.error?.code ?? "UNKNOWN",
+          d?.error?.message ?? `HTTP ${e.status}`,
+          d?.error?.payment
+        );
+      }
+
+      if (typeof e.status === "string") {
+        const message =
+          e.status === "PARSING_ERROR" && typeof e.data === "string"
+            ? e.data.trim()
+            : typeof e.error === "string"
+              ? e.error
+              : "Network error.";
+        const status =
+          e.status === "PARSING_ERROR" && typeof e.originalStatus === "number"
+            ? e.originalStatus
+            : 0;
+        return new ApiError(
+          status,
+          e.status === "FETCH_ERROR" ? "NETWORK_ERROR" : e.status,
+          message || "Network error.",
+          e.data
+        );
+      }
     }
   }
   return new ApiError(0, "UNKNOWN", "Network error.");
@@ -59,7 +114,7 @@ const rawBase = fetchBaseQuery({
   },
 });
 
-const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = async (
+const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiErrorShape> = async (
   args,
   api,
   extraOptions
@@ -83,7 +138,14 @@ const envelopeBaseQuery: BaseQueryFn<string | FetchArgs, unknown, ApiError> = as
         if (isProtectedRoute(window.location.pathname)) window.location.replace("/login");
       }
     }
-    return { error: apiErr };
+    return {
+      error: {
+        status: apiErr.status,
+        code: apiErr.code,
+        message: apiErr.message,
+        payload: apiErr.payload,
+      },
+    };
   }
   const body = result.data as { data?: unknown };
   return { data: (body?.data ?? body) as unknown };

@@ -902,6 +902,22 @@ export const api = baseApi.injectEndpoints({
         { type: "MabarCancellations", id: sessionId },
       ],
     }),
+    markMabarAbsent: build.mutation<
+      { message: string },
+      { sessionId: string; player_id: string }
+    >({
+      query: ({ sessionId, ...body }) => ({
+        url: `/api/v1/public/mabar/${sessionId}/absent`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { sessionId }) => [
+        { type: "RegistrationInfo", id: sessionId },
+        { type: "Attendance", id: sessionId },
+        { type: "Mabar", id: sessionId },
+        "Mabar",
+      ],
+    }),
     mabarCancellations: build.query<MabarCancellationItem[], string>({
       query: (id) => `/api/v1/mabar/${id}/cancellations`,
       providesTags: (_r, _e, id) => [{ type: "MabarCancellations", id }],
@@ -1060,6 +1076,7 @@ export const {
   useMabarRegistrationInfoQuery,
   useRegisterMabarMutation,
   useCancelMabarMutation,
+  useMarkMabarAbsentMutation,
   useMabarCancellationsQuery,
   useApproveMabarCancellationMutation,
   useRejectMabarCancellationMutation,

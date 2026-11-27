@@ -1,16 +1,18 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useI18n } from "../i18n";
 import {
   useMabarRegistrationInfoQuery,
   useRegisterMabarMutation,
   useCancelMabarMutation,
+  useMarkMabarAbsentMutation,
   useMabarListQuery,
 } from "../store/services";
 import type { MabarSession } from "../types";
 import { toApiError } from "../store/baseApi";
 import { buildMabarShareListTemplate, formatGmt7DateTime, statusClass, statusLabel, calculateCountdown } from "../format";
 import { LanguageSwitcher } from "../components/atoms/LanguageSwitcher/LanguageSwitcher";
+import { ConfirmModal } from "../components";
 
 // ─── Semantic SVG Icons ───────────────────────────────────────────────────────
 
@@ -146,21 +148,30 @@ function PlayerPopPicker({
   emptyText,
   disabled,
   isId,
+  ariaLabel,
+  id,
 }: {
   value: string;
   onChange: (id: string) => void;
-  players: Array<{ id: string; name: string }>;
+  players: Array<{ id: string; name: string; suffix?: string }>;
   placeholder: string;
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
   isId: boolean;
+  ariaLabel?: string;
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const popRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listId = useId();
 
   const selected = players.find((m) => m.id === value);
+  const selectedLabel = selected
+    ? `${selected.name}${selected.suffix ? ` (${selected.suffix})` : ""}`
+    : placeholder;
 
   // Case-insensitive substring search (%LIKE%)
   const filtered = useMemo(() => {
@@ -185,45 +196,30 @@ function PlayerPopPicker({
 
   return (
     <div ref={popRef} className="relative w-full">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => {
-          if (!disabled) {
-            setOpen((prev) => !prev);
-            setQuery("");
-          }
-        }}
-        className={`flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 py-2.5 text-sm transition-all ${
-          open
-            ? "border-pine ring-2 ring-pine/20"
-            : "border-line hover:border-line-deep"
-        } ${disabled ? "opacity-50 cursor-not-allowed bg-bg" : "cursor-pointer"}`}
-      >
-        <span className={`truncate font-medium ${selected ? "text-ink font-semibold" : "text-ink-soft"}`}>
-          {selected ? selected.name : placeholder}
-        </span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {selected && !disabled && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.stopPropagation();
-                  onChange("");
-                }
-              }}
-              className="text-ink-soft hover:text-red-600 p-0.5 rounded text-xs leading-none"
-              title={isId ? "Hapus pilihan" : "Clear selection"}
-            >
-              ✕
-            </span>
-          )}
+      <div className="flex items-center gap-2">
+        <button
+          id={id}
+          ref={triggerRef}
+          type="button"
+          disabled={disabled}
+          aria-label={ariaLabel ? `${ariaLabel}: ${selectedLabel}` : undefined}
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          onClick={() => {
+            if (!disabled) {
+              setOpen((prev) => !prev);
+              setQuery("");
+            }
+          }}
+          className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 py-2.5 text-sm transition-all ${
+            open
+              ? "border-pine ring-2 ring-pine/20"
+              : "border-line hover:border-line-deep active:bg-bg"
+          } ${disabled ? "opacity-50 cursor-not-allowed bg-bg" : "cursor-pointer"}`}
+        >
+          <span className={`truncate font-medium ${selected ? "text-ink font-semibold" : "text-ink-soft"}`}>
+            {selectedLabel}
+          </span>
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -233,8 +229,24 @@ function PlayerPopPicker({
           >
             <path d="m6 9 6 6 6-6" />
           </svg>
-        </div>
-      </button>
+        </button>
+        {selected && !disabled && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+              setQuery("");
+              triggerRef.current?.focus();
+            }}
+            className="min-h-11 min-w-11 rounded-xl border border-line text-ink-soft hover:border-red-600 hover:text-red-600 active:bg-bg"
+            aria-label={isId ? "Hapus pilihan" : "Clear selection"}
+            title={isId ? "Hapus pilihan" : "Clear selection"}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        )}
+      </div>
 
       {open && (
         <div className="absolute top-full left-0 right-0 mt-1.5 z-40 overflow-hidden rounded-xl border border-line bg-white shadow-xl">
@@ -242,16 +254,24 @@ function PlayerPopPicker({
             <input
               type="text"
               autoFocus
+              aria-label={searchPlaceholder || (isId ? "Cari nama pemain..." : "Search player name...")}
               placeholder={searchPlaceholder || (isId ? "Cari nama pemain..." : "Search player name...")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Escape") setOpen(false);
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setOpen(false);
+                  setQuery("");
+                  triggerRef.current?.focus();
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                }
               }}
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink placeholder:text-ink-soft focus:border-pine focus:outline-hidden"
+              className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink placeholder:text-ink-soft focus:border-pine focus:outline-hidden"
             />
           </div>
-          <div className="max-h-56 overflow-y-auto p-1 divide-y divide-line/40">
+          <div id={listId} className="max-h-56 overflow-y-auto p-1 divide-y divide-line/40">
             {filtered.length === 0 ? (
               <p className="p-3 text-center text-xs text-ink-soft">
                 {emptyText || (isId ? "Tidak ada nama pemain yang cocok." : "No matching player name.")}
@@ -265,14 +285,20 @@ function PlayerPopPicker({
                     onChange(m.id);
                     setOpen(false);
                     setQuery("");
+                    triggerRef.current?.focus();
                   }}
-                  className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs rounded-lg transition-colors ${
+                  className={`flex min-h-11 w-full items-center justify-between px-3 py-2.5 text-left text-xs rounded-lg transition-colors active:bg-pine/20 ${
                     m.id === value
                       ? "bg-pine/10 font-bold text-pine"
                       : "text-ink hover:bg-bg"
                   }`}
                 >
-                  <span className="truncate">{m.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                  {m.suffix && (
+                    <span className="ml-2 shrink-0 text-[10px] text-ink-soft">
+                      {m.suffix}
+                    </span>
+                  )}
                   {m.id === value && <span className="text-pine font-bold ml-2">✓</span>}
                 </button>
               ))
@@ -296,16 +322,19 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
 
   const [registerMabar, { isLoading: isRegistering }] = useRegisterMabarMutation();
   const [cancelMabar, { isLoading: isCancelling }] = useCancelMabarMutation();
+  const [markMabarAbsent, { isLoading: isMarkingAbsent }] = useMarkMabarAbsentMutation();
 
   // Form states — ALL HOOKS BEFORE EARLY RETURNS
-  const [activeTab, setActiveTab] = useState<"register" | "cancel">("register");
+  const [activeTab, setActiveTab] = useState<"register" | "cancel" | "absent">("register");
   const [participantType, setParticipantType] = useState<"MEMBER" | "NON_MEMBER">("MEMBER");
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedNonMemberId, setSelectedNonMemberId] = useState("");
+  const [absentPlayerId, setAbsentPlayerId] = useState("");
+  const [isAbsentConfirmOpen, setIsAbsentConfirmOpen] = useState(false);
   const [cancelPlayerId, setCancelPlayerId] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [rosterFilter, setRosterFilter] = useState<"ALL" | "MEMBER" | "NON_MEMBER" | "WAITING">("ALL");
+  const [rosterFilter, setRosterFilter] = useState<"ALL" | "MEMBER" | "ABSENT" | "NON_MEMBER" | "WAITING">("ALL");
   const [templateLang, setTemplateLang] = useState<"id" | "en">(lang === "en" ? "en" : "id");
   const [copiedTemplate, setCopiedTemplate] = useState(false);
   const templateTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -358,6 +387,7 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
     members: [],
     non_members: [],
     waiting_list: [],
+    absent_members: [],
   };
 
   const shareTemplateText = useMemo(
@@ -374,7 +404,7 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
   // Filtered members for dropdown (commitment_fee > 0, not registered)
   const eligibleMembers = useMemo(() => {
     return (pMembersData || [])
-      .filter((pm: any) => pm.commitment_fee > 0 && !pm.is_registered)
+      .filter((pm: any) => pm.commitment_fee > 0 && !pm.is_registered && !pm.is_absent)
       .map((pm: any) => ({ id: pm.id, name: pm.name }))
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [pMembersData]);
@@ -387,8 +417,16 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [nonMemberPlayersData]);
 
+  const eligibleAbsentMembers = useMemo(() => {
+    return pMembersData
+      .filter((member) => member.attendance_status === "NOT_LISTED" && !member.is_absent)
+      .map((member) => ({ id: member.id, name: member.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [pMembersData]);
+  const selectedAbsentMember = eligibleAbsentMembers.find((member) => member.id === absentPlayerId);
+
   // Memoized roster items — before early returns
-  const rosterItems = useMemo(() => {
+  const allRosterItems = useMemo(() => {
     const list: Array<{
       id: string;
       player_id: string;
@@ -437,11 +475,28 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
       });
     });
 
-    if (rosterFilter === "MEMBER") return list.filter((i) => i.isMember && !i.isWaiting);
-    if (rosterFilter === "NON_MEMBER") return list.filter((i) => !i.isMember && !i.isWaiting);
-    if (rosterFilter === "WAITING") return list.filter((i) => i.isWaiting);
+    regInfo?.participants?.absent_members?.forEach((m: any) => {
+      list.push({
+        id: m.attendance_id,
+        player_id: m.player_id,
+        name: m.player_name,
+        isMember: true,
+        status: "ABSENT",
+        time: m.listed_at,
+        isWaiting: false,
+      });
+    });
+
     return list;
-  }, [regInfo?.participants, rosterFilter]);
+  }, [regInfo?.participants]);
+
+  const rosterItems = useMemo(() => {
+    if (rosterFilter === "MEMBER") return allRosterItems.filter((i) => i.isMember && !i.isWaiting && i.status !== "ABSENT");
+    if (rosterFilter === "ABSENT") return allRosterItems.filter((i) => i.status === "ABSENT");
+    if (rosterFilter === "NON_MEMBER") return allRosterItems.filter((i) => !i.isMember && !i.isWaiting);
+    if (rosterFilter === "WAITING") return allRosterItems.filter((i) => i.isWaiting);
+    return allRosterItems;
+  }, [allRosterItems, rosterFilter]);
 
   // NOW early returns are safe
   if (isLoading) {
@@ -500,6 +555,7 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
     isClosed ||
     isUpcoming ||
     (sess.non_member_registration_open !== undefined ? !sess.non_member_registration_open : false);
+  const isRegistrationOpen = sess.status === "MEMBER_ONLY" || sess.status === "OPEN";
 
   const effectiveMaxNonMembers = quot.effective_max_non_members ?? quot.max_non_members;
   const bonusNonMemberSlots = quot.bonus_non_member_slots ?? 0;
@@ -608,6 +664,56 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
     }
   }
 
+  async function handleMarkAbsent(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+
+    if (!absentPlayerId) {
+      setMessage({
+        type: "error",
+        text: isId ? "Pilih nama member Anda terlebih dahulu." : "Select your member name first.",
+      });
+      return;
+    }
+
+    if (!selectedAbsentMember) {
+      setMessage({
+        type: "error",
+        text: isId ? "Member periode tersebut tidak ditemukan atau sudah ditandai tidak hadir." : "That period member was not found or is already marked absent.",
+      });
+      return;
+    }
+
+    setIsAbsentConfirmOpen(true);
+  }
+
+  async function confirmMarkAbsent() {
+    if (!selectedAbsentMember) {
+      setIsAbsentConfirmOpen(false);
+      setMessage({
+        type: "error",
+        text: isId ? "Member periode tersebut tidak ditemukan atau sudah ditandai tidak hadir." : "That period member was not found or is already marked absent.",
+      });
+      return;
+    }
+
+    try {
+      await markMabarAbsent({ sessionId, player_id: absentPlayerId }).unwrap();
+      setMessage({
+        type: "success",
+        text: isId
+          ? "Status tidak hadir dicatat. Satu slot kini tersedia untuk non-member."
+          : "Absence recorded. One slot is now available to non-members.",
+      });
+      setAbsentPlayerId("");
+      refetch();
+      setIsAbsentConfirmOpen(false);
+    } catch (err) {
+      const apiErr = toApiError(err);
+      setMessage({ type: "error", text: apiErr.message });
+      setIsAbsentConfirmOpen(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-bg text-ink pb-16">
@@ -848,20 +954,21 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
 
         {/* Action Panel: Register vs Cancel */}
         <section className="bg-white rounded-2xl border border-line p-5 sm:p-6 shadow-sm space-y-5">
-          <div className="flex border-b border-line">
+          <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-line">
             <button
               type="button"
               onClick={() => {
                 setActiveTab("register");
                 setMessage(null);
               }}
-              className={`pb-3 px-4 text-sm font-bold border-b-2 transition-colors ${
+              aria-pressed={activeTab === "register"}
+              className={`min-h-11 px-3 sm:px-4 text-left text-sm font-bold border-b-2 transition-colors ${
                 activeTab === "register"
                   ? "border-pine text-pine"
-                  : "border-transparent text-ink-soft hover:text-ink"
+                  : "border-transparent text-ink-soft hover:text-ink active:bg-bg"
               }`}
             >
-              {isId ? "1. Formulir Pendaftaran" : "1. Registration Form"}
+              {isId ? "1. Pendaftaran" : "1. Register"}
             </button>
             <button
               type="button"
@@ -869,13 +976,29 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
                 setActiveTab("cancel");
                 setMessage(null);
               }}
-              className={`pb-3 px-4 text-sm font-bold border-b-2 transition-colors ${
+              aria-pressed={activeTab === "cancel"}
+              className={`min-h-11 px-3 sm:px-4 text-left text-sm font-bold border-b-2 transition-colors ${
                 activeTab === "cancel"
                   ? "border-pine text-pine"
-                  : "border-transparent text-ink-soft hover:text-ink"
+                  : "border-transparent text-ink-soft hover:text-ink active:bg-bg"
               }`}
             >
-              {isId ? "2. Ajukan Pembatalan" : "2. Cancellation Request"}
+              {isId ? "2. Pembatalan" : "2. Cancel"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("absent");
+                setMessage(null);
+              }}
+              aria-pressed={activeTab === "absent"}
+              className={`min-h-11 px-3 sm:px-4 text-left text-sm font-bold border-b-2 transition-colors ${
+                activeTab === "absent"
+                  ? "border-pine text-pine"
+                  : "border-transparent text-ink-soft hover:text-ink active:bg-bg"
+              }`}
+            >
+              {isId ? "3. Tidak Hadir" : "3. Mark Absent"}
             </button>
           </div>
 
@@ -1133,7 +1256,7 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-ink-faint mb-1">
+                <label htmlFor="cancel-player" className="block text-xs font-bold uppercase tracking-wider text-ink-faint mb-1">
                   {isId ? "Pilih Nama Pemain Anda:" : "Select Your Player Name:"}
                 </label>
                 {allActiveParticipants.length === 0 ? (
@@ -1141,20 +1264,39 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
                     {isId ? "Belum ada pemain terdaftar." : "No players registered yet."}
                   </p>
                 ) : (
-                  <select
+                  <PlayerPopPicker
+                    id="cancel-player"
                     value={cancelPlayerId}
-                    onChange={(e) => setCancelPlayerId(e.target.value)}
-                    className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink focus:border-pine focus:outline-hidden"
-                  >
-                    <option value="">
-                      {isId ? "-- Pilih Nama Pemain Terdaftar --" : "-- Select Registered Player --"}
-                    </option>
-                    {allActiveParticipants.map((p) => (
-                      <option key={p.player_id} value={p.player_id}>
-                        {p.player_name} ({p.type === "WAITING" ? "Waiting List" : p.type === "MEMBER" ? "Member" : "Non-Member"})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setCancelPlayerId}
+                    players={allActiveParticipants.map((p) => ({
+                      id: p.player_id,
+                      name: p.player_name,
+                      suffix:
+                        p.type === "WAITING"
+                          ? "Waiting List"
+                          : p.type === "MEMBER"
+                            ? "Member"
+                            : "Non-Member",
+                    }))}
+                    placeholder={
+                      isId
+                        ? "-- Pilih Nama Pemain Terdaftar --"
+                        : "-- Select Registered Player --"
+                    }
+                    searchPlaceholder={
+                      isId ? "Cari nama pemain..." : "Search player name..."
+                    }
+                    emptyText={
+                      isId
+                        ? "Tidak ada nama pemain yang cocok."
+                        : "No matching player name."
+                    }
+                    disabled={isCancelling}
+                    isId={isId}
+                    ariaLabel={
+                      isId ? "Pilih nama pemain pembatalan" : "Select cancellation player"
+                    }
+                  />
                 )}
               </div>
 
@@ -1182,37 +1324,87 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
               </button>
             </form>
           )}
+
+          {activeTab === "absent" && (
+            <form onSubmit={handleMarkAbsent} className="space-y-4">
+              <p className="text-sm text-ink-soft">
+                {isId
+                  ? "Hanya member yang belum join sesi ini yang bisa dipilih. Jika sudah terdaftar, ajukan pembatalan lewat tab Pembatalan. Slot member berkurang satu dan kuota non-member bertambah satu."
+                  : "Only members who have not joined this session can be selected. If already registered, request cancellation from the Cancellation tab. The member quota decreases by one and the non-member quota increases by one."}
+              </p>
+
+              <div>
+                <label htmlFor="absent-member" className="block text-xs font-bold uppercase tracking-wider text-ink-faint mb-1">
+                  {isId ? "Nama Member Anda" : "Your member name"}
+                </label>
+                <PlayerPopPicker
+                  value={absentPlayerId}
+                  onChange={setAbsentPlayerId}
+                  players={eligibleAbsentMembers}
+                  placeholder={
+                    eligibleAbsentMembers.length === 0
+                      ? isId ? "Tidak ada member periode yang bisa dipilih" : "No eligible period members"
+                      : isId ? "-- Pilih nama Anda --" : "-- Select your name --"
+                  }
+                  searchPlaceholder={isId ? "Cari nama member..." : "Search member name..."}
+                  emptyText={isId ? "Tidak ada nama member yang cocok." : "No matching member name."}
+                  disabled={!isRegistrationOpen || isMarkingAbsent || eligibleAbsentMembers.length === 0}
+                  isId={isId}
+                  ariaLabel={isId ? "Nama Member Anda" : "Your member name"}
+                  id="absent-member"
+                />
+              </div>
+
+              {!isRegistrationOpen && (
+                <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  {isId
+                    ? "Penandaan tidak hadir hanya tersedia selama pendaftaran masih dibuka."
+                    : "Absence can only be marked while registration is open."}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!isRegistrationOpen || isMarkingAbsent || !absentPlayerId}
+                className="w-full min-h-11 px-4 rounded-xl bg-red-700 text-white text-sm font-bold hover:bg-red-800 active:bg-red-900 transition-colors disabled:opacity-50"
+              >
+                {isMarkingAbsent
+                  ? isId ? "Mencatat ketidakhadiran..." : "Recording absence..."
+                  : isId ? "Tandai Saya Tidak Hadir" : "Mark Me Absent"}
+              </button>
+            </form>
+          )}
         </section>
 
         {/* Live Roster of Participants */}
         <section className="bg-white rounded-2xl border border-line p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-line pb-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 border-b border-line pb-3">
             <div>
               <h2 className="text-base font-bold text-ink">
                 {isId ? "Daftar Peserta Terdaftar" : "Registered Players Roster"}
               </h2>
               <p className="text-xs text-ink-soft">
                 {isId
-                  ? `${totalActive} peserta aktif · ${quot.waiting_count} waiting list`
-                  : `${totalActive} active players · ${quot.waiting_count} waiting list`}
+                  ? `${totalActive} peserta aktif · ${quot.waiting_count} waiting list · ${partsData.absent_members?.length ?? 0} tidak hadir`
+                  : `${totalActive} active players · ${quot.waiting_count} waiting list · ${partsData.absent_members?.length ?? 0} absent`}
               </p>
             </div>
 
             {/* Filter buttons */}
-            <div className="flex items-center gap-1 bg-bg p-1 rounded-lg border border-line text-xs font-semibold">
+            <div className="flex flex-wrap items-center gap-1 bg-bg p-1 rounded-lg border border-line text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setRosterFilter("ALL")}
-                className={`px-2.5 py-1 rounded transition-colors ${
+                className={`min-h-11 px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                   rosterFilter === "ALL" ? "bg-white text-ink shadow-xs" : "text-ink-soft hover:text-ink"
                 }`}
               >
-                {isId ? "Semua" : "All"} ({allActiveParticipants.length})
+                {isId ? "Semua" : "All"} ({allRosterItems.length})
               </button>
               <button
                 type="button"
                 onClick={() => setRosterFilter("MEMBER")}
-                className={`px-2.5 py-1 rounded transition-colors ${
+                className={`min-h-11 px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                   rosterFilter === "MEMBER" ? "bg-white text-indigo-700 shadow-xs" : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -1220,8 +1412,18 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
               </button>
               <button
                 type="button"
+                onClick={() => setRosterFilter("ABSENT")}
+                aria-pressed={rosterFilter === "ABSENT"}
+                className={`min-h-11 px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
+                  rosterFilter === "ABSENT" ? "bg-white text-red-700 shadow-xs" : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {isId ? "Tidak Hadir Member" : "Absent Members"} ({partsData.absent_members?.length ?? 0})
+              </button>
+              <button
+                type="button"
                 onClick={() => setRosterFilter("NON_MEMBER")}
-                className={`px-2.5 py-1 rounded transition-colors ${
+                className={`min-h-11 px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                   rosterFilter === "NON_MEMBER" ? "bg-white text-emerald-700 shadow-xs" : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -1230,7 +1432,7 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
               <button
                 type="button"
                 onClick={() => setRosterFilter("WAITING")}
-                className={`px-2.5 py-1 rounded transition-colors ${
+                className={`min-h-11 px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                   rosterFilter === "WAITING" ? "bg-white text-amber-700 shadow-xs" : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -1381,6 +1583,24 @@ function OpenPlayDetail({ sessionId }: { sessionId: string }) {
           />
         </section>
       </main>
+      {isAbsentConfirmOpen && selectedAbsentMember && (
+        <ConfirmModal
+          title={isId ? "Konfirmasi Tidak Hadir" : "Confirm absence"}
+          body={
+            <p>
+              {isId
+                ? `${selectedAbsentMember.name} akan ditandai tidak hadir dan satu slot dipindahkan dari member ke non-member. Lanjutkan?`
+                : `${selectedAbsentMember.name} will be marked absent and one slot will move from members to non-members. Continue?`}
+            </p>
+          }
+          confirmLabel={isId ? "Ya, Tandai Tidak Hadir" : "Yes, mark absent"}
+          cancelLabel={isId ? "Kembali" : "Go back"}
+          busy={isMarkingAbsent}
+          busyLabel={isId ? "Mencatat ketidakhadiran..." : "Recording absence..."}
+          onConfirm={confirmMarkAbsent}
+          onCancel={() => setIsAbsentConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }
